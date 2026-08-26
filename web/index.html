@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base href="$FLUTTER_BASE_HREF">
+  <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0F172A">
+  <meta name="description" content="PASSAGETR — public kelime ve okuma çalışması.">
+  <link rel="manifest" href="manifest.json">
+  <title>PASSAGETR</title>
+  <style>
+    body { margin: 0; background: #0F172A; }
+    #loading { position: fixed; inset: 0; display: grid; place-items: center; background: #0F172A; color: white; font: 800 26px system-ui, sans-serif; letter-spacing: 3px; }
+    #loading span { color: #FF8B3D; }
+  </style>
+</head>
+<body>
+  <div id="loading">PASSAGE<span>TR</span></div>
+  <script src="flutter_bootstrap.js" async></script>
+  <script>
+    window.addEventListener('flutter-first-frame', function () {
+      var loading = document.getElementById('loading');
+      if (loading) loading.remove();
+    });
+  </script>
+</body>
+</html>

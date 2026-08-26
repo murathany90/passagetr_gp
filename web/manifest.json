@@ -1,0 +1,9 @@
+{
+  "name": "PASSAGETR",
+  "short_name": "PASSAGETR",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#0F172A",
+  "theme_color": "#0F172A",
+  "description": "Public kelime ve okuma çalışması"
+}

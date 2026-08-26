@@ -1,0 +1,253 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+
+import '../../core/app_breakpoints.dart';
+import '../../core/app_theme_tokens.dart';
+import '../../core/content_providers.dart';
+import '../../models/content_models.dart';
+import '../common/page_parts.dart';
+import 'word_detail_sheet.dart';
+
+class WordsPage extends ConsumerStatefulWidget {
+  const WordsPage({super.key});
+  @override
+  ConsumerState<WordsPage> createState() => _WordsPageState();
+}
+
+class _WordsPageState extends ConsumerState<WordsPage> {
+  static const _pageSize = 72;
+  String _query = '';
+  String? _packId;
+  int _page = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    final words = ref.watch(wordsProvider);
+    final packs = ref.watch(contentPacksProvider);
+    return words.when(
+      loading: () => const PageFrame(
+          title: 'Kelimeler',
+          subtitle: 'İçerik yükleniyor...',
+          child: _WordsLoading()),
+      error: (error, _) => DataLoadErrorPage(
+          message: error.toString(),
+          onRetry: () => ref.invalidate(wordsProvider)),
+      data: (items) {
+        final availablePacks = packs.valueOrNull ?? const <ContentPack>[];
+        final validPackId =
+            availablePacks.any((pack) => pack.id == _packId) ? _packId : null;
+        final filtered = items.where((word) {
+          final matchesPack = validPackId == null || word.packId == validPackId;
+          final text =
+              '${word.enWord} ${word.trMeaning} ${word.pos}'.toLowerCase();
+          return matchesPack && text.contains(_query.toLowerCase());
+        }).toList(growable: false);
+        final lastPage =
+            filtered.isEmpty ? 0 : (filtered.length - 1) ~/ _pageSize;
+        final page = _page.clamp(0, lastPage);
+        final visible = filtered
+            .skip(page * _pageSize)
+            .take(_pageSize)
+            .toList(growable: false);
+        return PageFrame(
+          title: 'Kelimeler',
+          subtitle:
+              '${items.length} gerçek kelimeyi ara, kartlarla çalış veya mini test çöz.',
+          actions: <Widget>[
+            OutlinedButton.icon(
+                onPressed: () => context.go(
+                    '/words/mini-test${validPackId == null ? '' : '?packId=$validPackId'}'),
+                icon: const Icon(Icons.quiz_outlined),
+                label: const Text('Mini test')),
+            FilledButton.icon(
+                onPressed: () => context.go(
+                    '/words/flashcards${validPackId == null ? '' : '?packId=$validPackId'}'),
+                icon: const Icon(Icons.style_rounded),
+                label: const Text('Flashcard')),
+          ],
+          child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                TextField(
+                    decoration: const InputDecoration(
+                        prefixIcon: Icon(Icons.search_rounded),
+                        hintText: 'İngilizce veya Türkçe ara...'),
+                    onChanged: (value) => setState(() {
+                          _query = value.trim();
+                          _page = 0;
+                        })),
+                const SizedBox(height: 14),
+                _PackFilter(
+                    packs: availablePacks,
+                    selected: validPackId,
+                    onChanged: (value) => setState(() {
+                          _packId = value;
+                          _page = 0;
+                        })),
+                const SizedBox(height: 20),
+                Text('${filtered.length} sonuç',
+                    style: Theme.of(context).textTheme.titleMedium),
+                const SizedBox(height: 12),
+                _Pager(
+                  page: page,
+                  lastPage: lastPage,
+                  onPrevious:
+                      page == 0 ? null : () => setState(() => _page = page - 1),
+                  onNext: page == lastPage
+                      ? null
+                      : () => setState(() => _page = page + 1),
+                ),
+                const SizedBox(height: 8),
+                _WordGrid(words: visible),
+              ]),
+        );
+      },
+    );
+  }
+}
+
+class _Pager extends StatelessWidget {
+  const _Pager({
+    required this.page,
+    required this.lastPage,
+    required this.onPrevious,
+    required this.onNext,
+  });
+
+  final int page;
+  final int lastPage;
+  final VoidCallback? onPrevious;
+  final VoidCallback? onNext;
+
+  @override
+  Widget build(BuildContext context) => Row(children: <Widget>[
+        Expanded(
+            child: Text('Sayfa ${page + 1}/${lastPage + 1}',
+                style: Theme.of(context).textTheme.bodyMedium)),
+        IconButton(
+            tooltip: 'Önceki sayfa',
+            onPressed: onPrevious,
+            icon: const Icon(Icons.chevron_left_rounded)),
+        IconButton(
+            tooltip: 'Sonraki sayfa',
+            onPressed: onNext,
+            icon: const Icon(Icons.chevron_right_rounded)),
+      ]);
+}
+
+class _PackFilter extends StatelessWidget {
+  const _PackFilter(
+      {required this.packs, required this.selected, required this.onChanged});
+  final List<ContentPack> packs;
+  final String? selected;
+  final ValueChanged<String?> onChanged;
+  @override
+  Widget build(BuildContext context) => DropdownButtonFormField<String?>(
+        key: ValueKey<String?>(selected),
+        initialValue: selected,
+        isExpanded: true,
+        decoration: const InputDecoration(labelText: 'Paket'),
+        items: <DropdownMenuItem<String?>>[
+          const DropdownMenuItem(value: null, child: Text('Tüm paketler')),
+          ...packs.where((pack) => pack.wordCount > 0).map((pack) =>
+              DropdownMenuItem(
+                  value: pack.id,
+                  child: Text('${pack.name} · ${pack.wordCount}'))),
+        ],
+        onChanged: onChanged,
+      );
+}
+
+class _WordGrid extends StatelessWidget {
+  const _WordGrid({required this.words});
+  final List<WordEntry> words;
+  @override
+  Widget build(BuildContext context) {
+    if (words.isEmpty) {
+      return const SurfaceCard(child: Text('Aramana uygun kelime bulunamadı.'));
+    }
+    return LayoutBuilder(builder: (context, constraints) {
+      final columns = constraints.maxWidth >= AppBreakpoints.desktop
+          ? 3
+          : constraints.maxWidth >= AppBreakpoints.mobileWide
+              ? 2
+              : 1;
+      return GridView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: words.length,
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: columns,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
+            mainAxisExtent: 142),
+        itemBuilder: (context, index) => _WordCard(word: words[index]),
+      );
+    });
+  }
+}
+
+class _WordCard extends StatelessWidget {
+  const _WordCard({required this.word});
+  final WordEntry word;
+  @override
+  Widget build(BuildContext context) {
+    final tokens = AppThemeTokens.of(context);
+    return SurfaceCard(
+      onTap: () => showModalBottomSheet<void>(
+          context: context,
+          isScrollControlled: true,
+          showDragHandle: false,
+          builder: (_) => WordDetailSheet(word: word)),
+      child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Wrap(spacing: 8, children: <Widget>[
+              _Pill(label: word.pos, color: tokens.accentBlue),
+              if (word.level != null)
+                _Pill(label: word.level!, color: tokens.hero),
+            ]),
+            const Spacer(),
+            Text(word.enWord,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.titleLarge),
+            const SizedBox(height: 5),
+            Text(word.trMeaning,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.bodyMedium),
+            const Spacer(),
+            Text('Detayı aç',
+                style: Theme.of(context)
+                    .textTheme
+                    .bodySmall
+                    ?.copyWith(color: tokens.accent)),
+          ]),
+    );
+  }
+}
+
+class _Pill extends StatelessWidget {
+  const _Pill({required this.label, required this.color});
+  final String label;
+  final Color color;
+  @override
+  Widget build(BuildContext context) => Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+      decoration: BoxDecoration(
+          color: color.withValues(alpha: .12),
+          borderRadius: BorderRadius.circular(14)),
+      child: Text(label,
+          style:
+              Theme.of(context).textTheme.bodySmall?.copyWith(color: color)));
+}
+
+class _WordsLoading extends StatelessWidget {
+  const _WordsLoading();
+  @override
+  Widget build(BuildContext context) => const Center(
+      child: Padding(
+          padding: EdgeInsets.all(48), child: CircularProgressIndicator()));
+}
