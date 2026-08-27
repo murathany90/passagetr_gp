@@ -1,4 +1,5 @@
 import '../../models/content_models.dart';
+import '../../repositories/static_dictionary_repository.dart';
 
 class ReadingArticleSection {
   const ReadingArticleSection({
@@ -21,7 +22,6 @@ class SentenceToken {
 }
 
 final RegExp _tokenPattern = RegExp(r'\S+');
-final RegExp _edgePunctuationPattern = RegExp(r'^[^A-Za-z0-9]+|[^A-Za-z0-9]+$');
 
 List<ReadingArticleSection> resolveArticleSections(
     List<ReadingSentence> sentences) {
@@ -42,8 +42,5 @@ List<SentenceToken> tokenizeSentence(String text) =>
           displayWord: display, lookupQuery: normalizeDictionaryQuery(display));
     }).toList(growable: false);
 
-String normalizeDictionaryQuery(String value) => value
-    .trim()
-    .toLowerCase()
-    .replaceAll('\u2019', "'")
-    .replaceAll(_edgePunctuationPattern, '');
+String normalizeDictionaryQuery(String value) =>
+    normalizeDictionaryLookup(value);

@@ -19,6 +19,8 @@ class _ReadingsPageState extends ConsumerState<ReadingsPage> {
   static const _pageSize = 48;
   String _query = '';
   String? _packId;
+  String? _level;
+  String? _category;
   int _page = 0;
 
   @override
@@ -40,11 +42,29 @@ class _ReadingsPageState extends ConsumerState<ReadingsPage> {
         final packItems = packs.valueOrNull ?? const <ContentPack>[];
         final availablePackIds = items.map((item) => item.packId).toSet();
         final validPackId = availablePackIds.contains(_packId) ? _packId : null;
+        final levels = items
+            .map((item) => item.level)
+            .whereType<String>()
+            .where((value) => value.isNotEmpty)
+            .toSet()
+            .toList()
+          ..sort();
+        final categories = items
+            .map((item) => item.category)
+            .whereType<String>()
+            .where((value) => value.isNotEmpty)
+            .toSet()
+            .toList()
+          ..sort();
+        final validLevel = levels.contains(_level) ? _level : null;
+        final validCategory = categories.contains(_category) ? _category : null;
         final filtered = items.where((item) {
           final text =
               '${item.title} ${item.level ?? ''} ${item.category ?? ''} ${item.tags.join(' ')}'
                   .toLowerCase();
           return (validPackId == null || item.packId == validPackId) &&
+              (validLevel == null || item.level == validLevel) &&
+              (validCategory == null || item.category == validCategory) &&
               text.contains(_query.toLowerCase());
         }).toList(growable: false);
         final lastPage =
@@ -85,6 +105,52 @@ class _ReadingsPageState extends ConsumerState<ReadingsPage> {
                   ],
                   onChanged: (value) => setState(() {
                     _packId = value;
+                    _page = 0;
+                  }),
+                ),
+                const SizedBox(height: 14),
+                DropdownButtonFormField<String?>(
+                  key: ValueKey<String?>('level-$validLevel'),
+                  initialValue: validLevel,
+                  isExpanded: true,
+                  decoration: const InputDecoration(labelText: 'Seviye'),
+                  items: <DropdownMenuItem<String?>>[
+                    const DropdownMenuItem(
+                      value: null,
+                      child: Text('Tüm seviyeler'),
+                    ),
+                    ...levels.map(
+                      (level) => DropdownMenuItem(
+                        value: level,
+                        child: Text(level),
+                      ),
+                    ),
+                  ],
+                  onChanged: (value) => setState(() {
+                    _level = value;
+                    _page = 0;
+                  }),
+                ),
+                const SizedBox(height: 14),
+                DropdownButtonFormField<String?>(
+                  key: ValueKey<String?>('category-$validCategory'),
+                  initialValue: validCategory,
+                  isExpanded: true,
+                  decoration: const InputDecoration(labelText: 'Kategori'),
+                  items: <DropdownMenuItem<String?>>[
+                    const DropdownMenuItem(
+                      value: null,
+                      child: Text('Tüm kategoriler'),
+                    ),
+                    ...categories.map(
+                      (category) => DropdownMenuItem(
+                        value: category,
+                        child: Text(category),
+                      ),
+                    ),
+                  ],
+                  onChanged: (value) => setState(() {
+                    _category = value;
                     _page = 0;
                   }),
                 ),

@@ -61,6 +61,62 @@ class WordEntry {
       );
 }
 
+class DictionaryEntry {
+  const DictionaryEntry({
+    required this.id,
+    required this.enWord,
+    required this.normalizedKey,
+    required this.trMeaning,
+    this.pos,
+  });
+
+  final String id;
+  final String enWord;
+  final String normalizedKey;
+  final String trMeaning;
+  final String? pos;
+
+  factory DictionaryEntry.fromJson(Map<String, Object?> json) =>
+      DictionaryEntry(
+        id: json['id']! as String,
+        enWord: json['enWord']! as String,
+        normalizedKey: json['normalizedKey']! as String,
+        trMeaning: json['trMeaning']! as String,
+        pos: json['pos'] as String?,
+      );
+}
+
+class DictionaryShard {
+  const DictionaryShard({
+    required this.prefix,
+    required this.rangeStart,
+    required this.rangeEnd,
+    required this.file,
+    required this.recordCount,
+    required this.checksum,
+    required this.sizeBytes,
+  });
+
+  final String prefix;
+  final String rangeStart;
+  final String rangeEnd;
+  final String file;
+  final int recordCount;
+  final String checksum;
+  final int sizeBytes;
+
+  factory DictionaryShard.fromJson(Map<String, Object?> json) =>
+      DictionaryShard(
+        prefix: json['prefix']! as String,
+        rangeStart: json['rangeStart']! as String,
+        rangeEnd: json['rangeEnd']! as String,
+        file: json['file']! as String,
+        recordCount: json['recordCount']! as int,
+        checksum: json['checksum']! as String,
+        sizeBytes: json['sizeBytes']! as int,
+      );
+}
+
 class ReadingPassage {
   const ReadingPassage({
     required this.id,

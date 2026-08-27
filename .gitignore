@@ -8,4 +8,5 @@ build/
 .env.*
 env/
 *.log
+tools/__pycache__/
 coverage/

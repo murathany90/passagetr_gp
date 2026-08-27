@@ -25,3 +25,4 @@ flutter:
     - assets/content/v1/words/
     - assets/content/v1/readings/
     - assets/content/v1/readings/items/
+    - assets/content/v1/dictionary/

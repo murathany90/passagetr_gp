@@ -10,6 +10,8 @@ import '../tts/student_tts_engine.dart';
 import '../tts/student_tts_icon_button.dart';
 import 'reading_artwork.dart';
 import 'reading_models.dart';
+import '../words/dictionary_detail_sheet.dart';
+import '../words/word_detail_sheet.dart';
 
 class ReadingDetailPage extends ConsumerWidget {
   const ReadingDetailPage({super.key, required this.readingId});
@@ -163,12 +165,38 @@ class _SentenceCard extends ConsumerWidget {
                 child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
-                  SelectableText(section.englishText,
-                      style: Theme.of(context).textTheme.bodyLarge),
+                  _LookupableSentence(text: section.englishText),
                   if (section.turkishText != null) ...<Widget>[
                     const SizedBox(height: 9),
-                    SelectableText(section.turkishText!,
-                        style: Theme.of(context).textTheme.bodyMedium)
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        Expanded(
+                          child: SelectableText(
+                            section.turkishText!,
+                            style: Theme.of(context).textTheme.bodyMedium,
+                          ),
+                        ),
+                        StudentTtsIconButton(
+                          tooltip: 'Türkçe dinle',
+                          isSpeaking: speaking,
+                          isInitializing: tts.isInitializing &&
+                              tts.activeReadingId == readingId &&
+                              tts.activeSentenceIndex == section.lookupIndex,
+                          isUnavailable: tts.isUnavailable,
+                          onPlay: () => ref
+                              .read(studentTtsControllerProvider.notifier)
+                              .playTurkishSentence(
+                                readingId: readingId,
+                                sentenceIndex: section.lookupIndex,
+                                text: section.turkishText!,
+                              ),
+                          onStop: () => ref
+                              .read(studentTtsControllerProvider.notifier)
+                              .stop(),
+                        ),
+                      ],
+                    ),
                   ],
                 ])),
             StudentTtsIconButton(
@@ -190,6 +218,85 @@ class _SentenceCard extends ConsumerWidget {
               },
             ),
           ])),
+    );
+  }
+}
+
+class _LookupableSentence extends ConsumerWidget {
+  const _LookupableSentence({required this.text});
+
+  final String text;
+
+  Future<void> _showLookup(
+    BuildContext context,
+    WidgetRef ref,
+    SentenceToken token,
+  ) async {
+    if (!token.isLookupable) {
+      return;
+    }
+    final result =
+        await ref.read(wordLookupServiceProvider).find(token.lookupQuery);
+    if (!context.mounted) {
+      return;
+    }
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: false,
+      builder: (_) {
+        if (result.word case final word?) {
+          return WordDetailSheet(word: word);
+        }
+        if (result.dictionaryEntry case final entry?) {
+          return DictionaryDetailSheet(entry: entry);
+        }
+        return SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(22, 24, 22, 32),
+            child: Text(
+              '“${token.displayWord}” için yerel içerikte sonuç bulunamadı.',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final style = Theme.of(context).textTheme.bodyLarge;
+    return Wrap(
+      spacing: 3,
+      runSpacing: 2,
+      children: tokenizeSentence(text).map((token) {
+        if (!token.isLookupable) {
+          return Text(token.displayWord, style: style);
+        }
+        return Semantics(
+          button: true,
+          label: '${token.displayWord} sözlükte ara',
+          child: InkWell(
+            borderRadius: BorderRadius.circular(4),
+            onTap: () => _showLookup(context, ref, token),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 1, vertical: 2),
+              child: Text(
+                token.displayWord,
+                style: style?.copyWith(
+                  decoration: TextDecoration.underline,
+                  decorationColor: Theme.of(context)
+                      .colorScheme
+                      .primary
+                      .withValues(alpha: .42),
+                ),
+              ),
+            ),
+          ),
+        );
+      }).toList(growable: false),
     );
   }
 }

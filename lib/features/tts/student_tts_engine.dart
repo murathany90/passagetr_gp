@@ -83,7 +83,7 @@ class StudentTtsState {
 
 abstract interface class StudentTtsEngine {
   Future<StudentTtsAvailability> ensureInitialized();
-  Future<void> speak(String text);
+  Future<void> speak(String text, {String? languageCode});
   Future<void> stop();
   Future<void> dispose();
 }
@@ -118,10 +118,13 @@ class NativeStudentTtsEngine implements StudentTtsEngine {
   }
 
   @override
-  Future<void> speak(String text) async {
+  Future<void> speak(String text, {String? languageCode}) async {
     final trimmed = text.trim();
     if (trimmed.isEmpty) {
       return;
+    }
+    if (languageCode != null && !await _trySetLanguage(languageCode)) {
+      throw StateError('TTS language is unavailable: $languageCode');
     }
 
     await _tts.speak(trimmed);

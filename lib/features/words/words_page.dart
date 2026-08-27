@@ -19,6 +19,7 @@ class _WordsPageState extends ConsumerState<WordsPage> {
   static const _pageSize = 72;
   String _query = '';
   String? _packId;
+  String? _level;
   int _page = 0;
 
   @override
@@ -37,11 +38,22 @@ class _WordsPageState extends ConsumerState<WordsPage> {
         final availablePacks = packs.valueOrNull ?? const <ContentPack>[];
         final validPackId =
             availablePacks.any((pack) => pack.id == _packId) ? _packId : null;
+        final levels = items
+            .map((word) => word.level)
+            .whereType<String>()
+            .where((level) => level.isNotEmpty)
+            .toSet()
+            .toList()
+          ..sort();
+        final validLevel = levels.contains(_level) ? _level : null;
         final filtered = items.where((word) {
           final matchesPack = validPackId == null || word.packId == validPackId;
+          final matchesLevel = validLevel == null || word.level == validLevel;
           final text =
               '${word.enWord} ${word.trMeaning} ${word.pos}'.toLowerCase();
-          return matchesPack && text.contains(_query.toLowerCase());
+          return matchesPack &&
+              matchesLevel &&
+              text.contains(_query.toLowerCase());
         }).toList(growable: false);
         final lastPage =
             filtered.isEmpty ? 0 : (filtered.length - 1) ~/ _pageSize;
@@ -85,6 +97,29 @@ class _WordsPageState extends ConsumerState<WordsPage> {
                           _packId = value;
                           _page = 0;
                         })),
+                const SizedBox(height: 20),
+                DropdownButtonFormField<String?>(
+                  key: ValueKey<String?>('level-$validLevel'),
+                  initialValue: validLevel,
+                  isExpanded: true,
+                  decoration: const InputDecoration(labelText: 'Seviye'),
+                  items: <DropdownMenuItem<String?>>[
+                    const DropdownMenuItem(
+                      value: null,
+                      child: Text('Tüm seviyeler'),
+                    ),
+                    ...levels.map(
+                      (level) => DropdownMenuItem(
+                        value: level,
+                        child: Text(level),
+                      ),
+                    ),
+                  ],
+                  onChanged: (value) => setState(() {
+                    _level = value;
+                    _page = 0;
+                  }),
+                ),
                 const SizedBox(height: 20),
                 Text('${filtered.length} sonuç',
                     style: Theme.of(context).textTheme.titleMedium),

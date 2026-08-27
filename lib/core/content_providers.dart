@@ -2,12 +2,26 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/content_models.dart';
 import '../repositories/static_content_repository.dart';
+import '../repositories/static_dictionary_repository.dart';
+import '../repositories/word_lookup_service.dart';
 import '../features/tts/student_tts_controller.dart';
 import '../features/tts/student_tts_engine.dart';
 
 final staticContentRepositoryProvider =
     Provider<StaticContentRepository>((ref) {
   return StaticContentRepository();
+});
+
+final staticDictionaryRepositoryProvider =
+    Provider<StaticDictionaryRepository>((ref) {
+  return StaticDictionaryRepository();
+});
+
+final wordLookupServiceProvider = Provider<WordLookupService>((ref) {
+  return WordLookupService(
+    content: ref.watch(staticContentRepositoryProvider),
+    dictionary: ref.watch(staticDictionaryRepositoryProvider),
+  );
 });
 
 final contentPacksProvider = FutureProvider<List<ContentPack>>((ref) {

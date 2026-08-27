@@ -19,8 +19,23 @@ class StudentTtsController extends StateNotifier<StudentTtsState> {
     return _playSingle(
       target: StudentTtsTarget.word,
       text: word.enWord,
+      languageCode: 'en-US',
       readingId: readingId,
       wordId: word.id,
+    );
+  }
+
+  Future<StudentTtsActionResult> playDictionaryEntry({
+    required String entryId,
+    required String text,
+    String? readingId,
+  }) {
+    return _playSingle(
+      target: StudentTtsTarget.word,
+      text: text,
+      languageCode: 'en-US',
+      readingId: readingId,
+      wordId: entryId,
     );
   }
 
@@ -32,6 +47,21 @@ class StudentTtsController extends StateNotifier<StudentTtsState> {
     return _playSingle(
       target: StudentTtsTarget.sentence,
       text: text,
+      languageCode: 'en-US',
+      readingId: readingId,
+      sentenceIndex: sentenceIndex,
+    );
+  }
+
+  Future<StudentTtsActionResult> playTurkishSentence({
+    required String readingId,
+    required int sentenceIndex,
+    required String text,
+  }) {
+    return _playSingle(
+      target: StudentTtsTarget.sentence,
+      text: text,
+      languageCode: 'tr-TR',
       readingId: readingId,
       sentenceIndex: sentenceIndex,
     );
@@ -138,6 +168,7 @@ class StudentTtsController extends StateNotifier<StudentTtsState> {
   Future<StudentTtsActionResult> _playSingle({
     required StudentTtsTarget target,
     required String text,
+    String? languageCode,
     String? readingId,
     int? sentenceIndex,
     String? wordId,
@@ -167,7 +198,7 @@ class StudentTtsController extends StateNotifier<StudentTtsState> {
     );
 
     try {
-      await _engine.speak(text);
+      await _engine.speak(text, languageCode: languageCode);
     } catch (_) {
       if (mounted && session == _sessionId) {
         state = _idleState(errorMessage: 'Metin simdi okunamadi.');
