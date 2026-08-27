@@ -1,0 +1,235 @@
+{
+  "schema_version": "2.0",
+  "package_version": "passagetr_readings_001_100_curated_v2",
+  "source_number": 54,
+  "source_pack": "YDS Set 001",
+  "source_title": "054-The Virtual Beach but Real Fun (Sanal Plaj ama Gercek Eglence)",
+  "source_title_en": "The Virtual Beach but Real Fun",
+  "source_title_tr": "Sanal Plaj ama Gercek Eglence",
+  "source_level": "A2",
+  "source_category": "Travel & Geography",
+  "source_tags": [
+    "leisure",
+    "tourism",
+    "japan"
+  ],
+  "replacement_title_en": "The Virtual Beach: Real Fun in a Simulated World",
+  "replacement_title_tr": "Sanal Plaj: Simüle Edilmiş Bir Dünyada Gerçek Eğlence",
+  "content_mode": "parallel_expansion_editorial_v2",
+  "editorial_note": "New bilingual educational passage, topically parallel to the source title; not a reproduction of the original passage.",
+  "sentence_count": 15,
+  "sentences": [
+    {
+      "index": 1,
+      "en": "Virtual environments can imitate beaches, sports, museums, or distant landscapes by combining visual displays, sound, motion tracking, and interactive software.",
+      "tr": "Sanal ortamlar görsel ekranları, sesi, hareket takibini ve etkileşimli yazılımı birleştirerek plajları, sporları, müzeleri veya uzak manzaraları taklit edebilir."
+    },
+    {
+      "index": 2,
+      "en": "A convincing experience does not require perfect realism; users often respond strongly when a system gives timely feedback to their movements and choices.",
+      "tr": "İkna edici bir deneyim kusursuz gerçekçilik gerektirmez; kullanıcılar sistem hareketlerine ve tercihlerine zamanında geri bildirim verdiğinde çoğu zaman güçlü tepki verir."
+    },
+    {
+      "index": 3,
+      "en": "This is important because the visible result often depends on decisions made earlier and on conditions that users do not immediately notice.",
+      "tr": "Bu önemlidir çünkü görünen sonuç çoğu zaman daha önce alınmış kararlara ve kullanıcıların hemen fark etmediği koşullara bağlıdır."
+    },
+    {
+      "index": 4,
+      "en": "Simulation can provide safe practice, accessible entertainment, and experiences that would otherwise be expensive, dangerous, or geographically impossible.",
+      "tr": "Simülasyon güvenli pratik, erişilebilir eğlence ve normalde pahalı, tehlikeli veya coğrafi olarak imkânsız olacak deneyimler sağlayabilir."
+    },
+    {
+      "index": 5,
+      "en": "The example also shows that a single subject can involve practical, social, economic, or environmental questions at the same time.",
+      "tr": "Örnek ayrıca tek bir konunun aynı anda pratik, toplumsal, ekonomik veya çevresel sorular içerebileceğini gösterir."
+    },
+    {
+      "index": 6,
+      "en": "Long sessions may still cause eye strain, motion sickness, isolation, or disappointment if marketing promises more realism than the technology can deliver.",
+      "tr": "Uzun oturumlar yine de göz yorgunluğu, hareket hastalığı, yalnızlaşma veya pazarlama teknolojinin sunabileceğinden fazla gerçekçilik vaat ederse hayal kırıklığı yaratabilir."
+    },
+    {
+      "index": 7,
+      "en": "Ignoring that difficulty may produce a short-term advantage while creating a larger problem later.",
+      "tr": "Bu güçlüğü görmezden gelmek kısa vadeli bir avantaj sağlarken daha sonra daha büyük bir sorun yaratabilir."
+    },
+    {
+      "index": 8,
+      "en": "Virtual leisure is most valuable when it expands human experience without pretending that a simulation can fully replace physical places, relationships, and sensory reality.",
+      "tr": "Sanal eğlence insan deneyimini genişlettiğinde ancak bir simülasyonun fiziksel mekânların, ilişkilerin ve duyusal gerçekliğin tamamen yerini alabileceğini iddia etmediğinde en değerlidir."
+    },
+    {
+      "index": 9,
+      "en": "In this context, 'simulation' means a model or imitation of a real situation used for experience, study, or training.",
+      "tr": "Bu bağlamda 'simulation' sözcüğü 'deneyim, inceleme veya eğitim amacıyla kullanılan gerçek bir durumun modeli ya da taklidi' anlamına gelir."
+    },
+    {
+      "index": 10,
+      "en": "People usually make better choices when they compare alternatives, check reliable information, and understand who carries the cost or risk.",
+      "tr": "İnsanlar alternatifleri karşılaştırdığında, güvenilir bilgiyi kontrol ettiğinde ve maliyeti veya riski kimin taşıdığını anladığında genellikle daha iyi tercihler yapar."
+    },
+    {
+      "index": 11,
+      "en": "Different groups may still disagree because they value different outcomes or experience the situation from different positions.",
+      "tr": "Farklı gruplar farklı sonuçlara değer verdikleri veya durumu farklı konumlardan yaşadıkları için yine de anlaşamayabilir."
+    },
+    {
+      "index": 12,
+      "en": "Clear communication is useful because it allows people to explain both their goals and the limits they face.",
+      "tr": "Açık iletişim yararlıdır çünkü insanların hem hedeflerini hem de karşılaştıkları sınırları açıklamasına imkân verir."
+    },
+    {
+      "index": 13,
+      "en": "A practical solution should therefore be tested in real conditions instead of being accepted only because it sounds attractive.",
+      "tr": "Bu nedenle pratik bir çözüm yalnızca çekici göründüğü için kabul edilmek yerine gerçek koşullarda sınanmalıdır."
+    },
+    {
+      "index": 14,
+      "en": "Long-term success depends on reviewing results and changing the plan when evidence shows that an approach is not working well.",
+      "tr": "Uzun vadeli başarı, sonuçları gözden geçirmeye ve kanıt bir yaklaşımın iyi işlemediğini gösterdiğinde planı değiştirmeye bağlıdır."
+    },
+    {
+      "index": 15,
+      "en": "For these reasons, The Virtual Beach: Real Fun in a Simulated World is a useful topic for learning how individual choices connect with wider consequences.",
+      "tr": "Bu nedenlerle Sanal Plaj: Simüle Edilmiş Bir Dünyada Gerçek Eğlence, bireysel tercihlerin daha geniş sonuçlarla nasıl bağlantı kurduğunu öğrenmek için yararlı bir konudur."
+    }
+  ],
+  "summary_en": "Virtual environments can imitate beaches, sports, museums, or distant landscapes by combining visual displays, sound, motion tracking, and interactive software. Virtual leisure is most valuable when it expands human experience without pretending that a simulation can fully replace physical places, relationships, and sensory reality.",
+  "summary_tr": "Sanal ortamlar görsel ekranları, sesi, hareket takibini ve etkileşimli yazılımı birleştirerek plajları, sporları, müzeleri veya uzak manzaraları taklit edebilir. Sanal eğlence insan deneyimini genişlettiğinde ancak bir simülasyonun fiziksel mekânların, ilişkilerin ve duyusal gerçekliğin tamamen yerini alabileceğini iddia etmediğinde en değerlidir.",
+  "questions": [
+    {
+      "id": "054-cq1",
+      "type": "main_idea",
+      "question_en": "Which statement best summarizes the passage 'The Virtual Beach: Real Fun in a Simulated World'?",
+      "question_tr": "'Sanal Plaj: Simüle Edilmiş Bir Dünyada Gerçek Eğlence' başlıklı parçayı en iyi hangi ifade özetler?",
+      "options_en": [
+        "The main purpose is to memorize isolated vocabulary rather than understand the topic.",
+        "Virtual environments can imitate beaches, sports, museums, or distant landscapes by combining visual displays, sound, motion tracking, and interactive software.",
+        "The topic can be explained by one simple rule with no exceptions.",
+        "The passage argues that historical or practical context is unnecessary."
+      ],
+      "options_tr": [
+        "Temel amaç konuyu anlamak yerine ayrı kelimeleri ezberlemektir.",
+        "Sanal ortamlar görsel ekranları, sesi, hareket takibini ve etkileşimli yazılımı birleştirerek plajları, sporları, müzeleri veya uzak manzaraları taklit edebilir.",
+        "Konu hiçbir istisna olmadan tek bir basit kuralla açıklanabilir.",
+        "Parça tarihsel veya pratik bağlamın gereksiz olduğunu savunur."
+      ],
+      "correct_option_index": 1,
+      "answer_en": "Virtual environments can imitate beaches, sports, museums, or distant landscapes by combining visual displays, sound, motion tracking, and interactive software.",
+      "answer_tr": "Sanal ortamlar görsel ekranları, sesi, hareket takibini ve etkileşimli yazılımı birleştirerek plajları, sporları, müzeleri veya uzak manzaraları taklit edebilir.",
+      "explanation_en": "The opening sentence gives the central idea developed by the rest of the passage.",
+      "explanation_tr": "Açılış cümlesi parçanın geri kalanında geliştirilen temel düşünceyi verir.",
+      "evidence_sentence_indexes": [
+        1
+      ]
+    },
+    {
+      "id": "054-cq2",
+      "type": "detail",
+      "question_en": "According to the passage, which specific point is correct?",
+      "question_tr": "Parçaya göre hangi özel bilgi doğrudur?",
+      "options_en": [
+        "A convincing experience does not require perfect realism; users often respond strongly when a system gives timely feedback to their movements and choices.",
+        "Long sessions may still cause eye strain, motion sickness, isolation, or disappointment if marketing promises more realism than the technology can deliver.",
+        "The passage says no practical preparation or evidence is needed.",
+        "The passage states that all people experience the issue in exactly the same way."
+      ],
+      "options_tr": [
+        "İkna edici bir deneyim kusursuz gerçekçilik gerektirmez; kullanıcılar sistem hareketlerine ve tercihlerine zamanında geri bildirim verdiğinde çoğu zaman güçlü tepki verir.",
+        "Uzun oturumlar yine de göz yorgunluğu, hareket hastalığı, yalnızlaşma veya pazarlama teknolojinin sunabileceğinden fazla gerçekçilik vaat ederse hayal kırıklığı yaratabilir.",
+        "Parça hiçbir pratik hazırlık veya kanıt gerekmediğini söyler.",
+        "Parça bütün insanların konuyu tamamen aynı biçimde yaşadığını belirtir."
+      ],
+      "correct_option_index": 0,
+      "answer_en": "A convincing experience does not require perfect realism; users often respond strongly when a system gives timely feedback to their movements and choices.",
+      "answer_tr": "İkna edici bir deneyim kusursuz gerçekçilik gerektirmez; kullanıcılar sistem hareketlerine ve tercihlerine zamanında geri bildirim verdiğinde çoğu zaman güçlü tepki verir.",
+      "explanation_en": "This information is stated directly in sentence 2.",
+      "explanation_tr": "Bu bilgi 2. cümlede doğrudan belirtilmiştir.",
+      "evidence_sentence_indexes": [
+        2
+      ]
+    },
+    {
+      "id": "054-cq3",
+      "type": "relationship",
+      "question_en": "Which additional fact does the passage use to develop the topic?",
+      "question_tr": "Parça konuyu geliştirmek için hangi ek bilgiyi kullanır?",
+      "options_en": [
+        "The passage says the subject has no effect outside a single person.",
+        "The passage claims that costs and risks can always be ignored.",
+        "The passage gives no example of how the topic works in practice.",
+        "Simulation can provide safe practice, accessible entertainment, and experiences that would otherwise be expensive, dangerous, or geographically impossible."
+      ],
+      "options_tr": [
+        "Parça konunun tek bir kişinin dışında hiçbir etkisi olmadığını söyler.",
+        "Parça maliyetlerin ve risklerin her zaman görmezden gelinebileceğini iddia eder.",
+        "Parça konunun pratikte nasıl işlediğine dair hiçbir örnek vermez.",
+        "Simülasyon güvenli pratik, erişilebilir eğlence ve normalde pahalı, tehlikeli veya coğrafi olarak imkânsız olacak deneyimler sağlayabilir."
+      ],
+      "correct_option_index": 3,
+      "answer_en": "Simulation can provide safe practice, accessible entertainment, and experiences that would otherwise be expensive, dangerous, or geographically impossible.",
+      "answer_tr": "Simülasyon güvenli pratik, erişilebilir eğlence ve normalde pahalı, tehlikeli veya coğrafi olarak imkânsız olacak deneyimler sağlayabilir.",
+      "explanation_en": "Sentence 4 adds this second topic-specific fact.",
+      "explanation_tr": "4. cümle konuya özgü bu ikinci bilgiyi ekler.",
+      "evidence_sentence_indexes": [
+        4
+      ]
+    },
+    {
+      "id": "054-cq4",
+      "type": "inference",
+      "question_en": "What conclusion is most reasonable based on the challenge and outcome described in the passage?",
+      "question_tr": "Parçada anlatılan güçlük ve sonuç temelinde hangi çıkarım en makuldür?",
+      "options_en": [
+        "A good outcome depends only on luck and cannot be influenced by planning.",
+        "The passage recommends choosing the fastest option regardless of later effects.",
+        "Virtual leisure is most valuable when it expands human experience without pretending that a simulation can fully replace physical places, relationships, and sensory reality.",
+        "The safest approach is to ignore the difficulty completely."
+      ],
+      "options_tr": [
+        "İyi sonuç yalnızca şansa bağlıdır ve planlamayla etkilenemez.",
+        "Parça sonraki etkiler ne olursa olsun en hızlı seçeneğin seçilmesini önerir.",
+        "Sanal eğlence insan deneyimini genişlettiğinde ancak bir simülasyonun fiziksel mekânların, ilişkilerin ve duyusal gerçekliğin tamamen yerini alabileceğini iddia etmediğinde en değerlidir.",
+        "En güvenli yaklaşım güçlüğü tamamen görmezden gelmektir."
+      ],
+      "correct_option_index": 2,
+      "answer_en": "Virtual leisure is most valuable when it expands human experience without pretending that a simulation can fully replace physical places, relationships, and sensory reality.",
+      "answer_tr": "Sanal eğlence insan deneyimini genişlettiğinde ancak bir simülasyonun fiziksel mekânların, ilişkilerin ve duyusal gerçekliğin tamamen yerini alabileceğini iddia etmediğinde en değerlidir.",
+      "explanation_en": "The passage identifies a concrete challenge and then gives the constructive result or lesson.",
+      "explanation_tr": "Parça somut bir güçlüğü belirtir ve ardından yapıcı sonucu veya dersi verir.",
+      "evidence_sentence_indexes": [
+        6,
+        8
+      ]
+    },
+    {
+      "id": "054-cq5",
+      "type": "vocabulary_context",
+      "question_en": "What does 'simulation' mean as used in the passage?",
+      "question_tr": "Parçada kullanılan 'simulation' sözcüğü ne anlama gelir?",
+      "options_en": [
+        "a measurement that refers only to money",
+        "a model or imitation of a real situation used for experience, study, or training",
+        "the exact opposite of the idea explained in the passage",
+        "a word used only as a proper name with no general meaning"
+      ],
+      "options_tr": [
+        "yalnızca parayı ifade eden bir ölçüm",
+        "deneyim, inceleme veya eğitim amacıyla kullanılan gerçek bir durumun modeli ya da taklidi",
+        "parçada açıklanan düşüncenin tam tersi",
+        "genel anlamı olmayan, yalnızca özel isim olarak kullanılan bir sözcük"
+      ],
+      "correct_option_index": 1,
+      "answer_en": "a model or imitation of a real situation used for experience, study, or training",
+      "answer_tr": "deneyim, inceleme veya eğitim amacıyla kullanılan gerçek bir durumun modeli ya da taklidi",
+      "explanation_en": "Sentence 9 defines 'simulation' in context.",
+      "explanation_tr": "9. cümle 'simulation' sözcüğünü bağlam içinde tanımlar.",
+      "evidence_sentence_indexes": [
+        9
+      ]
+    }
+  ],
+  "question_count": 5,
+  "legacy_questions_policy": "PRESERVE_EXISTING_LEGACY_QUESTIONS_SEPARATELY; DO NOT DELETE OR OVERWRITE WITHOUT EXPLICIT EDITORIAL REVIEW."
+}

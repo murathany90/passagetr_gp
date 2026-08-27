@@ -127,6 +127,7 @@ class ReadingPassage {
     this.category,
     this.tags = const <String>[],
     this.summary,
+    this.summaryTr,
     this.sourceNumber,
     this.displayTitle,
     this.turkishTitle,
@@ -147,6 +148,7 @@ class ReadingPassage {
   final String? category;
   final List<String> tags;
   final String? summary;
+  final String? summaryTr;
   final String? sourceNumber;
   final String? displayTitle;
   final String? turkishTitle;
@@ -167,6 +169,7 @@ class ReadingPassage {
         category: json['category'] as String?,
         tags: _stringList(json['tags']),
         summary: json['summary'] as String?,
+        summaryTr: json['summaryTr'] as String?,
         sourceNumber: json['sourceNumber'] as String?,
         displayTitle: json['displayTitle'] as String?,
         turkishTitle: json['turkishTitle'] as String?,
@@ -208,7 +211,14 @@ class ReadingQuestion {
     required this.question,
     required this.options,
     required this.correctOptionIndex,
+    this.type,
+    this.questionTr,
+    this.optionsTr = const <String>[],
+    this.answerEn,
+    this.answerTr,
     this.explanation,
+    this.explanationTr,
+    this.evidenceSentenceIndexes = const <int>[],
   });
 
   final String id;
@@ -216,7 +226,14 @@ class ReadingQuestion {
   final String question;
   final List<String> options;
   final int correctOptionIndex;
+  final String? type;
+  final String? questionTr;
+  final List<String> optionsTr;
+  final String? answerEn;
+  final String? answerTr;
   final String? explanation;
+  final String? explanationTr;
+  final List<int> evidenceSentenceIndexes;
 
   factory ReadingQuestion.fromJson(Map<String, Object?> json) =>
       ReadingQuestion(
@@ -225,7 +242,14 @@ class ReadingQuestion {
         question: json['question']! as String,
         options: _stringList(json['options']),
         correctOptionIndex: json['correctOptionIndex']! as int,
+        type: json['type'] as String?,
+        questionTr: json['questionTr'] as String?,
+        optionsTr: _stringList(json['optionsTr']),
+        answerEn: json['answerEn'] as String?,
+        answerTr: json['answerTr'] as String?,
         explanation: json['explanation'] as String?,
+        explanationTr: json['explanationTr'] as String?,
+        evidenceSentenceIndexes: _intList(json['evidenceSentenceIndexes']),
       );
 }
 
@@ -274,4 +298,9 @@ Map<String, Object?> _jsonMap(Object? value) =>
 List<String> _stringList(Object? value) =>
     ((value as List<Object?>?) ?? const <Object?>[])
         .whereType<String>()
+        .toList(growable: false);
+
+List<int> _intList(Object? value) =>
+    ((value as List<Object?>?) ?? const <Object?>[])
+        .whereType<int>()
         .toList(growable: false);

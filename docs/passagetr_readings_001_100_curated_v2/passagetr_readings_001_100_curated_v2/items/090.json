@@ -1,0 +1,235 @@
+{
+  "schema_version": "2.0",
+  "package_version": "passagetr_readings_001_100_curated_v2",
+  "source_number": 90,
+  "source_pack": "YDS Set 002",
+  "source_title": "090-Gandhi Indian Restaurant (Gandhi Hint Restoranı)",
+  "source_title_en": "Gandhi Indian Restaurant",
+  "source_title_tr": "Gandhi Hint Restoranı",
+  "source_level": "B1",
+  "source_category": "Economics & Business",
+  "source_tags": [
+    "food",
+    "restaurant",
+    "business"
+  ],
+  "replacement_title_en": "An Indian Restaurant: Food, Service, and Cultural Adaptation",
+  "replacement_title_tr": "Bir Hint Restoranı: Yemek, Hizmet ve Kültürel Uyum",
+  "content_mode": "parallel_expansion_editorial_v2",
+  "editorial_note": "New bilingual educational passage, topically parallel to the source title; not a reproduction of the original passage.",
+  "sentence_count": 15,
+  "sentences": [
+    {
+      "index": 1,
+      "en": "An Indian restaurant may introduce diners to a wide range of regional cooking traditions rather than one single uniform national cuisine.",
+      "tr": "Bir Hint restoranı müşterileri tek bir homojen ulusal mutfak yerine çok çeşitli bölgesel yemek gelenekleriyle tanıştırabilir."
+    },
+    {
+      "index": 2,
+      "en": "Menus can include different combinations of grains, breads, legumes, vegetables, meat, seafood, dairy products, spices, pickles, and sweets depending on regional influence.",
+      "tr": "Menüler bölgesel etkiye göre farklı tahıl, ekmek, bakliyat, sebze, et, deniz ürünü, süt ürünü, baharat, turşu ve tatlı kombinasyonlarını içerebilir."
+    },
+    {
+      "index": 3,
+      "en": "That detail is significant because it links the immediate subject to a wider system of incentives, institutions, environments, or human behavior.",
+      "tr": "Bu ayrıntı önemlidir çünkü doğrudan konuyu teşvikler, kurumlar, çevreler veya insan davranışlarından oluşan daha geniş bir sistemle ilişkilendirir."
+    },
+    {
+      "index": 4,
+      "en": "Restaurants serving international customers often adjust heat levels, portion sizes, explanations, and presentation while trying to preserve recognizable flavors and cooking methods.",
+      "tr": "Uluslararası müşterilere hizmet veren restoranlar tanınabilir tatları ve pişirme yöntemlerini korumaya çalışırken acılık düzeylerini, porsiyonları, açıklamaları ve sunumu ayarlayabilir."
+    },
+    {
+      "index": 5,
+      "en": "Taken together, these points suggest that the topic cannot be understood well through a single cause or a simple good-versus-bad judgement.",
+      "tr": "Bu noktalar birlikte değerlendirildiğinde konunun tek bir neden veya basit bir iyi-kötü yargısıyla yeterince anlaşılamayacağı görülür."
+    },
+    {
+      "index": 6,
+      "en": "Clear information about allergens, vegetarian or vegan ingredients, religious dietary requirements, and cross-contamination is increasingly important for both safety and trust.",
+      "tr": "Alerjenler, vejetaryen veya vegan içerikler, dinî beslenme gerekleri ve çapraz bulaşma hakkında açık bilgi hem güvenlik hem de güven açısından giderek daha önemlidir."
+    },
+    {
+      "index": 7,
+      "en": "The difficulty becomes more serious when decision-makers focus on the most visible short-term outcome and ignore costs that appear later or fall on other groups.",
+      "tr": "Karar vericiler en görünür kısa vadeli sonuca odaklanıp daha sonra ortaya çıkan veya başka grupların taşıdığı maliyetleri görmezden geldiğinde güçlük daha ciddi hâle gelir."
+    },
+    {
+      "index": 8,
+      "en": "A successful restaurant combines culinary identity with consistent hygiene, good service, cost control, and the ability to explain unfamiliar dishes without reducing them to stereotypes.",
+      "tr": "Başarılı bir restoran mutfak kimliğini tutarlı hijyen, iyi hizmet, maliyet kontrolü ve tanıdık olmayan yemekleri kalıplara indirgemeden açıklama becerisiyle birleştirir."
+    },
+    {
+      "index": 9,
+      "en": "The term 'cuisine' is used here in the sense of a style or tradition of cooking associated with a place or community.",
+      "tr": "'cuisine' terimi burada 'bir yer veya toplulukla ilişkili yemek pişirme tarzı ya da geleneği' anlamında kullanılmaktadır."
+    },
+    {
+      "index": 10,
+      "en": "Evidence is most useful when it is compared across sources and interpreted in the context in which it was produced.",
+      "tr": "Kanıt, farklı kaynaklar arasında karşılaştırıldığında ve üretildiği bağlam içinde yorumlandığında en yararlı hâle gelir."
+    },
+    {
+      "index": 11,
+      "en": "Stakeholders can reach different conclusions without either side being irrational, because they may face different risks, resources, and responsibilities.",
+      "tr": "Paydaşlar, farklı riskler, kaynaklar ve sorumluluklarla karşılaştıkları için taraflardan biri akıl dışı olmadan farklı sonuçlara ulaşabilir."
+    },
+    {
+      "index": 12,
+      "en": "For that reason, strong policy or personal judgement should explain trade-offs openly instead of hiding them behind a single headline or slogan.",
+      "tr": "Bu nedenle güçlü bir politika veya kişisel yargı, ödünleşimleri tek bir başlık ya da sloganın arkasına gizlemek yerine açıkça anlatmalıdır."
+    },
+    {
+      "index": 13,
+      "en": "An effective response is usually flexible enough to change when new information appears, yet stable enough for people to understand what is expected of them.",
+      "tr": "Etkili bir yaklaşım yeni bilgi ortaya çıktığında değişebilecek kadar esnek, insanların kendilerinden ne beklendiğini anlayabileceği kadar istikrarlı olmalıdır."
+    },
+    {
+      "index": 14,
+      "en": "The broader lesson is that durable progress comes from combining knowledge, practical capacity, and accountability rather than depending on intention alone.",
+      "tr": "Daha geniş ders, kalıcı ilerlemenin yalnızca iyi niyete değil bilgi, pratik kapasite ve hesap verebilirliğin birleşimine dayandığıdır."
+    },
+    {
+      "index": 15,
+      "en": "Seen in this wider frame, An Indian Restaurant: Food, Service, and Cultural Adaptation becomes a case study in how evidence, choices, and consequences interact over time.",
+      "tr": "Bu geniş çerçevede Bir Hint Restoranı: Yemek, Hizmet ve Kültürel Uyum, kanıtın, tercihlerin ve sonuçların zaman içinde nasıl etkileştiğini gösteren bir örneğe dönüşür."
+    }
+  ],
+  "summary_en": "An Indian restaurant may introduce diners to a wide range of regional cooking traditions rather than one single uniform national cuisine. A successful restaurant combines culinary identity with consistent hygiene, good service, cost control, and the ability to explain unfamiliar dishes without reducing them to stereotypes.",
+  "summary_tr": "Bir Hint restoranı müşterileri tek bir homojen ulusal mutfak yerine çok çeşitli bölgesel yemek gelenekleriyle tanıştırabilir. Başarılı bir restoran mutfak kimliğini tutarlı hijyen, iyi hizmet, maliyet kontrolü ve tanıdık olmayan yemekleri kalıplara indirgemeden açıklama becerisiyle birleştirir.",
+  "questions": [
+    {
+      "id": "090-cq1",
+      "type": "main_idea",
+      "question_en": "Which statement best summarizes the passage 'An Indian Restaurant: Food, Service, and Cultural Adaptation'?",
+      "question_tr": "'Bir Hint Restoranı: Yemek, Hizmet ve Kültürel Uyum' başlıklı parçayı en iyi hangi ifade özetler?",
+      "options_en": [
+        "The main purpose is to memorize isolated vocabulary rather than understand the topic.",
+        "An Indian restaurant may introduce diners to a wide range of regional cooking traditions rather than one single uniform national cuisine.",
+        "The topic can be explained by one simple rule with no exceptions.",
+        "The passage argues that historical or practical context is unnecessary."
+      ],
+      "options_tr": [
+        "Temel amaç konuyu anlamak yerine ayrı kelimeleri ezberlemektir.",
+        "Bir Hint restoranı müşterileri tek bir homojen ulusal mutfak yerine çok çeşitli bölgesel yemek gelenekleriyle tanıştırabilir.",
+        "Konu hiçbir istisna olmadan tek bir basit kuralla açıklanabilir.",
+        "Parça tarihsel veya pratik bağlamın gereksiz olduğunu savunur."
+      ],
+      "correct_option_index": 1,
+      "answer_en": "An Indian restaurant may introduce diners to a wide range of regional cooking traditions rather than one single uniform national cuisine.",
+      "answer_tr": "Bir Hint restoranı müşterileri tek bir homojen ulusal mutfak yerine çok çeşitli bölgesel yemek gelenekleriyle tanıştırabilir.",
+      "explanation_en": "The opening sentence gives the central idea developed by the rest of the passage.",
+      "explanation_tr": "Açılış cümlesi parçanın geri kalanında geliştirilen temel düşünceyi verir.",
+      "evidence_sentence_indexes": [
+        1
+      ]
+    },
+    {
+      "id": "090-cq2",
+      "type": "detail",
+      "question_en": "According to the passage, which specific point is correct?",
+      "question_tr": "Parçaya göre hangi özel bilgi doğrudur?",
+      "options_en": [
+        "Menus can include different combinations of grains, breads, legumes, vegetables, meat, seafood, dairy products, spices, pickles, and sweets depending on regional influence.",
+        "Clear information about allergens, vegetarian or vegan ingredients, religious dietary requirements, and cross-contamination is increasingly important for both safety and trust.",
+        "The passage says no practical preparation or evidence is needed.",
+        "The passage states that all people experience the issue in exactly the same way."
+      ],
+      "options_tr": [
+        "Menüler bölgesel etkiye göre farklı tahıl, ekmek, bakliyat, sebze, et, deniz ürünü, süt ürünü, baharat, turşu ve tatlı kombinasyonlarını içerebilir.",
+        "Alerjenler, vejetaryen veya vegan içerikler, dinî beslenme gerekleri ve çapraz bulaşma hakkında açık bilgi hem güvenlik hem de güven açısından giderek daha önemlidir.",
+        "Parça hiçbir pratik hazırlık veya kanıt gerekmediğini söyler.",
+        "Parça bütün insanların konuyu tamamen aynı biçimde yaşadığını belirtir."
+      ],
+      "correct_option_index": 0,
+      "answer_en": "Menus can include different combinations of grains, breads, legumes, vegetables, meat, seafood, dairy products, spices, pickles, and sweets depending on regional influence.",
+      "answer_tr": "Menüler bölgesel etkiye göre farklı tahıl, ekmek, bakliyat, sebze, et, deniz ürünü, süt ürünü, baharat, turşu ve tatlı kombinasyonlarını içerebilir.",
+      "explanation_en": "This information is stated directly in sentence 2.",
+      "explanation_tr": "Bu bilgi 2. cümlede doğrudan belirtilmiştir.",
+      "evidence_sentence_indexes": [
+        2
+      ]
+    },
+    {
+      "id": "090-cq3",
+      "type": "relationship",
+      "question_en": "Which additional fact does the passage use to develop the topic?",
+      "question_tr": "Parça konuyu geliştirmek için hangi ek bilgiyi kullanır?",
+      "options_en": [
+        "The passage says the subject has no effect outside a single person.",
+        "The passage claims that costs and risks can always be ignored.",
+        "The passage gives no example of how the topic works in practice.",
+        "Restaurants serving international customers often adjust heat levels, portion sizes, explanations, and presentation while trying to preserve recognizable flavors and cooking methods."
+      ],
+      "options_tr": [
+        "Parça konunun tek bir kişinin dışında hiçbir etkisi olmadığını söyler.",
+        "Parça maliyetlerin ve risklerin her zaman görmezden gelinebileceğini iddia eder.",
+        "Parça konunun pratikte nasıl işlediğine dair hiçbir örnek vermez.",
+        "Uluslararası müşterilere hizmet veren restoranlar tanınabilir tatları ve pişirme yöntemlerini korumaya çalışırken acılık düzeylerini, porsiyonları, açıklamaları ve sunumu ayarlayabilir."
+      ],
+      "correct_option_index": 3,
+      "answer_en": "Restaurants serving international customers often adjust heat levels, portion sizes, explanations, and presentation while trying to preserve recognizable flavors and cooking methods.",
+      "answer_tr": "Uluslararası müşterilere hizmet veren restoranlar tanınabilir tatları ve pişirme yöntemlerini korumaya çalışırken acılık düzeylerini, porsiyonları, açıklamaları ve sunumu ayarlayabilir.",
+      "explanation_en": "Sentence 4 adds this second topic-specific fact.",
+      "explanation_tr": "4. cümle konuya özgü bu ikinci bilgiyi ekler.",
+      "evidence_sentence_indexes": [
+        4
+      ]
+    },
+    {
+      "id": "090-cq4",
+      "type": "inference",
+      "question_en": "What conclusion is most reasonable based on the challenge and outcome described in the passage?",
+      "question_tr": "Parçada anlatılan güçlük ve sonuç temelinde hangi çıkarım en makuldür?",
+      "options_en": [
+        "A good outcome depends only on luck and cannot be influenced by planning.",
+        "The passage recommends choosing the fastest option regardless of later effects.",
+        "A successful restaurant combines culinary identity with consistent hygiene, good service, cost control, and the ability to explain unfamiliar dishes without reducing them to stereotypes.",
+        "The safest approach is to ignore the difficulty completely."
+      ],
+      "options_tr": [
+        "İyi sonuç yalnızca şansa bağlıdır ve planlamayla etkilenemez.",
+        "Parça sonraki etkiler ne olursa olsun en hızlı seçeneğin seçilmesini önerir.",
+        "Başarılı bir restoran mutfak kimliğini tutarlı hijyen, iyi hizmet, maliyet kontrolü ve tanıdık olmayan yemekleri kalıplara indirgemeden açıklama becerisiyle birleştirir.",
+        "En güvenli yaklaşım güçlüğü tamamen görmezden gelmektir."
+      ],
+      "correct_option_index": 2,
+      "answer_en": "A successful restaurant combines culinary identity with consistent hygiene, good service, cost control, and the ability to explain unfamiliar dishes without reducing them to stereotypes.",
+      "answer_tr": "Başarılı bir restoran mutfak kimliğini tutarlı hijyen, iyi hizmet, maliyet kontrolü ve tanıdık olmayan yemekleri kalıplara indirgemeden açıklama becerisiyle birleştirir.",
+      "explanation_en": "The passage identifies a concrete challenge and then gives the constructive result or lesson.",
+      "explanation_tr": "Parça somut bir güçlüğü belirtir ve ardından yapıcı sonucu veya dersi verir.",
+      "evidence_sentence_indexes": [
+        6,
+        8
+      ]
+    },
+    {
+      "id": "090-cq5",
+      "type": "vocabulary_context",
+      "question_en": "What does 'cuisine' mean as used in the passage?",
+      "question_tr": "Parçada kullanılan 'cuisine' sözcüğü ne anlama gelir?",
+      "options_en": [
+        "a measurement that refers only to money",
+        "a style or tradition of cooking associated with a place or community",
+        "the exact opposite of the idea explained in the passage",
+        "a word used only as a proper name with no general meaning"
+      ],
+      "options_tr": [
+        "yalnızca parayı ifade eden bir ölçüm",
+        "bir yer veya toplulukla ilişkili yemek pişirme tarzı ya da geleneği",
+        "parçada açıklanan düşüncenin tam tersi",
+        "genel anlamı olmayan, yalnızca özel isim olarak kullanılan bir sözcük"
+      ],
+      "correct_option_index": 1,
+      "answer_en": "a style or tradition of cooking associated with a place or community",
+      "answer_tr": "bir yer veya toplulukla ilişkili yemek pişirme tarzı ya da geleneği",
+      "explanation_en": "Sentence 9 defines 'cuisine' in context.",
+      "explanation_tr": "9. cümle 'cuisine' sözcüğünü bağlam içinde tanımlar.",
+      "evidence_sentence_indexes": [
+        9
+      ]
+    }
+  ],
+  "question_count": 5,
+  "legacy_questions_policy": "PRESERVE_EXISTING_LEGACY_QUESTIONS_SEPARATELY; DO NOT DELETE OR OVERWRITE WITHOUT EXPLICIT EDITORIAL REVIEW."
+}

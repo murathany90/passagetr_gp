@@ -1,0 +1,235 @@
+{
+  "schema_version": "2.0",
+  "package_version": "passagetr_readings_001_100_curated_v2",
+  "source_number": 1,
+  "source_pack": "YDS Set 001",
+  "source_title": "001-Amy's Restaurant (Amy'nin Restoranı)",
+  "source_title_en": "Amy's Restaurant",
+  "source_title_tr": "Amy'nin Restoranı",
+  "source_level": "A1",
+  "source_category": "Food & Agriculture",
+  "source_tags": [
+    "food",
+    "dining",
+    "prices"
+  ],
+  "replacement_title_en": "A Neighborhood Restaurant: More Than a Menu",
+  "replacement_title_tr": "Bir Mahalle Restoranı: Menünün Ötesinde",
+  "content_mode": "parallel_expansion_editorial_v2",
+  "editorial_note": "New bilingual educational passage, topically parallel to the source title; not a reproduction of the original passage.",
+  "sentence_count": 15,
+  "sentences": [
+    {
+      "index": 1,
+      "en": "A small restaurant succeeds by combining good food, fair prices, reliable service, and careful daily management.",
+      "tr": "Küçük bir restoran; iyi yemek, uygun fiyat, güvenilir hizmet ve dikkatli günlük yönetimi bir araya getirerek başarılı olur."
+    },
+    {
+      "index": 2,
+      "en": "A clear menu helps customers understand what they can order and how much they will pay.",
+      "tr": "Açık bir menü, müşterilerin ne sipariş edebileceğini ve ne kadar ödeyeceğini anlamasına yardımcı olur."
+    },
+    {
+      "index": 3,
+      "en": "This detail matters because it changes what people can do in everyday life.",
+      "tr": "Bu ayrıntı önemlidir çünkü insanların günlük hayatta neler yapabileceğini değiştirir."
+    },
+    {
+      "index": 4,
+      "en": "Fresh ingredients and friendly service can turn first-time visitors into regular customers.",
+      "tr": "Taze malzemeler ve güler yüzlü hizmet, ilk kez gelen müşterileri düzenli müşterilere dönüştürebilir."
+    },
+    {
+      "index": 5,
+      "en": "People can usually see the result more clearly when they compare two different choices or situations.",
+      "tr": "İnsanlar iki farklı tercih veya durumu karşılaştırdığında sonucu genellikle daha açık görebilir."
+    },
+    {
+      "index": 6,
+      "en": "The owner must control food waste and costs without lowering quality.",
+      "tr": "İşletme sahibi, kaliteyi düşürmeden gıda israfını ve maliyetleri kontrol etmelidir."
+    },
+    {
+      "index": 7,
+      "en": "The challenge does not mean the activity or idea is bad; it means people need to make careful choices.",
+      "tr": "Bu zorluk faaliyetin veya fikrin kötü olduğu anlamına gelmez; insanların dikkatli tercihler yapması gerektiğini gösterir."
+    },
+    {
+      "index": 8,
+      "en": "When staff and customers trust one another, the restaurant becomes part of the neighborhood rather than only a place to eat.",
+      "tr": "Çalışanlar ile müşteriler birbirine güvendiğinde restoran yalnızca yemek yenilen bir yer olmaktan çıkar ve mahallenin bir parçası hâline gelir."
+    },
+    {
+      "index": 9,
+      "en": "The word 'regular' is useful in this topic because it describes an important idea in the passage.",
+      "tr": "'regular' sözcüğü bu konuda yararlıdır çünkü parçadaki önemli bir düşünceyi anlatır."
+    },
+    {
+      "index": 10,
+      "en": "Good information helps people notice problems before those problems become larger.",
+      "tr": "İyi bilgi insanların sorunları daha büyümeden fark etmesine yardımcı olur."
+    },
+    {
+      "index": 11,
+      "en": "Talking to other people can also reveal details that one person may miss.",
+      "tr": "Başkalarıyla konuşmak da tek bir kişinin gözden kaçırabileceği ayrıntıları ortaya çıkarabilir."
+    },
+    {
+      "index": 12,
+      "en": "A sensible plan leaves some room for change when conditions are different from what was expected.",
+      "tr": "Mantıklı bir plan, koşullar beklenenden farklı olduğunda değişiklik için biraz alan bırakır."
+    },
+    {
+      "index": 13,
+      "en": "Small improvements are valuable when they are repeated and become part of a normal routine.",
+      "tr": "Küçük iyileştirmeler tekrarlandığında ve normal bir rutinin parçası olduğunda değerlidir."
+    },
+    {
+      "index": 14,
+      "en": "The topic therefore connects personal choices with wider effects on other people or places.",
+      "tr": "Bu nedenle konu kişisel tercihleri diğer insanlar veya yerler üzerindeki daha geniş etkilerle ilişkilendirir."
+    },
+    {
+      "index": 15,
+      "en": "Overall, A Neighborhood Restaurant: More Than a Menu shows that careful observation and responsible action can improve ordinary decisions.",
+      "tr": "Genel olarak Bir Mahalle Restoranı: Menünün Ötesinde, dikkatli gözlem ve sorumlu davranışın günlük kararları geliştirebileceğini gösterir."
+    }
+  ],
+  "summary_en": "A small restaurant succeeds by combining good food, fair prices, reliable service, and careful daily management. When staff and customers trust one another, the restaurant becomes part of the neighborhood rather than only a place to eat.",
+  "summary_tr": "Küçük bir restoran; iyi yemek, uygun fiyat, güvenilir hizmet ve dikkatli günlük yönetimi bir araya getirerek başarılı olur. Çalışanlar ile müşteriler birbirine güvendiğinde restoran yalnızca yemek yenilen bir yer olmaktan çıkar ve mahallenin bir parçası hâline gelir.",
+  "questions": [
+    {
+      "id": "001-cq1",
+      "type": "main_idea",
+      "question_en": "Which statement best summarizes the passage 'A Neighborhood Restaurant: More Than a Menu'?",
+      "question_tr": "'Bir Mahalle Restoranı: Menünün Ötesinde' başlıklı parçayı en iyi hangi ifade özetler?",
+      "options_en": [
+        "The passage argues that historical or practical context is unnecessary.",
+        "The main purpose is to memorize isolated vocabulary rather than understand the topic.",
+        "A small restaurant succeeds by combining good food, fair prices, reliable service, and careful daily management.",
+        "The topic can be explained by one simple rule with no exceptions."
+      ],
+      "options_tr": [
+        "Parça tarihsel veya pratik bağlamın gereksiz olduğunu savunur.",
+        "Temel amaç konuyu anlamak yerine ayrı kelimeleri ezberlemektir.",
+        "Küçük bir restoran; iyi yemek, uygun fiyat, güvenilir hizmet ve dikkatli günlük yönetimi bir araya getirerek başarılı olur.",
+        "Konu hiçbir istisna olmadan tek bir basit kuralla açıklanabilir."
+      ],
+      "correct_option_index": 2,
+      "answer_en": "A small restaurant succeeds by combining good food, fair prices, reliable service, and careful daily management.",
+      "answer_tr": "Küçük bir restoran; iyi yemek, uygun fiyat, güvenilir hizmet ve dikkatli günlük yönetimi bir araya getirerek başarılı olur.",
+      "explanation_en": "The opening sentence gives the central idea developed by the rest of the passage.",
+      "explanation_tr": "Açılış cümlesi parçanın geri kalanında geliştirilen temel düşünceyi verir.",
+      "evidence_sentence_indexes": [
+        1
+      ]
+    },
+    {
+      "id": "001-cq2",
+      "type": "detail",
+      "question_en": "According to the passage, which specific point is correct?",
+      "question_tr": "Parçaya göre hangi özel bilgi doğrudur?",
+      "options_en": [
+        "The passage states that all people experience the issue in exactly the same way.",
+        "A clear menu helps customers understand what they can order and how much they will pay.",
+        "The owner must control food waste and costs without lowering quality.",
+        "The passage says no practical preparation or evidence is needed."
+      ],
+      "options_tr": [
+        "Parça bütün insanların konuyu tamamen aynı biçimde yaşadığını belirtir.",
+        "Açık bir menü, müşterilerin ne sipariş edebileceğini ve ne kadar ödeyeceğini anlamasına yardımcı olur.",
+        "İşletme sahibi, kaliteyi düşürmeden gıda israfını ve maliyetleri kontrol etmelidir.",
+        "Parça hiçbir pratik hazırlık veya kanıt gerekmediğini söyler."
+      ],
+      "correct_option_index": 1,
+      "answer_en": "A clear menu helps customers understand what they can order and how much they will pay.",
+      "answer_tr": "Açık bir menü, müşterilerin ne sipariş edebileceğini ve ne kadar ödeyeceğini anlamasına yardımcı olur.",
+      "explanation_en": "This information is stated directly in sentence 2.",
+      "explanation_tr": "Bu bilgi 2. cümlede doğrudan belirtilmiştir.",
+      "evidence_sentence_indexes": [
+        2
+      ]
+    },
+    {
+      "id": "001-cq3",
+      "type": "relationship",
+      "question_en": "Which additional fact does the passage use to develop the topic?",
+      "question_tr": "Parça konuyu geliştirmek için hangi ek bilgiyi kullanır?",
+      "options_en": [
+        "Fresh ingredients and friendly service can turn first-time visitors into regular customers.",
+        "The passage says the subject has no effect outside a single person.",
+        "The passage claims that costs and risks can always be ignored.",
+        "The passage gives no example of how the topic works in practice."
+      ],
+      "options_tr": [
+        "Taze malzemeler ve güler yüzlü hizmet, ilk kez gelen müşterileri düzenli müşterilere dönüştürebilir.",
+        "Parça konunun tek bir kişinin dışında hiçbir etkisi olmadığını söyler.",
+        "Parça maliyetlerin ve risklerin her zaman görmezden gelinebileceğini iddia eder.",
+        "Parça konunun pratikte nasıl işlediğine dair hiçbir örnek vermez."
+      ],
+      "correct_option_index": 0,
+      "answer_en": "Fresh ingredients and friendly service can turn first-time visitors into regular customers.",
+      "answer_tr": "Taze malzemeler ve güler yüzlü hizmet, ilk kez gelen müşterileri düzenli müşterilere dönüştürebilir.",
+      "explanation_en": "Sentence 4 adds this second topic-specific fact.",
+      "explanation_tr": "4. cümle konuya özgü bu ikinci bilgiyi ekler.",
+      "evidence_sentence_indexes": [
+        4
+      ]
+    },
+    {
+      "id": "001-cq4",
+      "type": "inference",
+      "question_en": "What conclusion is most reasonable based on the challenge and outcome described in the passage?",
+      "question_tr": "Parçada anlatılan güçlük ve sonuç temelinde hangi çıkarım en makuldür?",
+      "options_en": [
+        "The safest approach is to ignore the difficulty completely.",
+        "A good outcome depends only on luck and cannot be influenced by planning.",
+        "The passage recommends choosing the fastest option regardless of later effects.",
+        "When staff and customers trust one another, the restaurant becomes part of the neighborhood rather than only a place to eat."
+      ],
+      "options_tr": [
+        "En güvenli yaklaşım güçlüğü tamamen görmezden gelmektir.",
+        "İyi sonuç yalnızca şansa bağlıdır ve planlamayla etkilenemez.",
+        "Parça sonraki etkiler ne olursa olsun en hızlı seçeneğin seçilmesini önerir.",
+        "Çalışanlar ile müşteriler birbirine güvendiğinde restoran yalnızca yemek yenilen bir yer olmaktan çıkar ve mahallenin bir parçası hâline gelir."
+      ],
+      "correct_option_index": 3,
+      "answer_en": "When staff and customers trust one another, the restaurant becomes part of the neighborhood rather than only a place to eat.",
+      "answer_tr": "Çalışanlar ile müşteriler birbirine güvendiğinde restoran yalnızca yemek yenilen bir yer olmaktan çıkar ve mahallenin bir parçası hâline gelir.",
+      "explanation_en": "The passage identifies a concrete challenge and then gives the constructive result or lesson.",
+      "explanation_tr": "Parça somut bir güçlüğü belirtir ve ardından yapıcı sonucu veya dersi verir.",
+      "evidence_sentence_indexes": [
+        6,
+        8
+      ]
+    },
+    {
+      "id": "001-cq5",
+      "type": "vocabulary_context",
+      "question_en": "What does 'regular' mean as used in the passage?",
+      "question_tr": "Parçada kullanılan 'regular' sözcüğü ne anlama gelir?",
+      "options_en": [
+        "a word used only as a proper name with no general meaning",
+        "a measurement that refers only to money",
+        "returning again and again because the experience is satisfactory",
+        "the exact opposite of the idea explained in the passage"
+      ],
+      "options_tr": [
+        "genel anlamı olmayan, yalnızca özel isim olarak kullanılan bir sözcük",
+        "yalnızca parayı ifade eden bir ölçüm",
+        "deneyim memnuniyet verici olduğu için tekrar tekrar gelen",
+        "parçada açıklanan düşüncenin tam tersi"
+      ],
+      "correct_option_index": 2,
+      "answer_en": "returning again and again because the experience is satisfactory",
+      "answer_tr": "deneyim memnuniyet verici olduğu için tekrar tekrar gelen",
+      "explanation_en": "Sentence 9 defines 'regular' in context.",
+      "explanation_tr": "9. cümle 'regular' sözcüğünü bağlam içinde tanımlar.",
+      "evidence_sentence_indexes": [
+        9
+      ]
+    }
+  ],
+  "question_count": 5,
+  "legacy_questions_policy": "PRESERVE_EXISTING_LEGACY_QUESTIONS_SEPARATELY; DO NOT DELETE OR OVERWRITE WITHOUT EXPLICIT EDITORIAL REVIEW."
+}

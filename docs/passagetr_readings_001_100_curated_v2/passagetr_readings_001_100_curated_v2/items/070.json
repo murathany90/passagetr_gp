@@ -1,0 +1,235 @@
+{
+  "schema_version": "2.0",
+  "package_version": "passagetr_readings_001_100_curated_v2",
+  "source_number": 70,
+  "source_pack": "YDS Set 002",
+  "source_title": "070-Ancient Artifacts and Ancient Air (Antik Eserler ve Antik Hava)",
+  "source_title_en": "Ancient Artifacts and Ancient Air",
+  "source_title_tr": "Antik Eserler ve Antik Hava",
+  "source_level": "B1",
+  "source_category": "History",
+  "source_tags": [
+    "archaeology",
+    "history",
+    "science"
+  ],
+  "replacement_title_en": "Ancient Artifacts: What Objects Can Tell Us About the Past",
+  "replacement_title_tr": "Antik Eserler: Nesneler Geçmiş Hakkında Ne Anlatabilir?",
+  "content_mode": "parallel_expansion_editorial_v2",
+  "editorial_note": "New bilingual educational passage, topically parallel to the source title; not a reproduction of the original passage.",
+  "sentence_count": 15,
+  "sentences": [
+    {
+      "index": 1,
+      "en": "Ancient artifacts can reveal details about daily life, technology, trade, belief, warfare, art, and social organization that written sources may ignore or never record.",
+      "tr": "Antik eserler yazılı kaynakların göz ardı edebileceği veya hiç kaydetmediği günlük yaşam, teknoloji, ticaret, inanç, savaş, sanat ve toplumsal örgütlenme ayrıntılarını ortaya çıkarabilir."
+    },
+    {
+      "index": 2,
+      "en": "Archaeologists learn most when an object is documented in its original context, including the soil layer, nearby structures, other finds, and evidence of how the site changed over time.",
+      "tr": "Arkeologlar bir nesne toprak tabakası, yakındaki yapılar, diğer buluntular ve alanın zaman içinde nasıl değiştiğine dair kanıtlarla birlikte özgün bağlamında belgelendiğinde en çok şeyi öğrenir."
+    },
+    {
+      "index": 3,
+      "en": "That detail is significant because it links the immediate subject to a wider system of incentives, institutions, environments, or human behavior.",
+      "tr": "Bu ayrıntı önemlidir çünkü doğrudan konuyu teşvikler, kurumlar, çevreler veya insan davranışlarından oluşan daha geniş bir sistemle ilişkilendirir."
+    },
+    {
+      "index": 4,
+      "en": "Removing an artifact without proper recording can destroy information that cannot later be reconstructed even if the object itself survives.",
+      "tr": "Bir eseri uygun kayıt olmadan çıkarmak nesnenin kendisi kalsa bile daha sonra yeniden kurulamayacak bilgileri yok edebilir."
+    },
+    {
+      "index": 5,
+      "en": "Taken together, these points suggest that the topic cannot be understood well through a single cause or a simple good-versus-bad judgement.",
+      "tr": "Bu noktalar birlikte değerlendirildiğinde konunun tek bir neden veya basit bir iyi-kötü yargısıyla yeterince anlaşılamayacağı görülür."
+    },
+    {
+      "index": 6,
+      "en": "Looting and illegal trade damage archaeological sites and create ethical and legal disputes about ownership, provenance, and the return of cultural property.",
+      "tr": "Yağma ve yasa dışı ticaret arkeolojik alanlara zarar verir ve mülkiyet, köken bilgisi ile kültürel varlıkların iadesi hakkında etik ve hukuki anlaşmazlıklar yaratır."
+    },
+    {
+      "index": 7,
+      "en": "The difficulty becomes more serious when decision-makers focus on the most visible short-term outcome and ignore costs that appear later or fall on other groups.",
+      "tr": "Karar vericiler en görünür kısa vadeli sonuca odaklanıp daha sonra ortaya çıkan veya başka grupların taşıdığı maliyetleri görmezden geldiğinde güçlük daha ciddi hâle gelir."
+    },
+    {
+      "index": 8,
+      "en": "Museums and researchers therefore need both conservation skills and reliable documentation to turn ancient objects into trustworthy evidence about human history.",
+      "tr": "Bu nedenle müzeler ve araştırmacılar antik nesneleri insanlık tarihi hakkında güvenilir kanıta dönüştürmek için hem koruma becerilerine hem de güvenilir belgelendirmeye ihtiyaç duyar."
+    },
+    {
+      "index": 9,
+      "en": "The term 'provenance' is used here in the sense of the documented history of where an object came from and who owned or handled it.",
+      "tr": "'provenance' terimi burada 'bir nesnenin nereden geldiğini ve kimlerin sahip olup elinden geçirdiğini gösteren belgelenmiş geçmiş' anlamında kullanılmaktadır."
+    },
+    {
+      "index": 10,
+      "en": "Evidence is most useful when it is compared across sources and interpreted in the context in which it was produced.",
+      "tr": "Kanıt, farklı kaynaklar arasında karşılaştırıldığında ve üretildiği bağlam içinde yorumlandığında en yararlı hâle gelir."
+    },
+    {
+      "index": 11,
+      "en": "Stakeholders can reach different conclusions without either side being irrational, because they may face different risks, resources, and responsibilities.",
+      "tr": "Paydaşlar, farklı riskler, kaynaklar ve sorumluluklarla karşılaştıkları için taraflardan biri akıl dışı olmadan farklı sonuçlara ulaşabilir."
+    },
+    {
+      "index": 12,
+      "en": "For that reason, strong policy or personal judgement should explain trade-offs openly instead of hiding them behind a single headline or slogan.",
+      "tr": "Bu nedenle güçlü bir politika veya kişisel yargı, ödünleşimleri tek bir başlık ya da sloganın arkasına gizlemek yerine açıkça anlatmalıdır."
+    },
+    {
+      "index": 13,
+      "en": "An effective response is usually flexible enough to change when new information appears, yet stable enough for people to understand what is expected of them.",
+      "tr": "Etkili bir yaklaşım yeni bilgi ortaya çıktığında değişebilecek kadar esnek, insanların kendilerinden ne beklendiğini anlayabileceği kadar istikrarlı olmalıdır."
+    },
+    {
+      "index": 14,
+      "en": "The broader lesson is that durable progress comes from combining knowledge, practical capacity, and accountability rather than depending on intention alone.",
+      "tr": "Daha geniş ders, kalıcı ilerlemenin yalnızca iyi niyete değil bilgi, pratik kapasite ve hesap verebilirliğin birleşimine dayandığıdır."
+    },
+    {
+      "index": 15,
+      "en": "Seen in this wider frame, Ancient Artifacts: What Objects Can Tell Us About the Past becomes a case study in how evidence, choices, and consequences interact over time.",
+      "tr": "Bu geniş çerçevede Antik Eserler: Nesneler Geçmiş Hakkında Ne Anlatabilir?, kanıtın, tercihlerin ve sonuçların zaman içinde nasıl etkileştiğini gösteren bir örneğe dönüşür."
+    }
+  ],
+  "summary_en": "Ancient artifacts can reveal details about daily life, technology, trade, belief, warfare, art, and social organization that written sources may ignore or never record. Museums and researchers therefore need both conservation skills and reliable documentation to turn ancient objects into trustworthy evidence about human history.",
+  "summary_tr": "Antik eserler yazılı kaynakların göz ardı edebileceği veya hiç kaydetmediği günlük yaşam, teknoloji, ticaret, inanç, savaş, sanat ve toplumsal örgütlenme ayrıntılarını ortaya çıkarabilir. Bu nedenle müzeler ve araştırmacılar antik nesneleri insanlık tarihi hakkında güvenilir kanıta dönüştürmek için hem koruma becerilerine hem de güvenilir belgelendirmeye ihtiyaç duyar.",
+  "questions": [
+    {
+      "id": "070-cq1",
+      "type": "main_idea",
+      "question_en": "Which statement best summarizes the passage 'Ancient Artifacts: What Objects Can Tell Us About the Past'?",
+      "question_tr": "'Antik Eserler: Nesneler Geçmiş Hakkında Ne Anlatabilir?' başlıklı parçayı en iyi hangi ifade özetler?",
+      "options_en": [
+        "The main purpose is to memorize isolated vocabulary rather than understand the topic.",
+        "Ancient artifacts can reveal details about daily life, technology, trade, belief, warfare, art, and social organization that written sources may ignore or never record.",
+        "The topic can be explained by one simple rule with no exceptions.",
+        "The passage argues that historical or practical context is unnecessary."
+      ],
+      "options_tr": [
+        "Temel amaç konuyu anlamak yerine ayrı kelimeleri ezberlemektir.",
+        "Antik eserler yazılı kaynakların göz ardı edebileceği veya hiç kaydetmediği günlük yaşam, teknoloji, ticaret, inanç, savaş, sanat ve toplumsal örgütlenme ayrıntılarını ortaya çıkarabilir.",
+        "Konu hiçbir istisna olmadan tek bir basit kuralla açıklanabilir.",
+        "Parça tarihsel veya pratik bağlamın gereksiz olduğunu savunur."
+      ],
+      "correct_option_index": 1,
+      "answer_en": "Ancient artifacts can reveal details about daily life, technology, trade, belief, warfare, art, and social organization that written sources may ignore or never record.",
+      "answer_tr": "Antik eserler yazılı kaynakların göz ardı edebileceği veya hiç kaydetmediği günlük yaşam, teknoloji, ticaret, inanç, savaş, sanat ve toplumsal örgütlenme ayrıntılarını ortaya çıkarabilir.",
+      "explanation_en": "The opening sentence gives the central idea developed by the rest of the passage.",
+      "explanation_tr": "Açılış cümlesi parçanın geri kalanında geliştirilen temel düşünceyi verir.",
+      "evidence_sentence_indexes": [
+        1
+      ]
+    },
+    {
+      "id": "070-cq2",
+      "type": "detail",
+      "question_en": "According to the passage, which specific point is correct?",
+      "question_tr": "Parçaya göre hangi özel bilgi doğrudur?",
+      "options_en": [
+        "Archaeologists learn most when an object is documented in its original context, including the soil layer, nearby structures, other finds, and evidence of how the site changed over time.",
+        "Looting and illegal trade damage archaeological sites and create ethical and legal disputes about ownership, provenance, and the return of cultural property.",
+        "The passage says no practical preparation or evidence is needed.",
+        "The passage states that all people experience the issue in exactly the same way."
+      ],
+      "options_tr": [
+        "Arkeologlar bir nesne toprak tabakası, yakındaki yapılar, diğer buluntular ve alanın zaman içinde nasıl değiştiğine dair kanıtlarla birlikte özgün bağlamında belgelendiğinde en çok şeyi öğrenir.",
+        "Yağma ve yasa dışı ticaret arkeolojik alanlara zarar verir ve mülkiyet, köken bilgisi ile kültürel varlıkların iadesi hakkında etik ve hukuki anlaşmazlıklar yaratır.",
+        "Parça hiçbir pratik hazırlık veya kanıt gerekmediğini söyler.",
+        "Parça bütün insanların konuyu tamamen aynı biçimde yaşadığını belirtir."
+      ],
+      "correct_option_index": 0,
+      "answer_en": "Archaeologists learn most when an object is documented in its original context, including the soil layer, nearby structures, other finds, and evidence of how the site changed over time.",
+      "answer_tr": "Arkeologlar bir nesne toprak tabakası, yakındaki yapılar, diğer buluntular ve alanın zaman içinde nasıl değiştiğine dair kanıtlarla birlikte özgün bağlamında belgelendiğinde en çok şeyi öğrenir.",
+      "explanation_en": "This information is stated directly in sentence 2.",
+      "explanation_tr": "Bu bilgi 2. cümlede doğrudan belirtilmiştir.",
+      "evidence_sentence_indexes": [
+        2
+      ]
+    },
+    {
+      "id": "070-cq3",
+      "type": "relationship",
+      "question_en": "Which additional fact does the passage use to develop the topic?",
+      "question_tr": "Parça konuyu geliştirmek için hangi ek bilgiyi kullanır?",
+      "options_en": [
+        "The passage says the subject has no effect outside a single person.",
+        "The passage claims that costs and risks can always be ignored.",
+        "The passage gives no example of how the topic works in practice.",
+        "Removing an artifact without proper recording can destroy information that cannot later be reconstructed even if the object itself survives."
+      ],
+      "options_tr": [
+        "Parça konunun tek bir kişinin dışında hiçbir etkisi olmadığını söyler.",
+        "Parça maliyetlerin ve risklerin her zaman görmezden gelinebileceğini iddia eder.",
+        "Parça konunun pratikte nasıl işlediğine dair hiçbir örnek vermez.",
+        "Bir eseri uygun kayıt olmadan çıkarmak nesnenin kendisi kalsa bile daha sonra yeniden kurulamayacak bilgileri yok edebilir."
+      ],
+      "correct_option_index": 3,
+      "answer_en": "Removing an artifact without proper recording can destroy information that cannot later be reconstructed even if the object itself survives.",
+      "answer_tr": "Bir eseri uygun kayıt olmadan çıkarmak nesnenin kendisi kalsa bile daha sonra yeniden kurulamayacak bilgileri yok edebilir.",
+      "explanation_en": "Sentence 4 adds this second topic-specific fact.",
+      "explanation_tr": "4. cümle konuya özgü bu ikinci bilgiyi ekler.",
+      "evidence_sentence_indexes": [
+        4
+      ]
+    },
+    {
+      "id": "070-cq4",
+      "type": "inference",
+      "question_en": "What conclusion is most reasonable based on the challenge and outcome described in the passage?",
+      "question_tr": "Parçada anlatılan güçlük ve sonuç temelinde hangi çıkarım en makuldür?",
+      "options_en": [
+        "A good outcome depends only on luck and cannot be influenced by planning.",
+        "The passage recommends choosing the fastest option regardless of later effects.",
+        "Museums and researchers therefore need both conservation skills and reliable documentation to turn ancient objects into trustworthy evidence about human history.",
+        "The safest approach is to ignore the difficulty completely."
+      ],
+      "options_tr": [
+        "İyi sonuç yalnızca şansa bağlıdır ve planlamayla etkilenemez.",
+        "Parça sonraki etkiler ne olursa olsun en hızlı seçeneğin seçilmesini önerir.",
+        "Bu nedenle müzeler ve araştırmacılar antik nesneleri insanlık tarihi hakkında güvenilir kanıta dönüştürmek için hem koruma becerilerine hem de güvenilir belgelendirmeye ihtiyaç duyar.",
+        "En güvenli yaklaşım güçlüğü tamamen görmezden gelmektir."
+      ],
+      "correct_option_index": 2,
+      "answer_en": "Museums and researchers therefore need both conservation skills and reliable documentation to turn ancient objects into trustworthy evidence about human history.",
+      "answer_tr": "Bu nedenle müzeler ve araştırmacılar antik nesneleri insanlık tarihi hakkında güvenilir kanıta dönüştürmek için hem koruma becerilerine hem de güvenilir belgelendirmeye ihtiyaç duyar.",
+      "explanation_en": "The passage identifies a concrete challenge and then gives the constructive result or lesson.",
+      "explanation_tr": "Parça somut bir güçlüğü belirtir ve ardından yapıcı sonucu veya dersi verir.",
+      "evidence_sentence_indexes": [
+        6,
+        8
+      ]
+    },
+    {
+      "id": "070-cq5",
+      "type": "vocabulary_context",
+      "question_en": "What does 'provenance' mean as used in the passage?",
+      "question_tr": "Parçada kullanılan 'provenance' sözcüğü ne anlama gelir?",
+      "options_en": [
+        "a measurement that refers only to money",
+        "the documented history of where an object came from and who owned or handled it",
+        "the exact opposite of the idea explained in the passage",
+        "a word used only as a proper name with no general meaning"
+      ],
+      "options_tr": [
+        "yalnızca parayı ifade eden bir ölçüm",
+        "bir nesnenin nereden geldiğini ve kimlerin sahip olup elinden geçirdiğini gösteren belgelenmiş geçmiş",
+        "parçada açıklanan düşüncenin tam tersi",
+        "genel anlamı olmayan, yalnızca özel isim olarak kullanılan bir sözcük"
+      ],
+      "correct_option_index": 1,
+      "answer_en": "the documented history of where an object came from and who owned or handled it",
+      "answer_tr": "bir nesnenin nereden geldiğini ve kimlerin sahip olup elinden geçirdiğini gösteren belgelenmiş geçmiş",
+      "explanation_en": "Sentence 9 defines 'provenance' in context.",
+      "explanation_tr": "9. cümle 'provenance' sözcüğünü bağlam içinde tanımlar.",
+      "evidence_sentence_indexes": [
+        9
+      ]
+    }
+  ],
+  "question_count": 5,
+  "legacy_questions_policy": "PRESERVE_EXISTING_LEGACY_QUESTIONS_SEPARATELY; DO NOT DELETE OR OVERWRITE WITHOUT EXPLICIT EDITORIAL REVIEW."
+}

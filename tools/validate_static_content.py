@@ -15,10 +15,20 @@ ROOT = Path(__file__).resolve().parents[1]
 EXPECTED = {
     'words': 5314,
     'readings': 678,
-    'sentences': 5242,
+    'sentences': 6124,
     'dictionaryEntries': 121772,
     'dictionaryHeadwords': 121501,
 }
+CURATED_SOURCE_NUMBERS = frozenset(range(1, 101))
+CURATED_SENTENCE_COUNT = 15
+CURATED_QUESTION_COUNT = 5
+CURATED_PACKAGE = (
+    ROOT
+    / 'docs'
+    / 'passagetr_readings_001_100_curated_v2'
+    / 'passagetr_readings_001_100_curated_v2'
+    / 'passagetr_readings_001_100_curated_v2.json'
+)
 HYPHENS = str.maketrans({
     '\u2010': '-', '\u2011': '-', '\u2012': '-', '\u2013': '-',
     '\u2014': '-', '\u2212': '-',
@@ -39,8 +49,78 @@ def normalized_dictionary_key(value: object) -> str:
     return re.sub(r'\s+', ' ', str(value or '').translate(HYPHENS)).strip().lower()
 
 
+def load_untouched_baseline() -> dict[str, str]:
+    payload = load(ROOT / 'source_data' / 'curated_readings_001_100_untouched_baseline_v1.json')
+    records = payload.get('readings')
+    if not isinstance(records, list) or len(records) != 578:
+        raise ValueError('The 101--678 untouched-reading baseline is invalid.')
+    baseline = {
+        str(record.get('file')): str(record.get('sha256'))
+        for record in records
+        if isinstance(record, dict) and record.get('file') and record.get('sha256')
+    }
+    if len(baseline) != 578:
+        raise ValueError('The 101--678 untouched-reading baseline has duplicate records.')
+    return baseline
+
+
+def validate_legacy_backup() -> int:
+    payload = load(ROOT / 'source_data' / 'legacy_reading_questions_v1.json')
+    readings = payload.get('readings')
+    if not isinstance(readings, list) or len(readings) != 100:
+        raise ValueError('Legacy question backup must contain 100 readings.')
+    questions = sum(
+        len(record.get('questions', []))
+        for record in readings
+        if isinstance(record, dict) and isinstance(record.get('questions'), list)
+    )
+    if payload.get('questionCount') != questions:
+        raise ValueError('Legacy question backup count is invalid.')
+    if {record.get('sourceNumber') for record in readings if isinstance(record, dict)} != CURATED_SOURCE_NUMBERS:
+        raise ValueError('Legacy question backup source-number coverage is invalid.')
+    return questions
+
+
+def load_curated_package() -> dict[int, dict[str, Any]]:
+    try:
+        records = json.loads(CURATED_PACKAGE.read_text(encoding='utf-8'))
+    except (OSError, json.JSONDecodeError) as error:
+        raise ValueError('Curated reading package is missing or invalid.') from error
+    if not isinstance(records, list) or len(records) != 100:
+        raise ValueError('Curated reading package count is invalid.')
+    by_source_number = {
+        int(record['source_number']): record
+        for record in records
+        if isinstance(record, dict) and str(record.get('source_number', '')).isdigit()
+    }
+    if set(by_source_number) != CURATED_SOURCE_NUMBERS:
+        raise ValueError('Curated reading package source-number coverage is invalid.')
+    return by_source_number
+
+
+def curated_question(question: dict[str, Any], order: int) -> dict[str, Any]:
+    return {
+        'id': question['id'],
+        'sortOrder': order,
+        'type': question['type'],
+        'question': question['question_en'],
+        'questionTr': question['question_tr'],
+        'options': question['options_en'],
+        'optionsTr': question['options_tr'],
+        'correctOptionIndex': question['correct_option_index'],
+        'answerEn': question['answer_en'],
+        'answerTr': question['answer_tr'],
+        'explanation': question['explanation_en'],
+        'explanationTr': question['explanation_tr'],
+        'evidenceSentenceIndexes': question['evidence_sentence_indexes'],
+    }
+
+
 def validate(content_dir: Path) -> dict[str, int]:
     manifest = load(content_dir / 'manifest.json')
+    untouched_baseline = load_untouched_baseline()
+    legacy_question_count = validate_legacy_backup()
+    curated_package = load_curated_package()
     counts = manifest.get('counts', {})
     if counts != EXPECTED:
         raise ValueError(f'Manifest count mismatch: expected {EXPECTED}, got {counts}')
@@ -70,8 +150,14 @@ def validate(content_dir: Path) -> dict[str, int]:
     summary_readings = 0
     question_readings = 0
     total_questions = 0
+    curated_readings = 0
+    curated_sentences = 0
+    curated_questions = 0
+    untouched_readings = 0
     for item in readings:
-        payload = load(content_dir / str(item['file']))
+        relative_file = str(item['file'])
+        path = content_dir / relative_file
+        payload = load(path)
         sentences = payload.get('sentences', [])
         if payload.get('id') != item.get('id') or len(sentences) != item.get('sentenceCount'):
             raise ValueError(f'Invalid reading payload: {item.get("title")}')
@@ -107,8 +193,54 @@ def validate(content_dir: Path) -> dict[str, int]:
         if summary is not None and (not isinstance(summary, str) or not summary.strip()):
             raise ValueError(f'Invalid extractive summary: {item.get("title")}')
         questions = enrichment['questions']
-        if not isinstance(questions, list) or len(questions) > 3:
+        try:
+            source_number = int(enrichment.get('sourceNumber'))
+        except (TypeError, ValueError) as error:
+            raise ValueError(f'Invalid reading source number: {item.get("title")}') from error
+        is_curated = source_number in CURATED_SOURCE_NUMBERS
+        if not isinstance(questions, list) or len(questions) > (CURATED_QUESTION_COUNT if is_curated else 3):
             raise ValueError(f'Invalid question collection: {item.get("title")}')
+        if is_curated:
+            if (
+                enrichment.get('contentSource') != 'curated_v2'
+                or len(sentences) != CURATED_SENTENCE_COUNT
+                or len(questions) != CURATED_QUESTION_COUNT
+                or not isinstance(enrichment.get('summaryTr'), str)
+                or not enrichment['summaryTr'].strip()
+            ):
+                raise ValueError(f'Curated reading integrity error: {item.get("title")}')
+            if any(
+                not isinstance(sentence.get('turkishText'), str) or not sentence['turkishText'].strip()
+                for sentence in sentences
+            ):
+                raise ValueError(f'Curated translation missing: {item.get("title")}')
+            curated = curated_package[source_number]
+            if (
+                enrichment['displayTitle'] != curated['replacement_title_en']
+                or enrichment.get('turkishTitle') != curated['replacement_title_tr']
+                or enrichment['summary'] != curated['summary_en']
+                or enrichment['summaryTr'] != curated['summary_tr']
+                or [
+                    (sentence['index'], sentence['englishText'], sentence['turkishText'])
+                    for sentence in sentences
+                ] != [
+                    (sentence['index'], sentence['en'], sentence['tr'])
+                    for sentence in curated['sentences']
+                ]
+                or questions != [
+                    curated_question(question, order)
+                    for order, question in enumerate(curated['questions'], start=1)
+                ]
+            ):
+                raise ValueError(f'Curated content was changed: {item.get("title")}')
+            curated_readings += 1
+            curated_sentences += len(sentences)
+            curated_questions += len(questions)
+        else:
+            expected_hash = untouched_baseline.get(relative_file)
+            if expected_hash is None or hashlib.sha256(path.read_bytes()).hexdigest() != expected_hash:
+                raise ValueError(f'Unexpected change outside curated range: {item.get("title")}')
+            untouched_readings += 1
         for expected_order, question in enumerate(questions, start=1):
             if (
                 not isinstance(question, dict)
@@ -122,6 +254,25 @@ def validate(content_dir: Path) -> dict[str, int]:
                 or not isinstance(question.get('explanation'), str)
             ):
                 raise ValueError(f'Invalid reading question: {item.get("title")}')
+            if is_curated and (
+                not isinstance(question.get('type'), str)
+                or not question['type'].strip()
+                or not isinstance(question.get('questionTr'), str)
+                or not question['questionTr'].strip()
+                or not isinstance(question.get('optionsTr'), list)
+                or len(question['optionsTr']) != 4
+                or any(not isinstance(option, str) or not option.strip() for option in question['optionsTr'])
+                or not isinstance(question.get('answerEn'), str)
+                or not question['answerEn'].strip()
+                or not isinstance(question.get('answerTr'), str)
+                or not question['answerTr'].strip()
+                or not isinstance(question.get('explanationTr'), str)
+                or not question['explanationTr'].strip()
+                or not isinstance(question.get('evidenceSentenceIndexes'), list)
+                or not question['evidenceSentenceIndexes']
+                or any(not isinstance(index, int) or not 1 <= index <= CURATED_SENTENCE_COUNT for index in question['evidenceSentenceIndexes'])
+            ):
+                raise ValueError(f'Curated question integrity error: {item.get("title")}')
         word_count_readings += int(enrichment['wordCount'] > 0)
         duration_readings += int(enrichment['estimatedReadingMinutes'] > 0)
         focus_word_readings += int(bool(focus_ids))
@@ -130,7 +281,9 @@ def validate(content_dir: Path) -> dict[str, int]:
         total_questions += len(questions)
         sentence_count += len(sentences)
     if sentence_count != EXPECTED['sentences']:
-        raise ValueError(f'Sentence count mismatch: expected 5242, got {sentence_count}')
+        raise ValueError(f"Sentence count mismatch: expected {EXPECTED['sentences']}, got {sentence_count}")
+    if (curated_readings, curated_sentences, curated_questions, untouched_readings) != (100, 1500, 500, 578):
+        raise ValueError('Curated/untouched reading coverage is invalid.')
     enrichment_manifest = manifest.get('readingEnrichment')
     expected_enrichment = {
         'schemaVersion': 1,
@@ -141,6 +294,9 @@ def validate(content_dir: Path) -> dict[str, int]:
         'summaryReadings': summary_readings,
         'questionReadings': question_readings,
         'totalQuestions': total_questions,
+        'curatedReadings': curated_readings,
+        'curatedSentences': curated_sentences,
+        'curatedQuestions': curated_questions,
     }
     if enrichment_manifest != expected_enrichment:
         raise ValueError(
@@ -210,6 +366,11 @@ def validate(content_dir: Path) -> dict[str, int]:
         'readingSummaryCoverage': summary_readings,
         'readingQuestionCoverage': question_readings,
         'totalQuestions': total_questions,
+        'curatedReadings': curated_readings,
+        'curatedSentences': curated_sentences,
+        'curatedQuestions': curated_questions,
+        'untouchedReadingsVerified': untouched_readings,
+        'legacyQuestionsBackedUp': legacy_question_count,
     }
 
 

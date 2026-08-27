@@ -215,8 +215,19 @@ class _ReadingDetailBodyState extends ConsumerState<_ReadingDetailBody> {
             ),
             if (_showSummary)
               SurfaceCard(
-                child: Text(passage.summary!,
-                    style: Theme.of(context).textTheme.bodyLarge),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(passage.summary!,
+                        style: Theme.of(context).textTheme.bodyLarge),
+                    if (passage.summaryTr case final summaryTr?
+                        when summaryTr.isNotEmpty) ...<Widget>[
+                      const SizedBox(height: 8),
+                      Text(summaryTr,
+                          style: Theme.of(context).textTheme.bodyMedium),
+                    ],
+                  ],
+                ),
               ),
           ],
           if (detail.questions.isNotEmpty) ...<Widget>[
@@ -507,6 +518,11 @@ class _ComprehensionQuestion extends StatelessWidget {
             children: <Widget>[
               Text('${question.sortOrder}. ${question.question}',
                   style: Theme.of(context).textTheme.titleMedium),
+              if (question.questionTr case final questionTr?
+                  when questionTr.isNotEmpty) ...<Widget>[
+                const SizedBox(height: 4),
+                Text(questionTr, style: Theme.of(context).textTheme.bodyMedium),
+              ],
               const SizedBox(height: 10),
               for (var index = 0; index < question.options.length; index++)
                 Padding(
@@ -520,7 +536,19 @@ class _ComprehensionQuestion extends StatelessWidget {
                               ? Colors.green
                               : null,
                     ),
-                    child: Text(question.options[index]),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: <Widget>[
+                        Text(question.options[index]),
+                        if (index < question.optionsTr.length &&
+                            question.optionsTr[index].isNotEmpty) ...<Widget>[
+                          const SizedBox(height: 2),
+                          Text(question.optionsTr[index],
+                              style: Theme.of(context).textTheme.bodySmall),
+                        ],
+                      ],
+                    ),
                   ),
                 ),
               if (answered) ...<Widget>[
@@ -535,10 +563,21 @@ class _ComprehensionQuestion extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                    'Doğru cevap: ${question.options[question.correctOptionIndex]}'),
+                    'Doğru cevap: ${question.answerEn ?? question.options[question.correctOptionIndex]}'),
+                if (question.answerTr case final answerTr?
+                    when answerTr.isNotEmpty) ...<Widget>[
+                  const SizedBox(height: 2),
+                  Text(answerTr, style: Theme.of(context).textTheme.bodySmall),
+                ],
                 if (question.explanation != null) ...<Widget>[
                   const SizedBox(height: 3),
                   Text(question.explanation!,
+                      style: Theme.of(context).textTheme.bodySmall),
+                ],
+                if (question.explanationTr case final explanationTr?
+                    when explanationTr.isNotEmpty) ...<Widget>[
+                  const SizedBox(height: 2),
+                  Text(explanationTr,
                       style: Theme.of(context).textTheme.bodySmall),
                 ],
               ],

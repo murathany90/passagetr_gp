@@ -1,0 +1,235 @@
+{
+  "schema_version": "2.0",
+  "package_version": "passagetr_readings_001_100_curated_v2",
+  "source_number": 3,
+  "source_pack": "YDS Set 001",
+  "source_title": "003-Derek (Derek)",
+  "source_title_en": "Derek",
+  "source_title_tr": "Derek",
+  "source_level": "A1",
+  "source_category": "History",
+  "source_tags": [
+    "biography",
+    "animals",
+    "career"
+  ],
+  "replacement_title_en": "Derek and a Career with Animals",
+  "replacement_title_tr": "Derek ve Hayvanlarla Bir Kariyer",
+  "content_mode": "parallel_expansion_editorial_v2",
+  "editorial_note": "New bilingual educational passage, topically parallel to the source title; not a reproduction of the original passage.",
+  "sentence_count": 15,
+  "sentences": [
+    {
+      "index": 1,
+      "en": "A career involving animals requires affection, patience, practical skill, and responsibility.",
+      "tr": "Hayvanlarla ilgili bir kariyer sevgi, sabır, pratik beceri ve sorumluluk gerektirir."
+    },
+    {
+      "index": 2,
+      "en": "Derek begins by volunteering at a local animal shelter, where he learns that care includes cleaning, feeding, record keeping, and observation.",
+      "tr": "Derek, bakımın temizlik, besleme, kayıt tutma ve gözlem içerdiğini öğrendiği yerel bir hayvan barınağında gönüllü olarak çalışmaya başlar."
+    },
+    {
+      "index": 3,
+      "en": "This detail matters because it changes what people can do in everyday life.",
+      "tr": "Bu ayrıntı önemlidir çünkü insanların günlük hayatta neler yapabileceğini değiştirir."
+    },
+    {
+      "index": 4,
+      "en": "He discovers that animals cannot explain their discomfort, so workers must notice changes in behavior and appetite.",
+      "tr": "Hayvanların rahatsızlıklarını anlatamadığını fark eder; bu nedenle çalışanlar davranış ve iştahtaki değişiklikleri gözlemlemelidir."
+    },
+    {
+      "index": 5,
+      "en": "People can usually see the result more clearly when they compare two different choices or situations.",
+      "tr": "İnsanlar iki farklı tercih veya durumu karşılaştırdığında sonucu genellikle daha açık görebilir."
+    },
+    {
+      "index": 6,
+      "en": "Enjoying animals is not enough if a person cannot follow safety rules or perform repetitive tasks carefully.",
+      "tr": "Bir kişi güvenlik kurallarına uyamıyor veya tekrarlanan işleri dikkatle yapamıyorsa hayvanları sevmesi tek başına yeterli değildir."
+    },
+    {
+      "index": 7,
+      "en": "The challenge does not mean the activity or idea is bad; it means people need to make careful choices.",
+      "tr": "Bu zorluk faaliyetin veya fikrin kötü olduğu anlamına gelmez; insanların dikkatli tercihler yapması gerektiğini gösterir."
+    },
+    {
+      "index": 8,
+      "en": "The experience helps Derek decide which training he needs before choosing a long-term profession.",
+      "tr": "Bu deneyim Derek'in uzun vadeli bir meslek seçmeden önce hangi eğitime ihtiyacı olduğuna karar vermesine yardımcı olur."
+    },
+    {
+      "index": 9,
+      "en": "The word 'observe' is useful in this topic because it describes an important idea in the passage.",
+      "tr": "'observe' sözcüğü bu konuda yararlıdır çünkü parçadaki önemli bir düşünceyi anlatır."
+    },
+    {
+      "index": 10,
+      "en": "Good information helps people notice problems before those problems become larger.",
+      "tr": "İyi bilgi insanların sorunları daha büyümeden fark etmesine yardımcı olur."
+    },
+    {
+      "index": 11,
+      "en": "Talking to other people can also reveal details that one person may miss.",
+      "tr": "Başkalarıyla konuşmak da tek bir kişinin gözden kaçırabileceği ayrıntıları ortaya çıkarabilir."
+    },
+    {
+      "index": 12,
+      "en": "A sensible plan leaves some room for change when conditions are different from what was expected.",
+      "tr": "Mantıklı bir plan, koşullar beklenenden farklı olduğunda değişiklik için biraz alan bırakır."
+    },
+    {
+      "index": 13,
+      "en": "Small improvements are valuable when they are repeated and become part of a normal routine.",
+      "tr": "Küçük iyileştirmeler tekrarlandığında ve normal bir rutinin parçası olduğunda değerlidir."
+    },
+    {
+      "index": 14,
+      "en": "The topic therefore connects personal choices with wider effects on other people or places.",
+      "tr": "Bu nedenle konu kişisel tercihleri diğer insanlar veya yerler üzerindeki daha geniş etkilerle ilişkilendirir."
+    },
+    {
+      "index": 15,
+      "en": "Overall, Derek and a Career with Animals shows that careful observation and responsible action can improve ordinary decisions.",
+      "tr": "Genel olarak Derek ve Hayvanlarla Bir Kariyer, dikkatli gözlem ve sorumlu davranışın günlük kararları geliştirebileceğini gösterir."
+    }
+  ],
+  "summary_en": "A career involving animals requires affection, patience, practical skill, and responsibility. The experience helps Derek decide which training he needs before choosing a long-term profession.",
+  "summary_tr": "Hayvanlarla ilgili bir kariyer sevgi, sabır, pratik beceri ve sorumluluk gerektirir. Bu deneyim Derek'in uzun vadeli bir meslek seçmeden önce hangi eğitime ihtiyacı olduğuna karar vermesine yardımcı olur.",
+  "questions": [
+    {
+      "id": "003-cq1",
+      "type": "main_idea",
+      "question_en": "Which statement best summarizes the passage 'Derek and a Career with Animals'?",
+      "question_tr": "'Derek ve Hayvanlarla Bir Kariyer' başlıklı parçayı en iyi hangi ifade özetler?",
+      "options_en": [
+        "A career involving animals requires affection, patience, practical skill, and responsibility.",
+        "The topic can be explained by one simple rule with no exceptions.",
+        "The passage argues that historical or practical context is unnecessary.",
+        "The main purpose is to memorize isolated vocabulary rather than understand the topic."
+      ],
+      "options_tr": [
+        "Hayvanlarla ilgili bir kariyer sevgi, sabır, pratik beceri ve sorumluluk gerektirir.",
+        "Konu hiçbir istisna olmadan tek bir basit kuralla açıklanabilir.",
+        "Parça tarihsel veya pratik bağlamın gereksiz olduğunu savunur.",
+        "Temel amaç konuyu anlamak yerine ayrı kelimeleri ezberlemektir."
+      ],
+      "correct_option_index": 0,
+      "answer_en": "A career involving animals requires affection, patience, practical skill, and responsibility.",
+      "answer_tr": "Hayvanlarla ilgili bir kariyer sevgi, sabır, pratik beceri ve sorumluluk gerektirir.",
+      "explanation_en": "The opening sentence gives the central idea developed by the rest of the passage.",
+      "explanation_tr": "Açılış cümlesi parçanın geri kalanında geliştirilen temel düşünceyi verir.",
+      "evidence_sentence_indexes": [
+        1
+      ]
+    },
+    {
+      "id": "003-cq2",
+      "type": "detail",
+      "question_en": "According to the passage, which specific point is correct?",
+      "question_tr": "Parçaya göre hangi özel bilgi doğrudur?",
+      "options_en": [
+        "Enjoying animals is not enough if a person cannot follow safety rules or perform repetitive tasks carefully.",
+        "The passage says no practical preparation or evidence is needed.",
+        "The passage states that all people experience the issue in exactly the same way.",
+        "Derek begins by volunteering at a local animal shelter, where he learns that care includes cleaning, feeding, record keeping, and observation."
+      ],
+      "options_tr": [
+        "Bir kişi güvenlik kurallarına uyamıyor veya tekrarlanan işleri dikkatle yapamıyorsa hayvanları sevmesi tek başına yeterli değildir.",
+        "Parça hiçbir pratik hazırlık veya kanıt gerekmediğini söyler.",
+        "Parça bütün insanların konuyu tamamen aynı biçimde yaşadığını belirtir.",
+        "Derek, bakımın temizlik, besleme, kayıt tutma ve gözlem içerdiğini öğrendiği yerel bir hayvan barınağında gönüllü olarak çalışmaya başlar."
+      ],
+      "correct_option_index": 3,
+      "answer_en": "Derek begins by volunteering at a local animal shelter, where he learns that care includes cleaning, feeding, record keeping, and observation.",
+      "answer_tr": "Derek, bakımın temizlik, besleme, kayıt tutma ve gözlem içerdiğini öğrendiği yerel bir hayvan barınağında gönüllü olarak çalışmaya başlar.",
+      "explanation_en": "This information is stated directly in sentence 2.",
+      "explanation_tr": "Bu bilgi 2. cümlede doğrudan belirtilmiştir.",
+      "evidence_sentence_indexes": [
+        2
+      ]
+    },
+    {
+      "id": "003-cq3",
+      "type": "relationship",
+      "question_en": "Which additional fact does the passage use to develop the topic?",
+      "question_tr": "Parça konuyu geliştirmek için hangi ek bilgiyi kullanır?",
+      "options_en": [
+        "The passage claims that costs and risks can always be ignored.",
+        "The passage gives no example of how the topic works in practice.",
+        "He discovers that animals cannot explain their discomfort, so workers must notice changes in behavior and appetite.",
+        "The passage says the subject has no effect outside a single person."
+      ],
+      "options_tr": [
+        "Parça maliyetlerin ve risklerin her zaman görmezden gelinebileceğini iddia eder.",
+        "Parça konunun pratikte nasıl işlediğine dair hiçbir örnek vermez.",
+        "Hayvanların rahatsızlıklarını anlatamadığını fark eder; bu nedenle çalışanlar davranış ve iştahtaki değişiklikleri gözlemlemelidir.",
+        "Parça konunun tek bir kişinin dışında hiçbir etkisi olmadığını söyler."
+      ],
+      "correct_option_index": 2,
+      "answer_en": "He discovers that animals cannot explain their discomfort, so workers must notice changes in behavior and appetite.",
+      "answer_tr": "Hayvanların rahatsızlıklarını anlatamadığını fark eder; bu nedenle çalışanlar davranış ve iştahtaki değişiklikleri gözlemlemelidir.",
+      "explanation_en": "Sentence 4 adds this second topic-specific fact.",
+      "explanation_tr": "4. cümle konuya özgü bu ikinci bilgiyi ekler.",
+      "evidence_sentence_indexes": [
+        4
+      ]
+    },
+    {
+      "id": "003-cq4",
+      "type": "inference",
+      "question_en": "What conclusion is most reasonable based on the challenge and outcome described in the passage?",
+      "question_tr": "Parçada anlatılan güçlük ve sonuç temelinde hangi çıkarım en makuldür?",
+      "options_en": [
+        "The passage recommends choosing the fastest option regardless of later effects.",
+        "The experience helps Derek decide which training he needs before choosing a long-term profession.",
+        "The safest approach is to ignore the difficulty completely.",
+        "A good outcome depends only on luck and cannot be influenced by planning."
+      ],
+      "options_tr": [
+        "Parça sonraki etkiler ne olursa olsun en hızlı seçeneğin seçilmesini önerir.",
+        "Bu deneyim Derek'in uzun vadeli bir meslek seçmeden önce hangi eğitime ihtiyacı olduğuna karar vermesine yardımcı olur.",
+        "En güvenli yaklaşım güçlüğü tamamen görmezden gelmektir.",
+        "İyi sonuç yalnızca şansa bağlıdır ve planlamayla etkilenemez."
+      ],
+      "correct_option_index": 1,
+      "answer_en": "The experience helps Derek decide which training he needs before choosing a long-term profession.",
+      "answer_tr": "Bu deneyim Derek'in uzun vadeli bir meslek seçmeden önce hangi eğitime ihtiyacı olduğuna karar vermesine yardımcı olur.",
+      "explanation_en": "The passage identifies a concrete challenge and then gives the constructive result or lesson.",
+      "explanation_tr": "Parça somut bir güçlüğü belirtir ve ardından yapıcı sonucu veya dersi verir.",
+      "evidence_sentence_indexes": [
+        6,
+        8
+      ]
+    },
+    {
+      "id": "003-cq5",
+      "type": "vocabulary_context",
+      "question_en": "What does 'observe' mean as used in the passage?",
+      "question_tr": "Parçada kullanılan 'observe' sözcüğü ne anlama gelir?",
+      "options_en": [
+        "to watch carefully in order to notice important details",
+        "the exact opposite of the idea explained in the passage",
+        "a word used only as a proper name with no general meaning",
+        "a measurement that refers only to money"
+      ],
+      "options_tr": [
+        "önemli ayrıntıları fark etmek için dikkatle izlemek",
+        "parçada açıklanan düşüncenin tam tersi",
+        "genel anlamı olmayan, yalnızca özel isim olarak kullanılan bir sözcük",
+        "yalnızca parayı ifade eden bir ölçüm"
+      ],
+      "correct_option_index": 0,
+      "answer_en": "to watch carefully in order to notice important details",
+      "answer_tr": "önemli ayrıntıları fark etmek için dikkatle izlemek",
+      "explanation_en": "Sentence 9 defines 'observe' in context.",
+      "explanation_tr": "9. cümle 'observe' sözcüğünü bağlam içinde tanımlar.",
+      "evidence_sentence_indexes": [
+        9
+      ]
+    }
+  ],
+  "question_count": 5,
+  "legacy_questions_policy": "PRESERVE_EXISTING_LEGACY_QUESTIONS_SEPARATELY; DO NOT DELETE OR OVERWRITE WITHOUT EXPLICIT EDITORIAL REVIEW."
+}

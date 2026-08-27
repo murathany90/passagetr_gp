@@ -58,7 +58,32 @@ void main() {
       ),
     ],
     focusWordIds: <String>[],
-    questions: <ReadingQuestion>[],
+    questions: <ReadingQuestion>[
+      ReadingQuestion(
+        id: 'question-a',
+        sortOrder: 1,
+        question: 'What does the passage say?',
+        questionTr: 'What does the passage say in Turkish?',
+        options: <String>[
+          'Knowledge changes lives.',
+          'A bridge is closed.',
+          'The library is empty.',
+          'No answer is given.',
+        ],
+        optionsTr: <String>[
+          'Knowledge changes lives in Turkish.',
+          'A bridge is closed in Turkish.',
+          'The library is empty in Turkish.',
+          'No answer is given in Turkish.',
+        ],
+        correctOptionIndex: 0,
+        answerEn: 'Knowledge changes lives.',
+        answerTr: 'Knowledge changes lives in Turkish.',
+        explanation: 'The first sentence supports this answer.',
+        explanationTr: 'The first sentence supports this answer in Turkish.',
+        evidenceSentenceIndexes: <int>[1],
+      ),
+    ],
   );
   final repository = _FixtureRepository(
     packs: const <ContentPack>[pack],

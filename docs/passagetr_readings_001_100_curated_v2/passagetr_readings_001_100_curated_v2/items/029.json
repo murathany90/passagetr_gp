@@ -1,0 +1,235 @@
+{
+  "schema_version": "2.0",
+  "package_version": "passagetr_readings_001_100_curated_v2",
+  "source_number": 29,
+  "source_pack": "YDS Set 001",
+  "source_title": "029-Going to Britain (İngiltere'ye Gidiş)",
+  "source_title_en": "Going to Britain",
+  "source_title_tr": "İngiltere'ye Gidiş",
+  "source_level": "A2",
+  "source_category": "Travel & Geography",
+  "source_tags": [
+    "travel",
+    "money",
+    "transport"
+  ],
+  "replacement_title_en": "Going to Britain: Planning a Practical Trip",
+  "replacement_title_tr": "Britanya'ya Gitmek: Pratik Bir Seyahat Planlamak",
+  "content_mode": "parallel_expansion_editorial_v2",
+  "editorial_note": "New bilingual educational passage, topically parallel to the source title; not a reproduction of the original passage.",
+  "sentence_count": 15,
+  "sentences": [
+    {
+      "index": 1,
+      "en": "A successful trip to Britain begins before departure with realistic planning about documents, transport, money, weather, and accommodation.",
+      "tr": "Britanya'ya başarılı bir seyahat, yola çıkmadan önce belgeler, ulaşım, para, hava durumu ve konaklama konusunda gerçekçi planlamayla başlar."
+    },
+    {
+      "index": 2,
+      "en": "Travelers should check entry requirements and local transport options because rules and ticket systems can change over time.",
+      "tr": "Yolcular giriş koşullarını ve yerel ulaşım seçeneklerini kontrol etmelidir çünkü kurallar ve bilet sistemleri zaman içinde değişebilir."
+    },
+    {
+      "index": 3,
+      "en": "This is important because the visible result often depends on decisions made earlier and on conditions that users do not immediately notice.",
+      "tr": "Bu önemlidir çünkü görünen sonuç çoğu zaman daha önce alınmış kararlara ve kullanıcıların hemen fark etmediği koşullara bağlıdır."
+    },
+    {
+      "index": 4,
+      "en": "Britain's weather can change quickly, so flexible clothing and a plan for indoor activities can make a visit more comfortable.",
+      "tr": "Britanya'nın havası hızla değişebilir; bu nedenle katmanlı giyim ve kapalı alan etkinlikleri için plan yolculuğu daha rahat kılabilir."
+    },
+    {
+      "index": 5,
+      "en": "The example also shows that a single subject can involve practical, social, economic, or environmental questions at the same time.",
+      "tr": "Örnek ayrıca tek bir konunun aynı anda pratik, toplumsal, ekonomik veya çevresel sorular içerebileceğini gösterir."
+    },
+    {
+      "index": 6,
+      "en": "Popular destinations can be expensive during busy periods, and booking early may reduce both cost and uncertainty.",
+      "tr": "Popüler destinasyonlar yoğun dönemlerde pahalı olabilir; erken rezervasyon hem maliyeti hem de belirsizliği azaltabilir."
+    },
+    {
+      "index": 7,
+      "en": "Ignoring that difficulty may produce a short-term advantage while creating a larger problem later.",
+      "tr": "Bu güçlüğü görmezden gelmek kısa vadeli bir avantaj sağlarken daha sonra daha büyük bir sorun yaratabilir."
+    },
+    {
+      "index": 8,
+      "en": "Good travel planning does not remove every surprise, but it gives visitors more time and energy to enjoy the places and people they came to experience.",
+      "tr": "İyi seyahat planlaması her sürprizi ortadan kaldırmaz; ancak ziyaretçilere görmek istedikleri yerlerin ve insanların tadını çıkarmak için daha fazla zaman ve enerji bırakır."
+    },
+    {
+      "index": 9,
+      "en": "In this context, 'accommodation' means a place where a traveler stays, such as a hotel, hostel, or rented room.",
+      "tr": "Bu bağlamda 'accommodation' sözcüğü 'bir yolcunun kaldığı otel, hostel veya kiralık oda gibi yer' anlamına gelir."
+    },
+    {
+      "index": 10,
+      "en": "People usually make better choices when they compare alternatives, check reliable information, and understand who carries the cost or risk.",
+      "tr": "İnsanlar alternatifleri karşılaştırdığında, güvenilir bilgiyi kontrol ettiğinde ve maliyeti veya riski kimin taşıdığını anladığında genellikle daha iyi tercihler yapar."
+    },
+    {
+      "index": 11,
+      "en": "Different groups may still disagree because they value different outcomes or experience the situation from different positions.",
+      "tr": "Farklı gruplar farklı sonuçlara değer verdikleri veya durumu farklı konumlardan yaşadıkları için yine de anlaşamayabilir."
+    },
+    {
+      "index": 12,
+      "en": "Clear communication is useful because it allows people to explain both their goals and the limits they face.",
+      "tr": "Açık iletişim yararlıdır çünkü insanların hem hedeflerini hem de karşılaştıkları sınırları açıklamasına imkân verir."
+    },
+    {
+      "index": 13,
+      "en": "A practical solution should therefore be tested in real conditions instead of being accepted only because it sounds attractive.",
+      "tr": "Bu nedenle pratik bir çözüm yalnızca çekici göründüğü için kabul edilmek yerine gerçek koşullarda sınanmalıdır."
+    },
+    {
+      "index": 14,
+      "en": "Long-term success depends on reviewing results and changing the plan when evidence shows that an approach is not working well.",
+      "tr": "Uzun vadeli başarı, sonuçları gözden geçirmeye ve kanıt bir yaklaşımın iyi işlemediğini gösterdiğinde planı değiştirmeye bağlıdır."
+    },
+    {
+      "index": 15,
+      "en": "For these reasons, Going to Britain: Planning a Practical Trip is a useful topic for learning how individual choices connect with wider consequences.",
+      "tr": "Bu nedenlerle Britanya'ya Gitmek: Pratik Bir Seyahat Planlamak, bireysel tercihlerin daha geniş sonuçlarla nasıl bağlantı kurduğunu öğrenmek için yararlı bir konudur."
+    }
+  ],
+  "summary_en": "A successful trip to Britain begins before departure with realistic planning about documents, transport, money, weather, and accommodation. Good travel planning does not remove every surprise, but it gives visitors more time and energy to enjoy the places and people they came to experience.",
+  "summary_tr": "Britanya'ya başarılı bir seyahat, yola çıkmadan önce belgeler, ulaşım, para, hava durumu ve konaklama konusunda gerçekçi planlamayla başlar. İyi seyahat planlaması her sürprizi ortadan kaldırmaz; ancak ziyaretçilere görmek istedikleri yerlerin ve insanların tadını çıkarmak için daha fazla zaman ve enerji bırakır.",
+  "questions": [
+    {
+      "id": "029-cq1",
+      "type": "main_idea",
+      "question_en": "Which statement best summarizes the passage 'Going to Britain: Planning a Practical Trip'?",
+      "question_tr": "'Britanya'ya Gitmek: Pratik Bir Seyahat Planlamak' başlıklı parçayı en iyi hangi ifade özetler?",
+      "options_en": [
+        "The passage argues that historical or practical context is unnecessary.",
+        "The main purpose is to memorize isolated vocabulary rather than understand the topic.",
+        "A successful trip to Britain begins before departure with realistic planning about documents, transport, money, weather, and accommodation.",
+        "The topic can be explained by one simple rule with no exceptions."
+      ],
+      "options_tr": [
+        "Parça tarihsel veya pratik bağlamın gereksiz olduğunu savunur.",
+        "Temel amaç konuyu anlamak yerine ayrı kelimeleri ezberlemektir.",
+        "Britanya'ya başarılı bir seyahat, yola çıkmadan önce belgeler, ulaşım, para, hava durumu ve konaklama konusunda gerçekçi planlamayla başlar.",
+        "Konu hiçbir istisna olmadan tek bir basit kuralla açıklanabilir."
+      ],
+      "correct_option_index": 2,
+      "answer_en": "A successful trip to Britain begins before departure with realistic planning about documents, transport, money, weather, and accommodation.",
+      "answer_tr": "Britanya'ya başarılı bir seyahat, yola çıkmadan önce belgeler, ulaşım, para, hava durumu ve konaklama konusunda gerçekçi planlamayla başlar.",
+      "explanation_en": "The opening sentence gives the central idea developed by the rest of the passage.",
+      "explanation_tr": "Açılış cümlesi parçanın geri kalanında geliştirilen temel düşünceyi verir.",
+      "evidence_sentence_indexes": [
+        1
+      ]
+    },
+    {
+      "id": "029-cq2",
+      "type": "detail",
+      "question_en": "According to the passage, which specific point is correct?",
+      "question_tr": "Parçaya göre hangi özel bilgi doğrudur?",
+      "options_en": [
+        "The passage states that all people experience the issue in exactly the same way.",
+        "Travelers should check entry requirements and local transport options because rules and ticket systems can change over time.",
+        "Popular destinations can be expensive during busy periods, and booking early may reduce both cost and uncertainty.",
+        "The passage says no practical preparation or evidence is needed."
+      ],
+      "options_tr": [
+        "Parça bütün insanların konuyu tamamen aynı biçimde yaşadığını belirtir.",
+        "Yolcular giriş koşullarını ve yerel ulaşım seçeneklerini kontrol etmelidir çünkü kurallar ve bilet sistemleri zaman içinde değişebilir.",
+        "Popüler destinasyonlar yoğun dönemlerde pahalı olabilir; erken rezervasyon hem maliyeti hem de belirsizliği azaltabilir.",
+        "Parça hiçbir pratik hazırlık veya kanıt gerekmediğini söyler."
+      ],
+      "correct_option_index": 1,
+      "answer_en": "Travelers should check entry requirements and local transport options because rules and ticket systems can change over time.",
+      "answer_tr": "Yolcular giriş koşullarını ve yerel ulaşım seçeneklerini kontrol etmelidir çünkü kurallar ve bilet sistemleri zaman içinde değişebilir.",
+      "explanation_en": "This information is stated directly in sentence 2.",
+      "explanation_tr": "Bu bilgi 2. cümlede doğrudan belirtilmiştir.",
+      "evidence_sentence_indexes": [
+        2
+      ]
+    },
+    {
+      "id": "029-cq3",
+      "type": "relationship",
+      "question_en": "Which additional fact does the passage use to develop the topic?",
+      "question_tr": "Parça konuyu geliştirmek için hangi ek bilgiyi kullanır?",
+      "options_en": [
+        "Britain's weather can change quickly, so flexible clothing and a plan for indoor activities can make a visit more comfortable.",
+        "The passage says the subject has no effect outside a single person.",
+        "The passage claims that costs and risks can always be ignored.",
+        "The passage gives no example of how the topic works in practice."
+      ],
+      "options_tr": [
+        "Britanya'nın havası hızla değişebilir; bu nedenle katmanlı giyim ve kapalı alan etkinlikleri için plan yolculuğu daha rahat kılabilir.",
+        "Parça konunun tek bir kişinin dışında hiçbir etkisi olmadığını söyler.",
+        "Parça maliyetlerin ve risklerin her zaman görmezden gelinebileceğini iddia eder.",
+        "Parça konunun pratikte nasıl işlediğine dair hiçbir örnek vermez."
+      ],
+      "correct_option_index": 0,
+      "answer_en": "Britain's weather can change quickly, so flexible clothing and a plan for indoor activities can make a visit more comfortable.",
+      "answer_tr": "Britanya'nın havası hızla değişebilir; bu nedenle katmanlı giyim ve kapalı alan etkinlikleri için plan yolculuğu daha rahat kılabilir.",
+      "explanation_en": "Sentence 4 adds this second topic-specific fact.",
+      "explanation_tr": "4. cümle konuya özgü bu ikinci bilgiyi ekler.",
+      "evidence_sentence_indexes": [
+        4
+      ]
+    },
+    {
+      "id": "029-cq4",
+      "type": "inference",
+      "question_en": "What conclusion is most reasonable based on the challenge and outcome described in the passage?",
+      "question_tr": "Parçada anlatılan güçlük ve sonuç temelinde hangi çıkarım en makuldür?",
+      "options_en": [
+        "The safest approach is to ignore the difficulty completely.",
+        "A good outcome depends only on luck and cannot be influenced by planning.",
+        "The passage recommends choosing the fastest option regardless of later effects.",
+        "Good travel planning does not remove every surprise, but it gives visitors more time and energy to enjoy the places and people they came to experience."
+      ],
+      "options_tr": [
+        "En güvenli yaklaşım güçlüğü tamamen görmezden gelmektir.",
+        "İyi sonuç yalnızca şansa bağlıdır ve planlamayla etkilenemez.",
+        "Parça sonraki etkiler ne olursa olsun en hızlı seçeneğin seçilmesini önerir.",
+        "İyi seyahat planlaması her sürprizi ortadan kaldırmaz; ancak ziyaretçilere görmek istedikleri yerlerin ve insanların tadını çıkarmak için daha fazla zaman ve enerji bırakır."
+      ],
+      "correct_option_index": 3,
+      "answer_en": "Good travel planning does not remove every surprise, but it gives visitors more time and energy to enjoy the places and people they came to experience.",
+      "answer_tr": "İyi seyahat planlaması her sürprizi ortadan kaldırmaz; ancak ziyaretçilere görmek istedikleri yerlerin ve insanların tadını çıkarmak için daha fazla zaman ve enerji bırakır.",
+      "explanation_en": "The passage identifies a concrete challenge and then gives the constructive result or lesson.",
+      "explanation_tr": "Parça somut bir güçlüğü belirtir ve ardından yapıcı sonucu veya dersi verir.",
+      "evidence_sentence_indexes": [
+        6,
+        8
+      ]
+    },
+    {
+      "id": "029-cq5",
+      "type": "vocabulary_context",
+      "question_en": "What does 'accommodation' mean as used in the passage?",
+      "question_tr": "Parçada kullanılan 'accommodation' sözcüğü ne anlama gelir?",
+      "options_en": [
+        "a word used only as a proper name with no general meaning",
+        "a measurement that refers only to money",
+        "a place where a traveler stays, such as a hotel, hostel, or rented room",
+        "the exact opposite of the idea explained in the passage"
+      ],
+      "options_tr": [
+        "genel anlamı olmayan, yalnızca özel isim olarak kullanılan bir sözcük",
+        "yalnızca parayı ifade eden bir ölçüm",
+        "bir yolcunun kaldığı otel, hostel veya kiralık oda gibi yer",
+        "parçada açıklanan düşüncenin tam tersi"
+      ],
+      "correct_option_index": 2,
+      "answer_en": "a place where a traveler stays, such as a hotel, hostel, or rented room",
+      "answer_tr": "bir yolcunun kaldığı otel, hostel veya kiralık oda gibi yer",
+      "explanation_en": "Sentence 9 defines 'accommodation' in context.",
+      "explanation_tr": "9. cümle 'accommodation' sözcüğünü bağlam içinde tanımlar.",
+      "evidence_sentence_indexes": [
+        9
+      ]
+    }
+  ],
+  "question_count": 5,
+  "legacy_questions_policy": "PRESERVE_EXISTING_LEGACY_QUESTIONS_SEPARATELY; DO NOT DELETE OR OVERWRITE WITHOUT EXPLICIT EDITORIAL REVIEW."
+}

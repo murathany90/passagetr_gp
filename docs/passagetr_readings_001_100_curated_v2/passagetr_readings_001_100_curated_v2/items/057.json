@@ -1,0 +1,235 @@
+{
+  "schema_version": "2.0",
+  "package_version": "passagetr_readings_001_100_curated_v2",
+  "source_number": 57,
+  "source_pack": "YDS Set 001",
+  "source_title": "057-Various Advertisements (Çeşitli İlanlar)",
+  "source_title_en": "Various Advertisements",
+  "source_title_tr": "Çeşitli İlanlar",
+  "source_level": "A2",
+  "source_category": "Education",
+  "source_tags": [
+    "education",
+    "events",
+    "services"
+  ],
+  "replacement_title_en": "Reading Advertisements Critically",
+  "replacement_title_tr": "Reklamları Eleştirel Okumak",
+  "content_mode": "parallel_expansion_editorial_v2",
+  "editorial_note": "New bilingual educational passage, topically parallel to the source title; not a reproduction of the original passage.",
+  "sentence_count": 15,
+  "sentences": [
+    {
+      "index": 1,
+      "en": "Advertisements are designed to attract attention and persuade people to consider a product, service, event, job, or idea.",
+      "tr": "Reklamlar dikkat çekmek ve insanları bir ürün, hizmet, etkinlik, iş veya fikri değerlendirmeye ikna etmek için tasarlanır."
+    },
+    {
+      "index": 2,
+      "en": "Useful information may be mixed with emotional language, striking images, discounts, deadlines, or claims that sound more certain than the evidence behind them.",
+      "tr": "Yararlı bilgiler duygusal dil, çarpıcı görseller, indirimler, son tarihler veya arkasındaki kanıttan daha kesin görünen iddialarla karışabilir."
+    },
+    {
+      "index": 3,
+      "en": "This is important because the visible result often depends on decisions made earlier and on conditions that users do not immediately notice.",
+      "tr": "Bu önemlidir çünkü görünen sonuç çoğu zaman daha önce alınmış kararlara ve kullanıcıların hemen fark etmediği koşullara bağlıdır."
+    },
+    {
+      "index": 4,
+      "en": "A careful reader checks the full price, conditions, exclusions, contract length, source of the claim, and whether a comparison is being made fairly.",
+      "tr": "Dikkatli bir okuyucu toplam fiyatı, koşulları, istisnaları, sözleşme süresini, iddianın kaynağını ve karşılaştırmanın adil yapılıp yapılmadığını kontrol eder."
+    },
+    {
+      "index": 5,
+      "en": "The example also shows that a single subject can involve practical, social, economic, or environmental questions at the same time.",
+      "tr": "Örnek ayrıca tek bir konunun aynı anda pratik, toplumsal, ekonomik veya çevresel sorular içerebileceğini gösterir."
+    },
+    {
+      "index": 6,
+      "en": "Digital advertising can be personalized through data about browsing behavior, which may make offers more relevant while also raising questions about privacy and manipulation.",
+      "tr": "Dijital reklamcılık gezinme davranışı hakkındaki verilerle kişiselleştirilebilir; bu teklifler daha ilgili hâle gelirken mahremiyet ve yönlendirme hakkında sorular da doğurabilir."
+    },
+    {
+      "index": 7,
+      "en": "Ignoring that difficulty may produce a short-term advantage while creating a larger problem later.",
+      "tr": "Bu güçlüğü görmezden gelmek kısa vadeli bir avantaj sağlarken daha sonra daha büyük bir sorun yaratabilir."
+    },
+    {
+      "index": 8,
+      "en": "Advertising is easiest to evaluate when people separate verifiable facts from slogans and give themselves enough time to compare alternatives before deciding.",
+      "tr": "İnsanlar doğrulanabilir gerçekleri sloganlardan ayırıp karar vermeden önce alternatifleri karşılaştırmak için kendilerine yeterli zaman verdiğinde reklamları değerlendirmek daha kolaydır."
+    },
+    {
+      "index": 9,
+      "en": "In this context, 'claim' means a statement that something is true, especially one that may need evidence.",
+      "tr": "Bu bağlamda 'claim' sözcüğü 'özellikle kanıt gerektirebilecek bir şeyin doğru olduğunu söyleyen ifade' anlamına gelir."
+    },
+    {
+      "index": 10,
+      "en": "People usually make better choices when they compare alternatives, check reliable information, and understand who carries the cost or risk.",
+      "tr": "İnsanlar alternatifleri karşılaştırdığında, güvenilir bilgiyi kontrol ettiğinde ve maliyeti veya riski kimin taşıdığını anladığında genellikle daha iyi tercihler yapar."
+    },
+    {
+      "index": 11,
+      "en": "Different groups may still disagree because they value different outcomes or experience the situation from different positions.",
+      "tr": "Farklı gruplar farklı sonuçlara değer verdikleri veya durumu farklı konumlardan yaşadıkları için yine de anlaşamayabilir."
+    },
+    {
+      "index": 12,
+      "en": "Clear communication is useful because it allows people to explain both their goals and the limits they face.",
+      "tr": "Açık iletişim yararlıdır çünkü insanların hem hedeflerini hem de karşılaştıkları sınırları açıklamasına imkân verir."
+    },
+    {
+      "index": 13,
+      "en": "A practical solution should therefore be tested in real conditions instead of being accepted only because it sounds attractive.",
+      "tr": "Bu nedenle pratik bir çözüm yalnızca çekici göründüğü için kabul edilmek yerine gerçek koşullarda sınanmalıdır."
+    },
+    {
+      "index": 14,
+      "en": "Long-term success depends on reviewing results and changing the plan when evidence shows that an approach is not working well.",
+      "tr": "Uzun vadeli başarı, sonuçları gözden geçirmeye ve kanıt bir yaklaşımın iyi işlemediğini gösterdiğinde planı değiştirmeye bağlıdır."
+    },
+    {
+      "index": 15,
+      "en": "For these reasons, Reading Advertisements Critically is a useful topic for learning how individual choices connect with wider consequences.",
+      "tr": "Bu nedenlerle Reklamları Eleştirel Okumak, bireysel tercihlerin daha geniş sonuçlarla nasıl bağlantı kurduğunu öğrenmek için yararlı bir konudur."
+    }
+  ],
+  "summary_en": "Advertisements are designed to attract attention and persuade people to consider a product, service, event, job, or idea. Advertising is easiest to evaluate when people separate verifiable facts from slogans and give themselves enough time to compare alternatives before deciding.",
+  "summary_tr": "Reklamlar dikkat çekmek ve insanları bir ürün, hizmet, etkinlik, iş veya fikri değerlendirmeye ikna etmek için tasarlanır. İnsanlar doğrulanabilir gerçekleri sloganlardan ayırıp karar vermeden önce alternatifleri karşılaştırmak için kendilerine yeterli zaman verdiğinde reklamları değerlendirmek daha kolaydır.",
+  "questions": [
+    {
+      "id": "057-cq1",
+      "type": "main_idea",
+      "question_en": "Which statement best summarizes the passage 'Reading Advertisements Critically'?",
+      "question_tr": "'Reklamları Eleştirel Okumak' başlıklı parçayı en iyi hangi ifade özetler?",
+      "options_en": [
+        "The passage argues that historical or practical context is unnecessary.",
+        "The main purpose is to memorize isolated vocabulary rather than understand the topic.",
+        "Advertisements are designed to attract attention and persuade people to consider a product, service, event, job, or idea.",
+        "The topic can be explained by one simple rule with no exceptions."
+      ],
+      "options_tr": [
+        "Parça tarihsel veya pratik bağlamın gereksiz olduğunu savunur.",
+        "Temel amaç konuyu anlamak yerine ayrı kelimeleri ezberlemektir.",
+        "Reklamlar dikkat çekmek ve insanları bir ürün, hizmet, etkinlik, iş veya fikri değerlendirmeye ikna etmek için tasarlanır.",
+        "Konu hiçbir istisna olmadan tek bir basit kuralla açıklanabilir."
+      ],
+      "correct_option_index": 2,
+      "answer_en": "Advertisements are designed to attract attention and persuade people to consider a product, service, event, job, or idea.",
+      "answer_tr": "Reklamlar dikkat çekmek ve insanları bir ürün, hizmet, etkinlik, iş veya fikri değerlendirmeye ikna etmek için tasarlanır.",
+      "explanation_en": "The opening sentence gives the central idea developed by the rest of the passage.",
+      "explanation_tr": "Açılış cümlesi parçanın geri kalanında geliştirilen temel düşünceyi verir.",
+      "evidence_sentence_indexes": [
+        1
+      ]
+    },
+    {
+      "id": "057-cq2",
+      "type": "detail",
+      "question_en": "According to the passage, which specific point is correct?",
+      "question_tr": "Parçaya göre hangi özel bilgi doğrudur?",
+      "options_en": [
+        "The passage states that all people experience the issue in exactly the same way.",
+        "Useful information may be mixed with emotional language, striking images, discounts, deadlines, or claims that sound more certain than the evidence behind them.",
+        "Digital advertising can be personalized through data about browsing behavior, which may make offers more relevant while also raising questions about privacy and manipulation.",
+        "The passage says no practical preparation or evidence is needed."
+      ],
+      "options_tr": [
+        "Parça bütün insanların konuyu tamamen aynı biçimde yaşadığını belirtir.",
+        "Yararlı bilgiler duygusal dil, çarpıcı görseller, indirimler, son tarihler veya arkasındaki kanıttan daha kesin görünen iddialarla karışabilir.",
+        "Dijital reklamcılık gezinme davranışı hakkındaki verilerle kişiselleştirilebilir; bu teklifler daha ilgili hâle gelirken mahremiyet ve yönlendirme hakkında sorular da doğurabilir.",
+        "Parça hiçbir pratik hazırlık veya kanıt gerekmediğini söyler."
+      ],
+      "correct_option_index": 1,
+      "answer_en": "Useful information may be mixed with emotional language, striking images, discounts, deadlines, or claims that sound more certain than the evidence behind them.",
+      "answer_tr": "Yararlı bilgiler duygusal dil, çarpıcı görseller, indirimler, son tarihler veya arkasındaki kanıttan daha kesin görünen iddialarla karışabilir.",
+      "explanation_en": "This information is stated directly in sentence 2.",
+      "explanation_tr": "Bu bilgi 2. cümlede doğrudan belirtilmiştir.",
+      "evidence_sentence_indexes": [
+        2
+      ]
+    },
+    {
+      "id": "057-cq3",
+      "type": "relationship",
+      "question_en": "Which additional fact does the passage use to develop the topic?",
+      "question_tr": "Parça konuyu geliştirmek için hangi ek bilgiyi kullanır?",
+      "options_en": [
+        "A careful reader checks the full price, conditions, exclusions, contract length, source of the claim, and whether a comparison is being made fairly.",
+        "The passage says the subject has no effect outside a single person.",
+        "The passage claims that costs and risks can always be ignored.",
+        "The passage gives no example of how the topic works in practice."
+      ],
+      "options_tr": [
+        "Dikkatli bir okuyucu toplam fiyatı, koşulları, istisnaları, sözleşme süresini, iddianın kaynağını ve karşılaştırmanın adil yapılıp yapılmadığını kontrol eder.",
+        "Parça konunun tek bir kişinin dışında hiçbir etkisi olmadığını söyler.",
+        "Parça maliyetlerin ve risklerin her zaman görmezden gelinebileceğini iddia eder.",
+        "Parça konunun pratikte nasıl işlediğine dair hiçbir örnek vermez."
+      ],
+      "correct_option_index": 0,
+      "answer_en": "A careful reader checks the full price, conditions, exclusions, contract length, source of the claim, and whether a comparison is being made fairly.",
+      "answer_tr": "Dikkatli bir okuyucu toplam fiyatı, koşulları, istisnaları, sözleşme süresini, iddianın kaynağını ve karşılaştırmanın adil yapılıp yapılmadığını kontrol eder.",
+      "explanation_en": "Sentence 4 adds this second topic-specific fact.",
+      "explanation_tr": "4. cümle konuya özgü bu ikinci bilgiyi ekler.",
+      "evidence_sentence_indexes": [
+        4
+      ]
+    },
+    {
+      "id": "057-cq4",
+      "type": "inference",
+      "question_en": "What conclusion is most reasonable based on the challenge and outcome described in the passage?",
+      "question_tr": "Parçada anlatılan güçlük ve sonuç temelinde hangi çıkarım en makuldür?",
+      "options_en": [
+        "The safest approach is to ignore the difficulty completely.",
+        "A good outcome depends only on luck and cannot be influenced by planning.",
+        "The passage recommends choosing the fastest option regardless of later effects.",
+        "Advertising is easiest to evaluate when people separate verifiable facts from slogans and give themselves enough time to compare alternatives before deciding."
+      ],
+      "options_tr": [
+        "En güvenli yaklaşım güçlüğü tamamen görmezden gelmektir.",
+        "İyi sonuç yalnızca şansa bağlıdır ve planlamayla etkilenemez.",
+        "Parça sonraki etkiler ne olursa olsun en hızlı seçeneğin seçilmesini önerir.",
+        "İnsanlar doğrulanabilir gerçekleri sloganlardan ayırıp karar vermeden önce alternatifleri karşılaştırmak için kendilerine yeterli zaman verdiğinde reklamları değerlendirmek daha kolaydır."
+      ],
+      "correct_option_index": 3,
+      "answer_en": "Advertising is easiest to evaluate when people separate verifiable facts from slogans and give themselves enough time to compare alternatives before deciding.",
+      "answer_tr": "İnsanlar doğrulanabilir gerçekleri sloganlardan ayırıp karar vermeden önce alternatifleri karşılaştırmak için kendilerine yeterli zaman verdiğinde reklamları değerlendirmek daha kolaydır.",
+      "explanation_en": "The passage identifies a concrete challenge and then gives the constructive result or lesson.",
+      "explanation_tr": "Parça somut bir güçlüğü belirtir ve ardından yapıcı sonucu veya dersi verir.",
+      "evidence_sentence_indexes": [
+        6,
+        8
+      ]
+    },
+    {
+      "id": "057-cq5",
+      "type": "vocabulary_context",
+      "question_en": "What does 'claim' mean as used in the passage?",
+      "question_tr": "Parçada kullanılan 'claim' sözcüğü ne anlama gelir?",
+      "options_en": [
+        "a word used only as a proper name with no general meaning",
+        "a measurement that refers only to money",
+        "a statement that something is true, especially one that may need evidence",
+        "the exact opposite of the idea explained in the passage"
+      ],
+      "options_tr": [
+        "genel anlamı olmayan, yalnızca özel isim olarak kullanılan bir sözcük",
+        "yalnızca parayı ifade eden bir ölçüm",
+        "özellikle kanıt gerektirebilecek bir şeyin doğru olduğunu söyleyen ifade",
+        "parçada açıklanan düşüncenin tam tersi"
+      ],
+      "correct_option_index": 2,
+      "answer_en": "a statement that something is true, especially one that may need evidence",
+      "answer_tr": "özellikle kanıt gerektirebilecek bir şeyin doğru olduğunu söyleyen ifade",
+      "explanation_en": "Sentence 9 defines 'claim' in context.",
+      "explanation_tr": "9. cümle 'claim' sözcüğünü bağlam içinde tanımlar.",
+      "evidence_sentence_indexes": [
+        9
+      ]
+    }
+  ],
+  "question_count": 5,
+  "legacy_questions_policy": "PRESERVE_EXISTING_LEGACY_QUESTIONS_SEPARATELY; DO NOT DELETE OR OVERWRITE WITHOUT EXPLICIT EDITORIAL REVIEW."
+}

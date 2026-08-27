@@ -45,14 +45,22 @@ void main() {
         'estimatedReadingMinutes': 1,
         'focusWordIds': <String>['word-1'],
         'summary': 'A real source sentence.',
+        'summaryTr': 'A real Turkish source sentence.',
         'questions': <Object?>[
           <String, Object?>{
             'id': 'question-1',
             'sortOrder': 1,
+            'type': 'detail',
             'question': 'Complete: A real ____ sentence.',
+            'questionTr': 'Complete in Turkish: a real ____ sentence.',
             'options': <String>['source', 'other', 'wrong', 'choice'],
+            'optionsTr': <String>['source', 'other', 'wrong', 'choice'],
             'correctOptionIndex': 0,
+            'answerEn': 'source',
+            'answerTr': 'source',
             'explanation': 'Sentence 1.',
+            'explanationTr': 'Sentence 1 in Turkish.',
+            'evidenceSentenceIndexes': <int>[1],
           },
         ],
       },
@@ -60,7 +68,12 @@ void main() {
 
     expect(detail.passage.displayTitle, 'Source title');
     expect(detail.passage.wordCount, 4);
+    expect(detail.passage.summaryTr, 'A real Turkish source sentence.');
     expect(detail.focusWordIds, <String>['word-1']);
     expect(detail.questions, hasLength(1));
+    expect(detail.questions.single.questionTr,
+        'Complete in Turkish: a real ____ sentence.');
+    expect(detail.questions.single.optionsTr, hasLength(4));
+    expect(detail.questions.single.evidenceSentenceIndexes, <int>[1]);
   });
 }

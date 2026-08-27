@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """Build PASSAGETR's public, bundled content from audited local sources.
 
-The builder normalizes and partitions source data, then derives deterministic
-study metadata. Summaries are extractive source sentences and questions are
-lossless cloze prompts, so it never translates, paraphrases, or invents facts.
-The Excel dictionary is a build-time input; the Flutter application reads only
-the JSON assets produced here.
+The builder normalizes and partitions source data. The curated 001--100
+package is copied without altering its bilingual sentences, titles, summaries,
+or questions. Other readings retain deterministic study metadata. The Excel
+dictionary is a build-time input; Flutter reads only the JSON assets produced
+here.
 """
 
 from __future__ import annotations
@@ -63,6 +63,13 @@ STOP_WORDS = frozenset({
     'they', 'this', 'those', 'to', 'too', 'was', 'we', 'were', 'what', 'when',
     'which', 'who', 'will', 'with', 'would', 'you', 'your',
 })
+DEFAULT_CURATED_READINGS = (
+    ROOT
+    / 'docs'
+    / 'passagetr_readings_001_100_curated_v2'
+    / 'passagetr_readings_001_100_curated_v2'
+    / 'passagetr_readings_001_100_curated_v2.json'
+)
 
 
 def clean(value: str | None) -> str:
@@ -144,6 +151,91 @@ def nullable(value: str | None) -> str | None:
 
 def parse_tag_list(value: str | None) -> list[str]:
     return [item for item in (clean(part) for part in (value or '').split(';')) if item]
+
+
+def curated_text(record: dict[str, Any], field: str) -> str:
+    value = record.get(field)
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError(f'Curated reading lacks {field!r}')
+    return value
+
+
+def load_curated_readings(path: Path) -> dict[int, dict[str, Any]]:
+    """Load the immutable bilingual 001–100 editorial package unchanged."""
+    raw = json.loads(path.read_text(encoding='utf-8'))
+    records = raw.get('readings', raw) if isinstance(raw, dict) else raw
+    if not isinstance(records, list) or len(records) != 100:
+        raise ValueError('Curated package must contain exactly 100 readings.')
+    result: dict[int, dict[str, Any]] = {}
+    for record in records:
+        if not isinstance(record, dict):
+            raise ValueError('Curated reading must be an object.')
+        try:
+            number = int(record.get('source_number'))
+        except (TypeError, ValueError) as error:
+            raise ValueError('Curated reading has an invalid source_number.') from error
+        if not 1 <= number <= 100 or number in result:
+            raise ValueError(f'Invalid curated source number: {number}')
+        sentences = record.get('sentences')
+        questions = record.get('questions')
+        if (
+            not isinstance(sentences, list)
+            or len(sentences) != 15
+            or [item.get('index') for item in sentences] != list(range(1, 16))
+            or not isinstance(questions, list)
+            or len(questions) != 5
+        ):
+            raise ValueError(f'Invalid curated record {number:03d}')
+        for sentence in sentences:
+            if not isinstance(sentence, dict):
+                raise ValueError(f'Invalid curated sentence in {number:03d}')
+            curated_text(sentence, 'en')
+            curated_text(sentence, 'tr')
+        for question in questions:
+            if not isinstance(question, dict):
+                raise ValueError(f'Invalid curated question in {number:03d}')
+            for field in (
+                'id', 'type', 'question_en', 'question_tr', 'answer_en',
+                'answer_tr', 'explanation_en', 'explanation_tr',
+            ):
+                curated_text(question, field)
+            if (
+                not isinstance(question.get('options_en'), list)
+                or not isinstance(question.get('options_tr'), list)
+                or len(question['options_en']) != 4
+                or len(question['options_tr']) != 4
+                or not isinstance(question.get('correct_option_index'), int)
+                or not 0 <= question['correct_option_index'] < 4
+                or not isinstance(question.get('evidence_sentence_indexes'), list)
+                or not question['evidence_sentence_indexes']
+            ):
+                raise ValueError(f'Invalid curated question options in {number:03d}')
+        result[number] = record
+    if set(result) != set(range(1, 101)):
+        raise ValueError('Curated package must cover source numbers 001–100.')
+    return result
+
+
+def curated_questions(record: dict[str, Any]) -> list[dict[str, Any]]:
+    """Map every curated bilingual question field without generating content."""
+    return [
+        {
+            'id': curated_text(question, 'id'),
+            'sortOrder': order,
+            'type': curated_text(question, 'type'),
+            'question': curated_text(question, 'question_en'),
+            'questionTr': curated_text(question, 'question_tr'),
+            'options': question['options_en'],
+            'optionsTr': question['options_tr'],
+            'correctOptionIndex': question['correct_option_index'],
+            'answerEn': curated_text(question, 'answer_en'),
+            'answerTr': curated_text(question, 'answer_tr'),
+            'explanation': curated_text(question, 'explanation_en'),
+            'explanationTr': curated_text(question, 'explanation_tr'),
+            'evidenceSentenceIndexes': question['evidence_sentence_indexes'],
+        }
+        for order, question in enumerate(record['questions'], start=1)
+    ]
 
 
 def english_tokens(value: str) -> list[str]:
@@ -456,15 +548,30 @@ def build_dictionary(dictionary_source: Path, output_dir: Path) -> dict[str, Any
     }
 
 
-def build(source_dir: Path, output_dir: Path) -> dict[str, Any]:
+def build(
+    source_dir: Path,
+    output_dir: Path,
+    curated_package: Path = DEFAULT_CURATED_READINGS,
+) -> dict[str, Any]:
     words_source = source_dir / 'YDS_Set_001.csv'
     passages_source = source_dir / 'readings_passages.csv'
     sentences_source = source_dir / 'readings_sentences.csv'
     dictionary_source = source_dir / 'dictionary.xlsx'
     pack_map_source = source_dir / 'word_pack_reclassification_report.json'
-    for source in (words_source, passages_source, sentences_source, dictionary_source):
+    legacy_questions_source = source_dir / 'legacy_reading_questions_v1.json'
+    untouched_baseline_source = source_dir / 'curated_readings_001_100_untouched_baseline_v1.json'
+    for source in (
+        words_source,
+        passages_source,
+        sentences_source,
+        dictionary_source,
+        legacy_questions_source,
+        untouched_baseline_source,
+        curated_package,
+    ):
         if not source.is_file():
             raise FileNotFoundError(source)
+    curated_readings = load_curated_readings(curated_package)
 
     word_pack_names: dict[str, str] = {}
     if pack_map_source.is_file():
@@ -567,17 +674,43 @@ def build(source_dir: Path, output_dir: Path) -> dict[str, Any]:
         'summaryReadings': 0,
         'questionReadings': 0,
         'totalQuestions': 0,
+        'curatedReadings': 0,
+        'curatedSentences': 0,
+        'curatedQuestions': 0,
     }
     for passage in passages.values():
-        sentences = passage['sentences']
+        source_number, display_title, turkish_title = display_titles(passage['title'])
+        curated = curated_readings.get(int(source_number)) if source_number else None
+        if curated is not None:
+            sentences = [
+                {
+                    'index': sentence['index'],
+                    'englishText': curated_text(sentence, 'en'),
+                    'turkishText': curated_text(sentence, 'tr'),
+                }
+                for sentence in curated['sentences']
+            ]
+            passage['sentences'] = sentences
+            display_title = curated_text(curated, 'replacement_title_en')
+            turkish_title = curated_text(curated, 'replacement_title_tr')
+            summary = curated_text(curated, 'summary_en')
+            summary_tr: str | None = curated_text(curated, 'summary_tr')
+            questions = curated_questions(curated)
+            content_source = 'curated_v2'
+            enrichment_audit['curatedReadings'] += 1
+            enrichment_audit['curatedSentences'] += len(sentences)
+            enrichment_audit['curatedQuestions'] += len(questions)
+        else:
+            sentences = passage['sentences']
+            summary = extractive_summary(sentences)
+            summary_tr = None
+            questions = comprehension_questions(passage['id'], sentences)
+            content_source = 'derived_v1'
         word_count = sum(
             len(english_tokens(sentence['englishText'])) for sentence in sentences
         )
-        source_number, display_title, turkish_title = display_titles(passage['title'])
-        summary = extractive_summary(sentences)
         focus_ids = focus_word_ids(sentences, primary_word_ids)
-        questions = comprehension_questions(passage['id'], sentences)
-        passage['enrichment'] = {
+        enrichment = {
             'schemaVersion': 1,
             'sourceNumber': source_number,
             'displayTitle': display_title,
@@ -591,12 +724,20 @@ def build(source_dir: Path, output_dir: Path) -> dict[str, Any]:
             'summary': summary,
             'questions': questions,
         }
+        if content_source == 'curated_v2':
+            enrichment['contentSource'] = content_source
+            enrichment['summaryTr'] = summary_tr
+        passage['enrichment'] = enrichment
         enrichment_audit['wordCountReadings'] += int(word_count > 0)
         enrichment_audit['durationReadings'] += int(word_count > 0)
         enrichment_audit['focusWordReadings'] += int(bool(focus_ids))
         enrichment_audit['summaryReadings'] += int(summary is not None)
         enrichment_audit['questionReadings'] += int(bool(questions))
         enrichment_audit['totalQuestions'] += len(questions)
+
+    if enrichment_audit['curatedReadings'] != len(curated_readings):
+        raise ValueError('Every curated reading must map to exactly one source_number.')
+    sentence_count = sum(len(passage['sentences']) for passage in passages.values())
 
     if output_dir.exists():
         shutil.rmtree(output_dir)
@@ -656,6 +797,9 @@ def build(source_dir: Path, output_dir: Path) -> dict[str, Any]:
         'sourceChecksums': {
             'words': source_hash(words_source), 'passages': source_hash(passages_source),
             'sentences': source_hash(sentences_source), 'dictionary': source_hash(dictionary_source),
+            'curatedReadings': source_hash(curated_package),
+            'legacyReadingQuestions': source_hash(legacy_questions_source),
+            'curatedUntouchedBaseline': source_hash(untouched_baseline_source),
             **({'wordPackMap': source_hash(pack_map_source)} if pack_map_source.is_file() else {}),
         },
     }
@@ -667,8 +811,13 @@ def main() -> int:
     parser = argparse.ArgumentParser(description='Build public PASSAGETR static content.')
     parser.add_argument('--source-dir', type=Path, default=ROOT / 'source_data')
     parser.add_argument('--output-dir', type=Path, default=ROOT / 'assets' / 'content' / 'v1')
+    parser.add_argument('--curated-package', type=Path, default=DEFAULT_CURATED_READINGS)
     args = parser.parse_args()
-    manifest = build(args.source_dir.resolve(), args.output_dir.resolve())
+    manifest = build(
+        args.source_dir.resolve(),
+        args.output_dir.resolve(),
+        args.curated_package.resolve(),
+    )
     print(json.dumps({**manifest['counts'], 'dictionaryAudit': manifest['dictionaryAudit']}, ensure_ascii=False))
     return 0
 
