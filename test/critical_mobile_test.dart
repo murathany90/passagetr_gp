@@ -1,0 +1,190 @@
+import 'dart:io';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:passagetr_gp/core/app_theme.dart';
+import 'package:passagetr_gp/core/content_providers.dart';
+import 'package:passagetr_gp/core/local_progress.dart';
+import 'package:passagetr_gp/features/readings/reading_detail_page.dart';
+import 'package:passagetr_gp/features/readings/readings_page.dart';
+import 'package:passagetr_gp/features/tts/student_tts_engine.dart';
+import 'package:passagetr_gp/features/words/words_page.dart';
+import 'package:passagetr_gp/models/content_models.dart';
+import 'package:passagetr_gp/repositories/local_progress_repository.dart';
+import 'package:passagetr_gp/repositories/static_content_repository.dart';
+
+void main() {
+  const pack = ContentPack(id: 'pack-a', name: 'Temel', wordCount: 2);
+  const firstWord = WordEntry(
+    id: 'word-a',
+    packId: 'pack-a',
+    enWord: 'access',
+    trMeaning: 'erişim',
+    pos: 'n.',
+    exampleEn: 'Access is useful.',
+    level: 'B1',
+  );
+  const secondWord = WordEntry(
+    id: 'word-b',
+    packId: 'pack-a',
+    enWord: 'bridge',
+    trMeaning: 'köprü',
+    pos: 'n.',
+    exampleEn: 'The bridge is old.',
+    level: 'B2',
+  );
+  const passage = ReadingPassage(
+    id: 'reading-a',
+    packId: 'pack-a',
+    title: 'Kısa okuma',
+    sentenceCount: 1,
+    level: 'B1',
+    category: 'Science',
+  );
+  const detail = ReadingDetail(
+    passage: passage,
+    sentences: <ReadingSentence>[
+      ReadingSentence(
+        index: 1,
+        englishText: 'Access to knowledge changes lives.',
+        turkishText: 'Bilgiye erişim hayatları değiştirir.',
+      ),
+    ],
+    focusWordIds: <String>[],
+    questions: <ReadingQuestion>[],
+  );
+  final repository = _FixtureRepository(
+    packs: const <ContentPack>[pack],
+    words: const <WordEntry>[firstWord, secondWord],
+    readings: const <ReadingPassage>[passage],
+    detail: detail,
+  );
+
+  Widget app(Widget child) => ProviderScope(
+        overrides: <Override>[
+          staticContentRepositoryProvider.overrideWithValue(repository),
+          localProgressRepositoryProvider.overrideWithValue(_MemoryProgress()),
+          studentTtsEngineProvider.overrideWithValue(_SilentTtsEngine()),
+        ],
+        child: MaterialApp(
+          theme: AppTheme.light(),
+          home: Scaffold(body: child),
+        ),
+      );
+
+  testWidgets('390px Words opens without overflow and search filters',
+      (tester) async {
+    await _setPhoneSize(tester);
+    await tester.pumpWidget(app(const WordsPage()));
+    await _pumpContent(tester);
+
+    expect(find.text('2 sonuç'), findsOneWidget);
+    await tester.enterText(find.byType(TextField), 'access');
+    await tester.pump();
+    expect(find.text('1 sonuç'), findsOneWidget);
+    expect(find.text('erişim'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('390px Readings opens without overflow', (tester) async {
+    await _setPhoneSize(tester);
+    await tester.pumpWidget(app(const ReadingsPage()));
+    await _pumpContent(tester);
+
+    expect(find.text('1 sonuç'), findsOneWidget);
+    expect(find.text('Kısa okuma'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('390px Reading Detail shows real EN/TR sentence without overflow',
+      (tester) async {
+    await _setPhoneSize(tester);
+    await tester
+        .pumpWidget(app(const ReadingDetailPage(readingId: 'reading-a')));
+    await _pumpContent(tester);
+
+    expect(find.text('Access'), findsOneWidget);
+    expect(find.text('Bilgiye erişim hayatları değiştirir.'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+}
+
+Future<void> _setPhoneSize(WidgetTester tester) async {
+  await tester.binding.setSurfaceSize(const Size(390, 844));
+  addTearDown(() => tester.binding.setSurfaceSize(null));
+}
+
+Future<void> _pumpContent(WidgetTester tester) async {
+  await tester.pump();
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 50));
+}
+
+class _FixtureRepository extends StaticContentRepository {
+  _FixtureRepository({
+    required this.packs,
+    required this.words,
+    required this.readings,
+    required this.detail,
+  }) : super(bundle: _MissingAssetBundle());
+
+  final List<ContentPack> packs;
+  final List<WordEntry> words;
+  final List<ReadingPassage> readings;
+  final ReadingDetail detail;
+
+  @override
+  Future<List<ContentPack>> loadPacks() async => packs;
+
+  @override
+  Future<List<WordEntry>> loadWords() async => words;
+
+  @override
+  Future<List<ReadingPassage>> loadReadings() async => readings;
+
+  @override
+  Future<ReadingDetail> loadReading(String readingId) async => detail;
+}
+
+class _MemoryProgress extends LocalProgressRepository {
+  @override
+  Future<LocalProgressSnapshot> load() async =>
+      const LocalProgressSnapshot(isLoaded: true);
+
+  @override
+  Future<void> saveCompletedReadingIds(Set<String> ids) async {}
+
+  @override
+  Future<void> saveFavoriteWordIds(Set<String> ids) async {}
+
+  @override
+  Future<void> saveKnownWordIds(Set<String> ids) async {}
+
+  @override
+  Future<void> saveReadingFilters({String? level, String? category}) async {}
+
+  @override
+  Future<void> saveWordFilters({String? packId, String? level}) async {}
+}
+
+class _MissingAssetBundle extends CachingAssetBundle {
+  @override
+  Future<ByteData> load(String key) =>
+      Future<ByteData>.error(FileSystemException('Missing asset', key));
+}
+
+class _SilentTtsEngine implements StudentTtsEngine {
+  @override
+  Future<void> dispose() async {}
+
+  @override
+  Future<StudentTtsAvailability> ensureInitialized() async =>
+      StudentTtsAvailability.available;
+
+  @override
+  Future<void> speak(String text, {String? languageCode}) async {}
+
+  @override
+  Future<void> stop() async {}
+}

@@ -6,16 +6,17 @@ import 'package:passagetr_gp/repositories/static_dictionary_repository.dart';
 import 'package:passagetr_gp/repositories/word_lookup_service.dart';
 
 void main() {
-  test('dictionary normalizes a query and lazily loads only its shard',
+  test('dictionary findAll normalizes a query and lazily loads one shard',
       () async {
     final bundle = _RecordingFileAssetBundle();
     final repository = StaticDictionaryRepository(bundle: bundle);
 
-    final entry = await repository.find('  “a bad hat” ');
+    final entries = await repository.findAll('  “access” ');
 
-    expect(entry, isNotNull);
-    expect(entry!.enWord.trim().toLowerCase(), 'a bad hat');
-    expect(entry.trMeaning, isNotEmpty);
+    expect(entries, hasLength(2));
+    expect(entries.map((entry) => entry.enWord.toLowerCase()),
+        everyElement('access'));
+    expect(entries.map((entry) => entry.trMeaning).toSet(), hasLength(2));
     final dictionaryLoads = bundle.loaded
         .where((path) => path.contains('/dictionary/'))
         .toList(growable: false);

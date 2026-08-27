@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/app_theme_tokens.dart';
 import '../../core/content_providers.dart';
+import '../../core/local_progress.dart';
 import '../../models/content_models.dart';
 import '../common/page_parts.dart';
 import 'word_detail_sheet.dart';
@@ -69,49 +70,37 @@ class _FlashcardsPageState extends ConsumerState<FlashcardsPage> {
                 minHeight: 7,
                 borderRadius: BorderRadius.circular(8)),
             const SizedBox(height: 26),
-            SizedBox(
-              height: 330,
-              child: PageView.builder(
-                controller: _controller,
-                itemCount: words.length,
-                onPageChanged: (value) => setState(() {
-                  _index = value;
-                  _showMeaning = false;
-                }),
-                itemBuilder: (context, index) => _Flashcard(
-                    word: words[index],
-                    showMeaning: index == _index && _showMeaning,
-                    onFlip: () => setState(() => _showMeaning = !_showMeaning),
-                    onDetail: () => showModalBottomSheet<void>(
-                        context: context,
-                        isScrollControlled: true,
-                        builder: (_) => WordDetailSheet(word: words[index]))),
+            LayoutBuilder(
+              builder: (context, constraints) => SizedBox(
+                height: constraints.maxWidth < 500 ? 286 : 330,
+                child: PageView.builder(
+                  controller: _controller,
+                  itemCount: words.length,
+                  onPageChanged: (value) => setState(() {
+                    _index = value;
+                    _showMeaning = false;
+                  }),
+                  itemBuilder: (context, index) => _Flashcard(
+                      word: words[index],
+                      showMeaning: index == _index && _showMeaning,
+                      onFlip: () =>
+                          setState(() => _showMeaning = !_showMeaning),
+                      onDetail: () => showModalBottomSheet<void>(
+                          context: context,
+                          isScrollControlled: true,
+                          builder: (_) => WordDetailSheet(word: words[index]))),
+                ),
               ),
             ),
             const SizedBox(height: 20),
-            Row(children: <Widget>[
-              Expanded(
-                  child: OutlinedButton.icon(
-                      onPressed: _index == 0
-                          ? null
-                          : () => _controller.previousPage(
-                              duration: const Duration(milliseconds: 220),
-                              curve: Curves.easeOut),
-                      icon: const Icon(Icons.chevron_left_rounded),
-                      label: const Text('Önceki'))),
-              const SizedBox(width: 12),
-              Expanded(
-                  child: FilledButton.icon(
-                      onPressed: () => _record(false, words.length),
-                      icon: const Icon(Icons.refresh_rounded),
-                      label: const Text('Tekrar'))),
-              const SizedBox(width: 12),
-              Expanded(
-                  child: FilledButton.icon(
-                      onPressed: () => _record(true, words.length),
-                      icon: const Icon(Icons.check_rounded),
-                      label: const Text('Bildim'))),
-            ]),
+            _FlashcardActions(
+              atFirstCard: _index == 0,
+              onPrevious: () => _controller.previousPage(
+                  duration: const Duration(milliseconds: 220),
+                  curve: Curves.easeOut),
+              onReview: () => _record(false, words),
+              onKnown: () => _record(true, words),
+            ),
             const SizedBox(height: 14),
             Text('İlerleme yalnızca bu açık oturumda tutulur.',
                 style: Theme.of(context).textTheme.bodySmall),
@@ -121,7 +110,7 @@ class _FlashcardsPageState extends ConsumerState<FlashcardsPage> {
     );
   }
 
-  void _record(bool known, int length) {
+  void _record(bool known, List<WordEntry> words) {
     setState(() {
       if (known) {
         _known++;
@@ -129,11 +118,67 @@ class _FlashcardsPageState extends ConsumerState<FlashcardsPage> {
         _review++;
       }
     });
-    if (_index < length - 1) {
+    if (known) {
+      ref.read(localProgressProvider.notifier).markWordKnown(words[_index].id);
+    }
+    if (_index < words.length - 1) {
       _controller.nextPage(
           duration: const Duration(milliseconds: 220), curve: Curves.easeOut);
     }
   }
+}
+
+class _FlashcardActions extends StatelessWidget {
+  const _FlashcardActions({
+    required this.atFirstCard,
+    required this.onPrevious,
+    required this.onReview,
+    required this.onKnown,
+  });
+
+  final bool atFirstCard;
+  final VoidCallback onPrevious;
+  final VoidCallback onReview;
+  final VoidCallback onKnown;
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+        builder: (context, constraints) {
+          final previous = OutlinedButton.icon(
+            onPressed: atFirstCard ? null : onPrevious,
+            icon: const Icon(Icons.chevron_left_rounded),
+            label: const Text('Önceki'),
+          );
+          final review = FilledButton.icon(
+            onPressed: onReview,
+            icon: const Icon(Icons.refresh_rounded),
+            label: const Text('Tekrar'),
+          );
+          final known = FilledButton.icon(
+            onPressed: onKnown,
+            icon: const Icon(Icons.check_rounded),
+            label: const Text('Bildim'),
+          );
+          if (constraints.maxWidth >= 500) {
+            return Row(children: <Widget>[
+              Expanded(child: previous),
+              const SizedBox(width: 12),
+              Expanded(child: review),
+              const SizedBox(width: 12),
+              Expanded(child: known),
+            ]);
+          }
+          return Column(children: <Widget>[
+            Row(children: <Widget>[
+              Expanded(child: review),
+              const SizedBox(width: 12),
+              Expanded(child: known),
+            ]),
+            const SizedBox(height: 10),
+            SizedBox(width: double.infinity, child: previous),
+          ]);
+        },
+      );
 }
 
 List<WordEntry> _selectCards(List<WordEntry> words, String? packId) {

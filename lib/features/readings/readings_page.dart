@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/app_breakpoints.dart';
 import '../../core/app_theme_tokens.dart';
 import '../../core/content_providers.dart';
+import '../../core/local_progress.dart';
 import '../../models/content_models.dart';
 import '../common/page_parts.dart';
 import 'reading_artwork.dart';
@@ -22,11 +23,24 @@ class _ReadingsPageState extends ConsumerState<ReadingsPage> {
   String? _level;
   String? _category;
   int _page = 0;
+  bool _filtersRestored = false;
 
   @override
   Widget build(BuildContext context) {
     final readings = ref.watch(readingsProvider);
     final packs = ref.watch(contentPacksProvider);
+    final progress = ref.watch(localProgressProvider);
+    if (!_filtersRestored && progress.isLoaded) {
+      _filtersRestored = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          setState(() {
+            _level = progress.readingLevel;
+            _category = progress.readingCategory;
+          });
+        }
+      });
+    }
     return readings.when(
       loading: () => const PageFrame(
           title: 'Okuma',
@@ -126,10 +140,15 @@ class _ReadingsPageState extends ConsumerState<ReadingsPage> {
                       ),
                     ),
                   ],
-                  onChanged: (value) => setState(() {
-                    _level = value;
-                    _page = 0;
-                  }),
+                  onChanged: (value) {
+                    setState(() {
+                      _level = value;
+                      _page = 0;
+                    });
+                    ref
+                        .read(localProgressProvider.notifier)
+                        .setReadingFilters(level: value, category: _category);
+                  },
                 ),
                 const SizedBox(height: 14),
                 DropdownButtonFormField<String?>(
@@ -149,14 +168,44 @@ class _ReadingsPageState extends ConsumerState<ReadingsPage> {
                       ),
                     ),
                   ],
-                  onChanged: (value) => setState(() {
-                    _category = value;
-                    _page = 0;
-                  }),
+                  onChanged: (value) {
+                    setState(() {
+                      _category = value;
+                      _page = 0;
+                    });
+                    ref
+                        .read(localProgressProvider.notifier)
+                        .setReadingFilters(level: _level, category: value);
+                  },
                 ),
-                const SizedBox(height: 20),
-                Text('${filtered.length} sonuç',
-                    style: Theme.of(context).textTheme.titleMedium),
+                const SizedBox(height: 12),
+                Row(children: <Widget>[
+                  Expanded(
+                    child: Text('${filtered.length} sonuç',
+                        style: Theme.of(context).textTheme.titleMedium),
+                  ),
+                  if (validPackId != null ||
+                      validLevel != null ||
+                      validCategory != null)
+                    TextButton.icon(
+                      onPressed: () {
+                        setState(() {
+                          _packId = null;
+                          _level = null;
+                          _category = null;
+                          _page = 0;
+                        });
+                        ref
+                            .read(localProgressProvider.notifier)
+                            .setReadingFilters();
+                      },
+                      icon: const Icon(Icons.filter_alt_off_rounded, size: 18),
+                      label: const Text('Sıfırla'),
+                    ),
+                ]),
+                const SizedBox(height: 2),
+                Text('İlerleme bu tarayıcıda saklanır.',
+                    style: Theme.of(context).textTheme.bodySmall),
                 const SizedBox(height: 12),
                 _ReadingPager(
                     page: page,
@@ -168,7 +217,10 @@ class _ReadingsPageState extends ConsumerState<ReadingsPage> {
                         ? null
                         : () => setState(() => _page = page + 1)),
                 const SizedBox(height: 8),
-                _ReadingGrid(readings: visible),
+                _ReadingGrid(
+                  readings: visible,
+                  completedReadingIds: progress.completedReadingIds,
+                ),
               ]),
         );
       },
@@ -206,8 +258,12 @@ class _ReadingPager extends StatelessWidget {
 }
 
 class _ReadingGrid extends StatelessWidget {
-  const _ReadingGrid({required this.readings});
+  const _ReadingGrid({
+    required this.readings,
+    required this.completedReadingIds,
+  });
   final List<ReadingPassage> readings;
+  final Set<String> completedReadingIds;
   @override
   Widget build(BuildContext context) {
     if (readings.isEmpty) {
@@ -227,16 +283,26 @@ class _ReadingGrid extends StatelessWidget {
             crossAxisCount: columns,
             crossAxisSpacing: 14,
             mainAxisSpacing: 14,
-            mainAxisExtent: 332),
-        itemBuilder: (context, index) => _ReadingCard(passage: readings[index]),
+            mainAxisExtent: columns == 1 ? 268 : 332),
+        itemBuilder: (context, index) => _ReadingCard(
+          passage: readings[index],
+          compact: columns == 1,
+          completed: completedReadingIds.contains(readings[index].id),
+        ),
       );
     });
   }
 }
 
 class _ReadingCard extends StatelessWidget {
-  const _ReadingCard({required this.passage});
+  const _ReadingCard({
+    required this.passage,
+    required this.compact,
+    required this.completed,
+  });
   final ReadingPassage passage;
+  final bool compact;
+  final bool completed;
   @override
   Widget build(BuildContext context) {
     final tokens = AppThemeTokens.of(context);
@@ -248,7 +314,7 @@ class _ReadingCard extends StatelessWidget {
           children: <Widget>[
             ReadingArtwork(
                 passage: passage,
-                height: 145,
+                height: compact ? 124 : 145,
                 borderRadius:
                     const BorderRadius.vertical(top: Radius.circular(24))),
             Expanded(
@@ -265,6 +331,13 @@ class _ReadingCard extends StatelessWidget {
                               _ReadingPill(
                                   label: passage.category!,
                                   color: tokens.purple),
+                            if (passage.durationMinutes != null)
+                              _ReadingPill(
+                                  label: '${passage.durationMinutes} dk',
+                                  color: tokens.accentBlue),
+                            if (completed)
+                              _ReadingPill(
+                                  label: 'Tamamlandı', color: tokens.success),
                           ]),
                           const Spacer(),
                           Text(passage.title,

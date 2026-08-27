@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/app_theme_tokens.dart';
 import '../../core/content_providers.dart';
+import '../../core/local_progress.dart';
 import '../../models/content_models.dart';
 import '../common/page_parts.dart';
 
@@ -81,6 +82,16 @@ class _MiniTestPageState extends ConsumerState<MiniTestPage> {
                 ],
                 if (_selected != null) ...<Widget>[
                   const SizedBox(height: 12),
+                  Text(
+                    _selected == question.correctIndex
+                        ? 'Doğru! ${question.word.trMeaning}'
+                        : 'Doğru cevap: ${question.word.trMeaning}',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: _selected == question.correctIndex
+                            ? AppThemeTokens.of(context).success
+                            : AppThemeTokens.of(context).warning),
+                  ),
+                  const SizedBox(height: 12),
                   FilledButton(
                       onPressed: _next,
                       child: Text(_questionIndex == _questions.length - 1
@@ -93,12 +104,18 @@ class _MiniTestPageState extends ConsumerState<MiniTestPage> {
     );
   }
 
-  void _answer(_TestQuestion question, int selected) => setState(() {
-        _selected = selected;
-        if (selected == question.correctIndex) {
-          _correct++;
-        }
-      });
+  void _answer(_TestQuestion question, int selected) {
+    setState(() {
+      _selected = selected;
+      if (selected == question.correctIndex) {
+        _correct++;
+      }
+    });
+    if (selected == question.correctIndex) {
+      ref.read(localProgressProvider.notifier).markWordKnown(question.word.id);
+    }
+  }
+
   void _next() => setState(() {
         _questionIndex++;
         _selected = null;
@@ -197,7 +214,8 @@ class _ResultPage extends StatelessWidget {
               Text('Skorun: %${((correct / total) * 100).round()}',
                   style: Theme.of(context).textTheme.displaySmall),
               const SizedBox(height: 16),
-              Text('Sonuç yalnızca bu açık oturum için gösterilir.',
+              Text(
+                  'Skorun bu oturum için gösterilir; bilinen kelimeler bu tarayıcıda saklanır.',
                   style: Theme.of(context).textTheme.bodyLarge),
               const SizedBox(height: 20),
               FilledButton.icon(

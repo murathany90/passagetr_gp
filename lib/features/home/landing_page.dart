@@ -11,43 +11,41 @@ class LandingPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final tokens = AppThemeTokens.of(context);
     return PageFrame(
-      title: 'İngilizce yolculuğuna başla',
+      title: 'PASSAGETR',
       subtitle:
-          'PASSAGETR ile kelime dağarcığını ve okuma pratiğini güçlendir.',
+          'Kelime dağarcığını ve okuma pratiğini kendi hızında güçlendir.',
       child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(28),
-              decoration: BoxDecoration(
-                  gradient: tokens.accentGradient,
-                  borderRadius: BorderRadius.circular(tokens.cardRadius)),
-              child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    const Text('KELİME + OKUMA',
-                        style: TextStyle(
-                            color: Colors.white70,
-                            letterSpacing: 1.2,
-                            fontWeight: FontWeight.w800)),
-                    const SizedBox(height: 12),
-                    const Text('Gerçek içerikle, kendi hızında ilerle.',
-                        style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w800,
-                            fontSize: 30,
-                            height: 1.12)),
-                    const SizedBox(height: 20),
-                    FilledButton.icon(
-                      style: FilledButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          foregroundColor: tokens.accent),
-                      onPressed: () => context.go('/words'),
-                      icon: const Icon(Icons.arrow_forward_rounded),
-                      label: const Text('Kelime çalışmalarını aç'),
-                    ),
-                  ]),
+            LayoutBuilder(
+              builder: (context, constraints) => Container(
+                width: double.infinity,
+                padding: EdgeInsets.all(constraints.maxWidth < 620 ? 20 : 28),
+                decoration: BoxDecoration(
+                    gradient: tokens.accentGradient,
+                    borderRadius: BorderRadius.circular(tokens.cardRadius)),
+                child: const Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text('KELİME + OKUMA',
+                          style: TextStyle(
+                              color: Colors.white70,
+                              letterSpacing: 1.2,
+                              fontWeight: FontWeight.w800)),
+                      SizedBox(height: 10),
+                      Text('Gerçek içerikle, kendi hızında ilerle.',
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w800,
+                              fontSize: 26,
+                              height: 1.15)),
+                      SizedBox(height: 10),
+                      Text('5.314 kelime · 678 okuma',
+                          style: TextStyle(
+                              color: Colors.white70,
+                              fontWeight: FontWeight.w700)),
+                    ]),
+              ),
             ),
             const SizedBox(height: 18),
             LayoutBuilder(

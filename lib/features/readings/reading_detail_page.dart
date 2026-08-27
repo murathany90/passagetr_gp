@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/app_theme_tokens.dart';
 import '../../core/content_providers.dart';
+import '../../core/local_progress.dart';
 import '../../models/content_models.dart';
 import '../common/page_parts.dart';
 import '../tts/student_tts_engine.dart';
@@ -36,14 +37,25 @@ class ReadingDetailPage extends ConsumerWidget {
   }
 }
 
-class _ReadingDetailBody extends ConsumerWidget {
+class _ReadingDetailBody extends ConsumerStatefulWidget {
   const _ReadingDetailBody({required this.detail});
   final ReadingDetail detail;
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_ReadingDetailBody> createState() => _ReadingDetailBodyState();
+}
+
+class _ReadingDetailBodyState extends ConsumerState<_ReadingDetailBody> {
+  bool _showTranslations = true;
+
+  @override
+  Widget build(BuildContext context) {
+    final detail = widget.detail;
     final passage = detail.passage;
     final tokens = AppThemeTokens.of(context);
     final tts = ref.watch(studentTtsControllerProvider);
+    final progress = ref.watch(localProgressProvider);
+    final completed = progress.completedReadingIds.contains(passage.id);
     final passageSpeaking = tts.isSpeaking &&
         tts.activeTarget == StudentTtsTarget.passage &&
         tts.activeReadingId == passage.id;
@@ -108,6 +120,26 @@ class _ReadingDetailBody extends ConsumerWidget {
                                       label: passage.category!),
                               ])),
                     ])),
+            const SizedBox(height: 10),
+            Wrap(spacing: 8, runSpacing: 4, children: <Widget>[
+              TextButton.icon(
+                onPressed: () =>
+                    setState(() => _showTranslations = !_showTranslations),
+                icon: Icon(_showTranslations
+                    ? Icons.translate_rounded
+                    : Icons.visibility_outlined),
+                label: Text(_showTranslations ? 'TR gizle' : 'TR göster'),
+              ),
+              TextButton.icon(
+                onPressed: () => ref
+                    .read(localProgressProvider.notifier)
+                    .toggleReadingCompleted(passage.id),
+                icon: Icon(completed
+                    ? Icons.check_circle_rounded
+                    : Icons.check_circle_outline_rounded),
+                label: Text(completed ? 'Tamamlandı' : 'Tamamlandı say'),
+              ),
+            ]),
             const SizedBox(height: 20),
             if (passage.summary != null) ...<Widget>[
               Text(passage.summary!,
@@ -116,8 +148,12 @@ class _ReadingDetailBody extends ConsumerWidget {
             ],
             Text('Metin', style: Theme.of(context).textTheme.headlineSmall),
             const SizedBox(height: 12),
-            ...resolveArticleSections(detail.sentences).map((section) =>
-                _SentenceCard(readingId: passage.id, section: section)),
+            ...resolveArticleSections(detail.sentences)
+                .map((section) => _SentenceCard(
+                      readingId: passage.id,
+                      section: section,
+                      showTranslation: _showTranslations,
+                    )),
             if (tts.errorMessage != null)
               Padding(
                   padding: const EdgeInsets.only(top: 8),
@@ -132,9 +168,14 @@ class _ReadingDetailBody extends ConsumerWidget {
 }
 
 class _SentenceCard extends ConsumerWidget {
-  const _SentenceCard({required this.readingId, required this.section});
+  const _SentenceCard({
+    required this.readingId,
+    required this.section,
+    required this.showTranslation,
+  });
   final String readingId;
   final ReadingArticleSection section;
+  final bool showTranslation;
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final tts = ref.watch(studentTtsControllerProvider);
@@ -166,7 +207,8 @@ class _SentenceCard extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
                   _LookupableSentence(text: section.englishText),
-                  if (section.turkishText != null) ...<Widget>[
+                  if (showTranslation &&
+                      section.turkishText != null) ...<Widget>[
                     const SizedBox(height: 9),
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -248,8 +290,8 @@ class _LookupableSentence extends ConsumerWidget {
         if (result.word case final word?) {
           return WordDetailSheet(word: word);
         }
-        if (result.dictionaryEntry case final entry?) {
-          return DictionaryDetailSheet(entry: entry);
+        if (result.dictionaryEntries.isNotEmpty) {
+          return DictionaryDetailSheet(entries: result.dictionaryEntries);
         }
         return SafeArea(
           top: false,

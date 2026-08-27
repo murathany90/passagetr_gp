@@ -5,8 +5,10 @@ import 'package:go_router/go_router.dart';
 import '../../core/app_breakpoints.dart';
 import '../../core/app_theme_tokens.dart';
 import '../../core/content_providers.dart';
+import '../../core/local_progress.dart';
 import '../../models/content_models.dart';
 import '../common/page_parts.dart';
+import '../tts/student_tts_icon_button.dart';
 import 'word_detail_sheet.dart';
 
 class WordsPage extends ConsumerStatefulWidget {
@@ -21,11 +23,24 @@ class _WordsPageState extends ConsumerState<WordsPage> {
   String? _packId;
   String? _level;
   int _page = 0;
+  bool _filtersRestored = false;
 
   @override
   Widget build(BuildContext context) {
     final words = ref.watch(wordsProvider);
     final packs = ref.watch(contentPacksProvider);
+    final progress = ref.watch(localProgressProvider);
+    if (!_filtersRestored && progress.isLoaded) {
+      _filtersRestored = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          setState(() {
+            _packId = progress.wordPackId;
+            _level = progress.wordLevel;
+          });
+        }
+      });
+    }
     return words.when(
       loading: () => const PageFrame(
           title: 'Kelimeler',
@@ -93,11 +108,16 @@ class _WordsPageState extends ConsumerState<WordsPage> {
                 _PackFilter(
                     packs: availablePacks,
                     selected: validPackId,
-                    onChanged: (value) => setState(() {
-                          _packId = value;
-                          _page = 0;
-                        })),
-                const SizedBox(height: 20),
+                    onChanged: (value) {
+                      setState(() {
+                        _packId = value;
+                        _page = 0;
+                      });
+                      ref
+                          .read(localProgressProvider.notifier)
+                          .setWordFilters(packId: value, level: _level);
+                    }),
+                const SizedBox(height: 14),
                 DropdownButtonFormField<String?>(
                   key: ValueKey<String?>('level-$validLevel'),
                   initialValue: validLevel,
@@ -115,14 +135,41 @@ class _WordsPageState extends ConsumerState<WordsPage> {
                       ),
                     ),
                   ],
-                  onChanged: (value) => setState(() {
-                    _level = value;
-                    _page = 0;
-                  }),
+                  onChanged: (value) {
+                    setState(() {
+                      _level = value;
+                      _page = 0;
+                    });
+                    ref
+                        .read(localProgressProvider.notifier)
+                        .setWordFilters(packId: _packId, level: value);
+                  },
                 ),
-                const SizedBox(height: 20),
-                Text('${filtered.length} sonuç',
-                    style: Theme.of(context).textTheme.titleMedium),
+                const SizedBox(height: 12),
+                Row(children: <Widget>[
+                  Expanded(
+                    child: Text('${filtered.length} sonuç',
+                        style: Theme.of(context).textTheme.titleMedium),
+                  ),
+                  if (validPackId != null || validLevel != null)
+                    TextButton.icon(
+                      onPressed: () {
+                        setState(() {
+                          _packId = null;
+                          _level = null;
+                          _page = 0;
+                        });
+                        ref
+                            .read(localProgressProvider.notifier)
+                            .setWordFilters();
+                      },
+                      icon: const Icon(Icons.filter_alt_off_rounded, size: 18),
+                      label: const Text('Sıfırla'),
+                    ),
+                ]),
+                const SizedBox(height: 2),
+                Text('İlerleme bu tarayıcıda saklanır.',
+                    style: Theme.of(context).textTheme.bodySmall),
                 const SizedBox(height: 12),
                 _Pager(
                   page: page,
@@ -216,19 +263,21 @@ class _WordGrid extends StatelessWidget {
             crossAxisCount: columns,
             crossAxisSpacing: 12,
             mainAxisSpacing: 12,
-            mainAxisExtent: 142),
+            mainAxisExtent: 156),
         itemBuilder: (context, index) => _WordCard(word: words[index]),
       );
     });
   }
 }
 
-class _WordCard extends StatelessWidget {
+class _WordCard extends ConsumerWidget {
   const _WordCard({required this.word});
   final WordEntry word;
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final tokens = AppThemeTokens.of(context);
+    final tts = ref.watch(studentTtsControllerProvider);
+    final speaking = tts.isSpeaking && tts.activeWordId == word.id;
     return SurfaceCard(
       onTap: () => showModalBottomSheet<void>(
           context: context,
@@ -252,13 +301,30 @@ class _WordCard extends StatelessWidget {
             Text(word.trMeaning,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.bodyMedium),
+                style: Theme.of(context).textTheme.titleMedium),
             const Spacer(),
-            Text('Detayı aç',
-                style: Theme.of(context)
-                    .textTheme
-                    .bodySmall
-                    ?.copyWith(color: tokens.accent)),
+            Row(children: <Widget>[
+              Text('Detayı aç',
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodySmall
+                      ?.copyWith(color: tokens.accent)),
+              const Spacer(),
+              StudentTtsIconButton(
+                tooltip: 'Kelimeyi dinle',
+                iconSize: 18,
+                visualDensity: VisualDensity.compact,
+                isSpeaking: speaking,
+                isInitializing:
+                    tts.isInitializing && tts.activeWordId == word.id,
+                isUnavailable: tts.isUnavailable,
+                onPlay: () => ref
+                    .read(studentTtsControllerProvider.notifier)
+                    .playWord(word: word),
+                onStop: () =>
+                    ref.read(studentTtsControllerProvider.notifier).stop(),
+              ),
+            ]),
           ]),
     );
   }

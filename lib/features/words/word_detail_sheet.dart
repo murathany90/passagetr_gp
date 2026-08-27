@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/app_theme_tokens.dart';
 import '../../core/content_providers.dart';
+import '../../core/local_progress.dart';
 import '../../models/content_models.dart';
 import '../tts/student_tts_icon_button.dart';
 
@@ -15,7 +16,9 @@ class WordDetailSheet extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final tokens = AppThemeTokens.of(context);
     final tts = ref.watch(studentTtsControllerProvider);
+    final progress = ref.watch(localProgressProvider);
     final speaking = tts.isSpeaking && tts.activeWordId == word.id;
+    final favorite = progress.favoriteWordIds.contains(word.id);
     return SafeArea(
       top: false,
       child: Padding(
@@ -65,6 +68,17 @@ class WordDetailSheet extends ConsumerWidget {
                             .read(studentTtsControllerProvider.notifier)
                             .stop();
                       },
+                    ),
+                    IconButton(
+                      tooltip:
+                          favorite ? 'Favorilerden çıkar' : 'Favoriye ekle',
+                      onPressed: () => ref
+                          .read(localProgressProvider.notifier)
+                          .toggleFavoriteWord(word.id),
+                      icon: Icon(favorite
+                          ? Icons.favorite_rounded
+                          : Icons.favorite_border_rounded),
+                      color: favorite ? tokens.hero : null,
                     ),
                   ]),
               const SizedBox(height: 20),

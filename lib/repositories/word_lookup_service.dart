@@ -3,18 +3,19 @@ import 'static_content_repository.dart';
 import 'static_dictionary_repository.dart';
 
 class WordLookupResult {
-  const WordLookupResult._({this.word, this.dictionaryEntry});
+  const WordLookupResult._({this.word, this.dictionaryEntries = const []});
 
   const WordLookupResult.word(WordEntry value) : this._(word: value);
 
-  const WordLookupResult.dictionary(DictionaryEntry value)
-      : this._(dictionaryEntry: value);
+  const WordLookupResult.dictionary(List<DictionaryEntry> values)
+      : this._(dictionaryEntries: values);
 
   const WordLookupResult.notFound() : this._();
 
   final WordEntry? word;
-  final DictionaryEntry? dictionaryEntry;
-  bool get isFound => word != null || dictionaryEntry != null;
+  final List<DictionaryEntry> dictionaryEntries;
+  DictionaryEntry? get dictionaryEntry => dictionaryEntries.firstOrNull;
+  bool get isFound => word != null || dictionaryEntries.isNotEmpty;
 }
 
 class WordLookupService {
@@ -39,10 +40,10 @@ class WordLookupService {
     if (word != null) {
       return WordLookupResult.word(word);
     }
-    final entry = await _dictionary.find(normalized);
-    return entry == null
+    final entries = await _dictionary.findAll(normalized);
+    return entries.isEmpty
         ? const WordLookupResult.notFound()
-        : WordLookupResult.dictionary(entry);
+        : WordLookupResult.dictionary(entries);
   }
 }
 

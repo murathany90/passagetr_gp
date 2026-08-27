@@ -46,9 +46,14 @@ class StaticDictionaryRepository {
       <String, Future<List<DictionaryEntry>>>{};
 
   Future<DictionaryEntry?> find(String query) async {
+    final entries = await findAll(query);
+    return entries.firstOrNull;
+  }
+
+  Future<List<DictionaryEntry>> findAll(String query) async {
     final normalized = normalizeDictionaryLookup(query);
     if (normalized.isEmpty) {
-      return null;
+      return const <DictionaryEntry>[];
     }
     final index = await _index();
     final shard = index.shards.where((candidate) {
@@ -56,12 +61,19 @@ class StaticDictionaryRepository {
           normalized.compareTo(candidate.rangeEnd) <= 0;
     }).firstOrNull;
     if (shard == null) {
-      return null;
+      return const <DictionaryEntry>[];
     }
     final entries = await _loadShard(shard);
-    return entries
-        .where((entry) => entry.normalizedKey == normalized)
-        .firstOrNull;
+    final seenMeanings = <String>{};
+    final matches = entries.where((entry) {
+      if (entry.normalizedKey != normalized) {
+        return false;
+      }
+      final dedupeKey = '${entry.pos?.trim().toLowerCase() ?? ''}\u241f'
+          '${entry.trMeaning.trim().toLowerCase()}';
+      return seenMeanings.add(dedupeKey);
+    }).toList(growable: false);
+    return List<DictionaryEntry>.unmodifiable(matches);
   }
 
   Future<_DictionaryIndex> _index() => _indexFuture ??= _loadIndex();

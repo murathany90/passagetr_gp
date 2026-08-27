@@ -83,13 +83,17 @@ class PageFrame extends StatelessWidget {
       color: tokens.accent,
       child: LayoutBuilder(builder: (context, constraints) {
         final wide = constraints.maxWidth >= AppBreakpoints.shellWide;
+        final compact = constraints.maxWidth < AppBreakpoints.small;
         return SafeArea(
           bottom: !wide,
           child: Align(
             alignment: Alignment.topCenter,
             child: SingleChildScrollView(
               padding: EdgeInsets.fromLTRB(
-                  wide ? 36 : 18, 24, wide ? 36 : 18, wide ? 36 : 108),
+                  wide ? 36 : 18,
+                  wide ? 24 : (compact ? 16 : 20),
+                  wide ? 36 : 18,
+                  wide ? 36 : 104),
               child: ConstrainedBox(
                 constraints: BoxConstraints(
                     maxWidth: maxWidth ?? tokens.contentMaxWidth),
@@ -103,7 +107,7 @@ class PageFrame extends StatelessWidget {
                               spacing: 10, runSpacing: 10, children: actions!),
                         ),
                       if (actions != null && actions!.isNotEmpty)
-                        const SizedBox(height: 18),
+                        SizedBox(height: compact ? 14 : 18),
                       Text(title,
                           style: Theme.of(context).textTheme.headlineMedium),
                       const SizedBox(height: 8),
@@ -112,7 +116,7 @@ class PageFrame extends StatelessWidget {
                               .textTheme
                               .bodyLarge
                               ?.copyWith(color: tokens.secondaryText)),
-                      const SizedBox(height: 24),
+                      SizedBox(height: compact ? 18 : 24),
                       child,
                     ]),
               ),
