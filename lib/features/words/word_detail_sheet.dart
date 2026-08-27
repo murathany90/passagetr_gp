@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../core/app_theme_tokens.dart';
 import '../../core/content_providers.dart';
@@ -92,6 +93,18 @@ class WordDetailSheet extends ConsumerWidget {
                 _DetailBlock(label: 'Zıt anlamlılar', value: word.antonymsRaw!),
               if (_notBlank(word.notes))
                 _DetailBlock(label: 'Not', value: word.notes!),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    context.go(
+                        '/dictionary?q=${Uri.encodeQueryComponent(word.enWord)}');
+                  },
+                  icon: const Icon(Icons.translate_outlined),
+                  label: const Text('Sözlükte daha fazla anlam'),
+                ),
+              ),
               if (tts.errorMessage != null)
                 Padding(
                     padding: const EdgeInsets.only(top: 8),

@@ -30,6 +30,8 @@ jobs:
         run: flutter analyze
       - name: Test
         run: flutter test
+      - name: Build static content
+        run: python3 tools/build_static_content.py
       - name: Validate static content
         run: python3 tools/validate_static_content.py
       - name: Build web

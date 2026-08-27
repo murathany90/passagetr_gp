@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../core/app_theme.dart';
 import '../features/common/page_parts.dart';
+import '../features/dictionary/dictionary_page.dart';
 import '../features/home/landing_page.dart';
 import '../features/readings/reading_detail_page.dart';
 import '../features/readings/readings_page.dart';
@@ -21,6 +22,12 @@ final _routerProvider = Provider<GoRouter>((ref) => GoRouter(
                 path: '/', builder: (context, state) => const LandingPage()),
             GoRoute(
                 path: '/words', builder: (context, state) => const WordsPage()),
+            GoRoute(
+              path: '/dictionary',
+              builder: (context, state) => DictionaryPage(
+                initialQuery: state.uri.queryParameters['q'],
+              ),
+            ),
             GoRoute(
               path: '/words/flashcards',
               builder: (context, state) =>

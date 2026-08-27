@@ -42,7 +42,7 @@ class StaticContentRepository {
       }
       final payload = await _loadJson(passage.file!);
       final detail = ReadingDetail.fromJson(payload);
-      if (detail.passage.id != id || detail.sentences.isEmpty) {
+      if (detail.passage.id != id) {
         throw StaticContentException('Okuma cümleleri geçersiz: $id');
       }
       return detail;

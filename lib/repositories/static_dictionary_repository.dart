@@ -76,6 +76,32 @@ class StaticDictionaryRepository {
     return List<DictionaryEntry>.unmodifiable(matches);
   }
 
+  /// Returns one entry per matching headword without ever loading every shard.
+  /// Two characters are enough to narrow the shard range in the bundled index.
+  Future<List<DictionaryEntry>> suggest(String query, {int limit = 8}) async {
+    final normalized = normalizeDictionaryLookup(query);
+    if (normalized.length < 2 || limit <= 0) {
+      return const <DictionaryEntry>[];
+    }
+    final index = await _index();
+    final upperBound = '$normalized\uffff';
+    final prefix = _dictionaryPrefix(normalized);
+    final matchingShards = index.shards.where((shard) {
+      return shard.prefix == prefix &&
+          shard.rangeEnd.compareTo(normalized) >= 0 &&
+          shard.rangeStart.compareTo(upperBound) <= 0;
+    });
+    final entries = await Future.wait(matchingShards.map(_loadShard));
+    final seenHeadwords = <String>{};
+    final suggestions = entries
+        .expand((shard) => shard)
+        .where((entry) => entry.normalizedKey.startsWith(normalized))
+        .where((entry) => seenHeadwords.add(entry.normalizedKey))
+        .take(limit)
+        .toList(growable: false);
+    return List<DictionaryEntry>.unmodifiable(suggestions);
+  }
+
   Future<_DictionaryIndex> _index() => _indexFuture ??= _loadIndex();
 
   Future<_DictionaryIndex> _loadIndex() async {
@@ -117,6 +143,14 @@ class StaticDictionaryRepository {
       throw StaticContentException('Asset yüklenemedi: $relativePath', error);
     }
   }
+}
+
+String _dictionaryPrefix(String normalized) {
+  if (normalized.isEmpty) return 'other';
+  final codeUnit = normalized.codeUnitAt(0);
+  return codeUnit >= 97 && codeUnit <= 122
+      ? String.fromCharCode(codeUnit)
+      : 'other';
 }
 
 class _DictionaryIndex {

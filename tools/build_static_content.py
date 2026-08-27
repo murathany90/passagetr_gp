@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """Build PASSAGETR's public, bundled content from audited local sources.
 
-The builder only normalizes and partitions source data. It never translates,
-summarizes, or otherwise invents content. The Excel dictionary is a build-time
-input; the Flutter application reads only the JSON assets produced here.
+The builder normalizes and partitions source data, then derives deterministic
+study metadata. Summaries are extractive source sentences and questions are
+lossless cloze prompts, so it never translates, paraphrases, or invents facts.
+The Excel dictionary is a build-time input; the Flutter application reads only
+the JSON assets produced here.
 """
 
 from __future__ import annotations
@@ -26,6 +28,9 @@ from typing import Any, Iterator
 ROOT = Path(__file__).resolve().parents[1]
 ID_NAMESPACE = uuid.UUID('07cbf023-3cd8-4ae7-a892-097112e35d7f')
 DICTIONARY_SHARD_TARGET_BYTES = 1_500_000
+# The application shows this as an estimate, not a source-provided duration.
+# 200 words/minute is a stable, middle-of-range English reading rate.
+READING_WORDS_PER_MINUTE = 200
 SMART_QUOTES = str.maketrans({
     '\u2018': "'", '\u2019': "'", '\u201c': '"', '\u201d': '"',
     '\u00a0': ' ', '\ufeff': '',
@@ -44,6 +49,20 @@ POS_ALIASES = {
     'determiner': 'det.', 'det': 'det.', 'modal': 'modal', 'modal verb': 'modal',
 }
 POS_ORDER = ('prep.', 'phr. v.', 'v.', 'n.', 'adj.', 'adv.', 'NP', 'conj.', 'det.', 'modal')
+WORD_TOKEN = re.compile(r"[A-Za-z]+(?:['-][A-Za-z]+)*")
+TITLE_PATTERN = re.compile(
+    r'^\s*(?:(?P<number>\d+)\s*[-.)]\s*)?(?P<english>.*?)(?:\s*\((?P<turkish>[^()]*)\))?\s*$'
+)
+STOP_WORDS = frozenset({
+    'a', 'about', 'after', 'all', 'also', 'am', 'an', 'and', 'are', 'as', 'at',
+    'be', 'been', 'being', 'by', 'can', 'could', 'did', 'do', 'does', 'for',
+    'from', 'had', 'has', 'have', 'he', 'her', 'here', 'him', 'his', 'i', 'if',
+    'in', 'into', 'is', 'it', 'its', 'may', 'me', 'more', 'most', 'my', 'no',
+    'not', 'of', 'on', 'one', 'or', 'our', 'out', 'she', 'should', 'so', 'some',
+    'such', 'than', 'that', 'the', 'their', 'them', 'then', 'there', 'these',
+    'they', 'this', 'those', 'to', 'too', 'was', 'we', 'were', 'what', 'when',
+    'which', 'who', 'will', 'with', 'would', 'you', 'your',
+})
 
 
 def clean(value: str | None) -> str:
@@ -125,6 +144,141 @@ def nullable(value: str | None) -> str | None:
 
 def parse_tag_list(value: str | None) -> list[str]:
     return [item for item in (clean(part) for part in (value or '').split(';')) if item]
+
+
+def english_tokens(value: str) -> list[str]:
+    """Return normalized English tokens without changing the source text."""
+    return [normalize_dictionary_key(match.group(0)) for match in WORD_TOKEN.finditer(value)]
+
+
+def display_titles(source_title: str) -> tuple[str | None, str, str | None]:
+    """Derive presentation labels while retaining the CSV title unchanged."""
+    match = TITLE_PATTERN.match(source_title)
+    if match is None:
+        return None, source_title, None
+    source_number = nullable(match.group('number'))
+    english = clean(match.group('english')) or source_title
+    turkish = nullable(match.group('turkish'))
+    return source_number, english, turkish
+
+
+def extractive_summary(sentences: list[dict[str, Any]]) -> str | None:
+    """Use up to two original English sentences; no paraphrase or new claim."""
+    source_sentences = [
+        sentence['englishText']
+        for sentence in sentences
+        if clean(sentence.get('englishText'))
+    ]
+    return ' '.join(source_sentences[:2]) or None
+
+
+def focus_word_ids(
+    sentences: list[dict[str, Any]],
+    primary_word_ids: dict[str, list[str]],
+) -> list[str]:
+    """Select up to eight in-passage educational words from the 5,314-word set."""
+    occurrences: list[str] = []
+    for sentence in sentences:
+        occurrences.extend(english_tokens(sentence['englishText']))
+    frequency = Counter(
+        token for token in occurrences
+        if len(token) > 2 and token not in STOP_WORDS and token in primary_word_ids
+    )
+    first_position = {
+        token: occurrences.index(token)
+        for token in frequency
+    }
+    selected: list[str] = []
+    seen_ids: set[str] = set()
+    for token, _ in sorted(
+        frequency.items(), key=lambda item: (-item[1], first_position[item[0]], item[0])
+    ):
+        for identifier in primary_word_ids[token]:
+            if identifier not in seen_ids:
+                seen_ids.add(identifier)
+                selected.append(identifier)
+                break
+        if len(selected) == 8:
+            break
+    return selected
+
+
+def comprehension_questions(
+    passage_identifier: str,
+    sentences: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Make deterministic cloze/detail checks from exact source sentences only.
+
+    Distractors are other words appearing in the same passage. This deliberately
+    avoids generated facts, interpretations, translations, or external knowledge.
+    """
+    sentence_tokens: list[tuple[dict[str, Any], list[tuple[str, int, int, str]]]] = []
+    vocabulary: dict[str, str] = {}
+    for sentence in sentences:
+        candidates: list[tuple[str, int, int, str]] = []
+        for match in WORD_TOKEN.finditer(sentence['englishText']):
+            raw = match.group(0)
+            key = normalize_dictionary_key(raw)
+            if len(key) <= 2 or key in STOP_WORDS:
+                continue
+            candidates.append((raw, match.start(), match.end(), key))
+            vocabulary.setdefault(key, raw)
+        if candidates:
+            sentence_tokens.append((sentence, candidates))
+
+    if len(vocabulary) < 4 or not sentence_tokens:
+        return []
+
+    # Spread questions through the passage before filling any missing slots.
+    preferred = [0, len(sentence_tokens) // 2, len(sentence_tokens) - 1]
+    candidate_positions = list(dict.fromkeys(preferred))
+    candidate_positions.extend(
+        index for index in range(len(sentence_tokens)) if index not in candidate_positions
+    )
+    questions: list[dict[str, Any]] = []
+    used_sentence_indexes: set[int] = set()
+    for position in candidate_positions:
+        sentence, candidates = sentence_tokens[position]
+        if sentence['index'] in used_sentence_indexes:
+            continue
+        # Longer words make the learning prompt clearer; position is a stable tie-breaker.
+        target, start, end, target_key = max(
+            candidates, key=lambda item: (len(item[3]), -item[1])
+        )
+        distractor_keys = sorted(
+            (key for key in vocabulary if key != target_key),
+            key=lambda key: hashlib.sha256(
+                f'{passage_identifier}|{sentence["index"]}|{key}'.encode('utf-8')
+            ).hexdigest(),
+        )[:3]
+        if len(distractor_keys) < 3:
+            continue
+        options = [target, *(vocabulary[key] for key in distractor_keys)]
+        options.sort(
+            key=lambda option: hashlib.sha256(
+                f'{passage_identifier}|{sentence["index"]}|{option}'.encode('utf-8')
+            ).hexdigest()
+        )
+        question_id = deterministic_id(
+            'reading-question', f'{passage_identifier}|{sentence["index"]}|{target_key}'
+        )
+        excerpt = sentence['englishText'][:start] + '____' + sentence['englishText'][end:]
+        questions.append({
+            'id': question_id,
+            'sortOrder': len(questions) + 1,
+            'question': (
+                f'Metindeki {sentence["index"]}. cümleyi doğru kelimeyle tamamlayın:\n{excerpt}'
+            ),
+            'options': options,
+            'correctOptionIndex': options.index(target),
+            'explanation': (
+                f'Cevap, metnin {sentence["index"]}. cümlesindeki “{target}” sözcüğüdür.'
+            ),
+        })
+        used_sentence_indexes.add(sentence['index'])
+        if len(questions) == 3:
+            break
+    return questions
 
 
 def _tag_name(element: ET.Element) -> str:
@@ -324,6 +478,7 @@ def build(source_dir: Path, output_dir: Path) -> dict[str, Any]:
     word_rows = read_csv(words_source)
     seen_words: set[tuple[str, str]] = set()
     words_by_pack: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    primary_word_ids: dict[str, list[str]] = defaultdict(list)
     all_pack_names: set[str] = {'YDS Set 001'}
     for row in word_rows:
         english = clean(row.get('en_word'))
@@ -338,6 +493,7 @@ def build(source_dir: Path, output_dir: Path) -> dict[str, Any]:
         identifier = word_id(english, pos)
         target_pack_name = word_pack_names.get(identifier, 'YDS Set 001')
         all_pack_names.add(target_pack_name)
+        primary_word_ids[normalize_dictionary_key(english)].append(identifier)
         words_by_pack[target_pack_name].append({
             'id': identifier,
             'packId': pack_id(target_pack_name),
@@ -367,9 +523,9 @@ def build(source_dir: Path, output_dir: Path) -> dict[str, Any]:
         passages[key] = {
             'id': passage_id(title), 'packId': pack_id(source_pack), 'title': title,
             'level': nullable(row.get('level')), 'category': nullable(row.get('Category')),
-            'tags': parse_tag_list(row.get('tags_raw')), 'summary': None, 'author': None,
+            'tags': parse_tag_list(row.get('tags_raw')), 'author': None,
             'durationMinutes': None, 'coverAsset': None, 'coverAltText': None,
-            'sentences': [], 'focusWordIds': [], 'questions': [],
+            'sentences': [], 'enrichment': {},
         }
 
     sentence_rows = read_csv(sentences_source)
@@ -404,6 +560,44 @@ def build(source_dir: Path, output_dir: Path) -> dict[str, Any]:
         passage['sentences'] = sentences
         sentence_count += len(sentences)
 
+    enrichment_audit = {
+        'wordCountReadings': 0,
+        'durationReadings': 0,
+        'focusWordReadings': 0,
+        'summaryReadings': 0,
+        'questionReadings': 0,
+        'totalQuestions': 0,
+    }
+    for passage in passages.values():
+        sentences = passage['sentences']
+        word_count = sum(
+            len(english_tokens(sentence['englishText'])) for sentence in sentences
+        )
+        source_number, display_title, turkish_title = display_titles(passage['title'])
+        summary = extractive_summary(sentences)
+        focus_ids = focus_word_ids(sentences, primary_word_ids)
+        questions = comprehension_questions(passage['id'], sentences)
+        passage['enrichment'] = {
+            'schemaVersion': 1,
+            'sourceNumber': source_number,
+            'displayTitle': display_title,
+            'turkishTitle': turkish_title,
+            'wordCount': word_count,
+            'estimatedReadingMinutes': (
+                max(1, (word_count + READING_WORDS_PER_MINUTE - 1) // READING_WORDS_PER_MINUTE)
+                if word_count else 0
+            ),
+            'focusWordIds': focus_ids,
+            'summary': summary,
+            'questions': questions,
+        }
+        enrichment_audit['wordCountReadings'] += int(word_count > 0)
+        enrichment_audit['durationReadings'] += int(word_count > 0)
+        enrichment_audit['focusWordReadings'] += int(bool(focus_ids))
+        enrichment_audit['summaryReadings'] += int(summary is not None)
+        enrichment_audit['questionReadings'] += int(bool(questions))
+        enrichment_audit['totalQuestions'] += len(questions)
+
     if output_dir.exists():
         shutil.rmtree(output_dir)
     (output_dir / 'words').mkdir(parents=True)
@@ -425,12 +619,21 @@ def build(source_dir: Path, output_dir: Path) -> dict[str, Any]:
         identifier = passage['id']
         file_name = f'{identifier}.json'
         write_json(output_dir / 'readings' / 'items' / file_name, passage)
+        enrichment = passage['enrichment']
         reading_index.append({
             key: passage[key] for key in (
-                'id', 'packId', 'title', 'level', 'category', 'tags', 'summary',
+                'id', 'packId', 'title', 'level', 'category', 'tags',
                 'author', 'durationMinutes', 'coverAsset', 'coverAltText',
             )
-        } | {'sentenceCount': len(passage['sentences']), 'file': f'readings/items/{file_name}'})
+        } | {
+            'sentenceCount': len(passage['sentences']),
+            'sourceNumber': enrichment['sourceNumber'],
+            'displayTitle': enrichment['displayTitle'],
+            'turkishTitle': enrichment['turkishTitle'],
+            'wordCount': enrichment['wordCount'],
+            'estimatedReadingMinutes': enrichment['estimatedReadingMinutes'],
+            'file': f'readings/items/{file_name}',
+        })
 
     write_json(output_dir / 'words' / 'index.json', {'packs': word_index})
     write_json(output_dir / 'readings' / 'index.json', {'readings': reading_index})
@@ -445,6 +648,11 @@ def build(source_dir: Path, output_dir: Path) -> dict[str, Any]:
         },
         'packs': pack_records, 'wordsIndex': 'words/index.json',
         'readingsIndex': 'readings/index.json', 'dictionaryIndex': 'dictionary/index.json',
+        'readingEnrichment': {
+            'schemaVersion': 1,
+            'wordsPerMinute': READING_WORDS_PER_MINUTE,
+            **enrichment_audit,
+        },
         'sourceChecksums': {
             'words': source_hash(words_source), 'passages': source_hash(passages_source),
             'sentences': source_hash(sentences_source), 'dictionary': source_hash(dictionary_source),

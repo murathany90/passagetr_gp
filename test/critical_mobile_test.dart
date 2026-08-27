@@ -8,6 +8,7 @@ import 'package:passagetr_gp/core/content_providers.dart';
 import 'package:passagetr_gp/core/local_progress.dart';
 import 'package:passagetr_gp/features/readings/reading_detail_page.dart';
 import 'package:passagetr_gp/features/readings/readings_page.dart';
+import 'package:passagetr_gp/features/dictionary/dictionary_page.dart';
 import 'package:passagetr_gp/features/tts/student_tts_engine.dart';
 import 'package:passagetr_gp/features/words/words_page.dart';
 import 'package:passagetr_gp/models/content_models.dart';
@@ -38,7 +39,7 @@ void main() {
     id: 'reading-a',
     packId: 'pack-a',
     title: 'Kısa okuma',
-    sentenceCount: 1,
+    sentenceCount: 2,
     level: 'B1',
     category: 'Science',
   );
@@ -49,6 +50,11 @@ void main() {
         index: 1,
         englishText: 'Access to knowledge changes lives.',
         turkishText: 'Bilgiye erişim hayatları değiştirir.',
+      ),
+      ReadingSentence(
+        index: 2,
+        englishText: 'A bridge connects people.',
+        turkishText: 'Bir köprü insanları birbirine bağlar.',
       ),
     ],
     focusWordIds: <String>[],
@@ -97,7 +103,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('390px Reading Detail shows real EN/TR sentence without overflow',
+  testWidgets('390px Reading Detail hides and reveals the real translation',
       (tester) async {
     await _setPhoneSize(tester);
     await tester
@@ -105,7 +111,31 @@ void main() {
     await _pumpContent(tester);
 
     expect(find.text('Access'), findsOneWidget);
+    expect(find.text('Bilgiye erişim hayatları değiştirir.'), findsNothing);
+    final card = find.byKey(const ValueKey<String>('sentence-card-1'));
+    final origin = tester.getTopLeft(card);
+    await tester.tapAt(origin + const Offset(5, 5));
+    await tester.pump();
     expect(find.text('Bilgiye erişim hayatları değiştirir.'), findsOneWidget);
+    expect(find.text('Bir köprü insanları birbirine bağlar.'), findsNothing);
+    await tester.tap(find.text('Tüm çevirileri göster'));
+    await tester.pump();
+    expect(find.text('Tümünü gizle'), findsOneWidget);
+    expect(find.text('Bir köprü insanları birbirine bağlar.'), findsOneWidget);
+    await tester.tap(find.text('Tümünü gizle'));
+    await tester.pump();
+    expect(find.text('Bilgiye erişim hayatları değiştirir.'), findsNothing);
+    expect(find.text('Bir köprü insanları birbirine bağlar.'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('390px Dictionary opens without overflow', (tester) async {
+    await _setPhoneSize(tester);
+    await tester.pumpWidget(app(const DictionaryPage()));
+    await tester.pump();
+
+    expect(find.text('Sözlük'), findsOneWidget);
+    expect(find.text('İngilizce kelime ara...'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

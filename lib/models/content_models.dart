@@ -127,6 +127,11 @@ class ReadingPassage {
     this.category,
     this.tags = const <String>[],
     this.summary,
+    this.sourceNumber,
+    this.displayTitle,
+    this.turkishTitle,
+    this.wordCount = 0,
+    this.estimatedReadingMinutes = 0,
     this.author,
     this.durationMinutes,
     this.coverAsset,
@@ -142,6 +147,11 @@ class ReadingPassage {
   final String? category;
   final List<String> tags;
   final String? summary;
+  final String? sourceNumber;
+  final String? displayTitle;
+  final String? turkishTitle;
+  final int wordCount;
+  final int estimatedReadingMinutes;
   final String? author;
   final int? durationMinutes;
   final String? coverAsset;
@@ -157,6 +167,13 @@ class ReadingPassage {
         category: json['category'] as String?,
         tags: _stringList(json['tags']),
         summary: json['summary'] as String?,
+        sourceNumber: json['sourceNumber'] as String?,
+        displayTitle: json['displayTitle'] as String?,
+        turkishTitle: json['turkishTitle'] as String?,
+        wordCount: (json['wordCount'] as int?) ?? 0,
+        estimatedReadingMinutes: (json['estimatedReadingMinutes'] as int?) ??
+            (json['durationMinutes'] as int?) ??
+            0,
         author: json['author'] as String?,
         durationMinutes: json['durationMinutes'] as int?,
         coverAsset: json['coverAsset'] as String?,
@@ -230,16 +247,23 @@ class ReadingDetail {
         ((json['sentences'] as List<Object?>?) ?? const <Object?>[])
             .map((item) => ReadingSentence.fromJson(_jsonMap(item)))
             .toList(growable: false);
+    final enrichment = json['enrichment'] is Map
+        ? _jsonMap(json['enrichment'])
+        : const <String, Object?>{};
     return ReadingDetail(
       passage: ReadingPassage.fromJson(<String, Object?>{
         ...json,
+        ...enrichment,
         'sentenceCount': sentences.length,
       }),
       sentences: sentences,
-      focusWordIds: _stringList(json['focusWordIds']),
-      questions: ((json['questions'] as List<Object?>?) ?? const <Object?>[])
-          .map((item) => ReadingQuestion.fromJson(_jsonMap(item)))
-          .toList(growable: false),
+      focusWordIds:
+          _stringList(enrichment['focusWordIds'] ?? json['focusWordIds']),
+      questions:
+          (((enrichment['questions'] ?? json['questions']) as List<Object?>?) ??
+                  const <Object?>[])
+              .map((item) => ReadingQuestion.fromJson(_jsonMap(item)))
+              .toList(growable: false),
     );
   }
 }

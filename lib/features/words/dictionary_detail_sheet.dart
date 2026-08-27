@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../core/app_theme_tokens.dart';
 import '../../core/content_providers.dart';
@@ -82,6 +83,16 @@ class DictionaryDetailSheet extends ConsumerWidget {
                   entry: entries[index],
                   isLast: index == entries.length - 1,
                 ),
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  context.go(
+                      '/dictionary?q=${Uri.encodeQueryComponent(first.enWord)}');
+                },
+                icon: const Icon(Icons.open_in_new_rounded),
+                label: const Text('Sözlükte aç'),
+              ),
             ],
           ),
         ),

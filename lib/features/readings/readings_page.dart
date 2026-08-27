@@ -74,7 +74,7 @@ class _ReadingsPageState extends ConsumerState<ReadingsPage> {
         final validCategory = categories.contains(_category) ? _category : null;
         final filtered = items.where((item) {
           final text =
-              '${item.title} ${item.level ?? ''} ${item.category ?? ''} ${item.tags.join(' ')}'
+              '${item.title} ${item.displayTitle ?? ''} ${item.turkishTitle ?? ''} ${item.level ?? ''} ${item.category ?? ''} ${item.tags.join(' ')}'
                   .toLowerCase();
           return (validPackId == null || item.packId == validPackId) &&
               (validLevel == null || item.level == validLevel) &&
@@ -331,26 +331,43 @@ class _ReadingCard extends StatelessWidget {
                               _ReadingPill(
                                   label: passage.category!,
                                   color: tokens.purple),
-                            if (passage.durationMinutes != null)
+                            if (passage.estimatedReadingMinutes > 0)
                               _ReadingPill(
-                                  label: '${passage.durationMinutes} dk',
+                                  label:
+                                      '~${passage.estimatedReadingMinutes} dk',
                                   color: tokens.accentBlue),
                             if (completed)
                               _ReadingPill(
                                   label: 'Tamamlandı', color: tokens.success),
                           ]),
                           const Spacer(),
-                          Text(passage.title,
+                          Text(passage.displayTitle ?? passage.title,
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                               style: Theme.of(context).textTheme.titleLarge),
+                          if (passage.turkishTitle != null) ...<Widget>[
+                            const SizedBox(height: 3),
+                            Text(passage.turkishTitle!,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: Theme.of(context).textTheme.bodySmall),
+                          ],
                           const SizedBox(height: 7),
-                          Text('${passage.sentenceCount} cümle',
+                          Text(_metadataFor(passage),
                               style: Theme.of(context).textTheme.bodySmall),
                         ]))),
           ]),
     );
   }
+}
+
+String _metadataFor(ReadingPassage passage) {
+  final values = <String>['${passage.sentenceCount} cümle'];
+  if (passage.wordCount > 0) values.add('${passage.wordCount} kelime');
+  if (passage.estimatedReadingMinutes > 0) {
+    values.add('~${passage.estimatedReadingMinutes} dk');
+  }
+  return values.join(' · ');
 }
 
 class _ReadingPill extends StatelessWidget {

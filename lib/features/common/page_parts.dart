@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/app_breakpoints.dart';
 import '../../core/app_theme_tokens.dart';
 
-enum PassagetrDestination { home, words, readings }
+enum PassagetrDestination { home, words, readings, dictionary }
 
 class PassagetrShell extends StatelessWidget {
   const PassagetrShell(
@@ -19,7 +19,9 @@ class PassagetrShell extends StatelessWidget {
         ? PassagetrDestination.words
         : location.startsWith('/readings')
             ? PassagetrDestination.readings
-            : PassagetrDestination.home;
+            : location.startsWith('/dictionary')
+                ? PassagetrDestination.dictionary
+                : PassagetrDestination.home;
     return LayoutBuilder(builder: (context, constraints) {
       final wide = constraints.maxWidth >= AppBreakpoints.shellWide;
       final tokens = AppThemeTokens.of(context);
@@ -37,11 +39,16 @@ class PassagetrShell extends StatelessWidget {
         bottomNavigationBar: wide || destination == PassagetrDestination.home
             ? null
             : NavigationBar(
-                selectedIndex:
-                    destination == PassagetrDestination.words ? 0 : 1,
+                selectedIndex: switch (destination) {
+                  PassagetrDestination.words => 0,
+                  PassagetrDestination.readings => 1,
+                  PassagetrDestination.dictionary => 2,
+                  PassagetrDestination.home => 0,
+                },
                 onDestinationSelected: (index) => context.go(switch (index) {
                   0 => '/words',
-                  _ => '/readings',
+                  1 => '/readings',
+                  _ => '/dictionary',
                 }),
                 destinations: const <NavigationDestination>[
                   NavigationDestination(
@@ -52,6 +59,10 @@ class PassagetrShell extends StatelessWidget {
                       icon: Icon(Icons.menu_book_outlined),
                       selectedIcon: Icon(Icons.menu_book_rounded),
                       label: 'Okuma'),
+                  NavigationDestination(
+                      icon: Icon(Icons.translate_outlined),
+                      selectedIcon: Icon(Icons.translate_rounded),
+                      label: 'Sözlük'),
                 ],
               ),
       );
@@ -239,6 +250,11 @@ class _DesktopRail extends StatelessWidget {
             label: 'Okuma',
             selected: destination == PassagetrDestination.readings,
             onTap: () => context.go('/readings')),
+        _RailButton(
+            icon: Icons.translate_rounded,
+            label: 'Sözlük',
+            selected: destination == PassagetrDestination.dictionary,
+            onTap: () => context.go('/dictionary')),
       ]),
     );
   }

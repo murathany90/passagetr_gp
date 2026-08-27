@@ -27,7 +27,7 @@ class LandingPage extends StatelessWidget {
                 child: const Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
-                      Text('KELİME + OKUMA',
+                      Text('KELİME + OKUMA + SÖZLÜK',
                           style: TextStyle(
                               color: Colors.white70,
                               letterSpacing: 1.2,
@@ -40,7 +40,7 @@ class LandingPage extends StatelessWidget {
                               fontSize: 26,
                               height: 1.15)),
                       SizedBox(height: 10),
-                      Text('5.314 kelime · 678 okuma',
+                      Text('5.314 kelime · 678 okuma · 121 bin sözlük kaydı',
                           style: TextStyle(
                               color: Colors.white70,
                               fontWeight: FontWeight.w700)),
@@ -52,9 +52,7 @@ class LandingPage extends StatelessWidget {
                 builder: (context, constraints) =>
                     Wrap(spacing: 16, runSpacing: 16, children: <Widget>[
                       SizedBox(
-                          width: constraints.maxWidth >= 680
-                              ? (constraints.maxWidth - 16) / 2
-                              : constraints.maxWidth,
+                          width: _moduleWidth(constraints.maxWidth),
                           child: _ModuleCard(
                               icon: Icons.style_rounded,
                               title: 'Kelime',
@@ -63,9 +61,7 @@ class LandingPage extends StatelessWidget {
                               color: tokens.hero,
                               onTap: () => context.go('/words'))),
                       SizedBox(
-                          width: constraints.maxWidth >= 680
-                              ? (constraints.maxWidth - 16) / 2
-                              : constraints.maxWidth,
+                          width: _moduleWidth(constraints.maxWidth),
                           child: _ModuleCard(
                               icon: Icons.menu_book_rounded,
                               title: 'Okuma',
@@ -73,10 +69,25 @@ class LandingPage extends StatelessWidget {
                                   '678 okuma ve kaynak cümleleriyle pratik.',
                               color: tokens.purple,
                               onTap: () => context.go('/readings'))),
+                      SizedBox(
+                          width: _moduleWidth(constraints.maxWidth),
+                          child: _ModuleCard(
+                              icon: Icons.translate_rounded,
+                              title: 'Sözlük',
+                              description:
+                                  '121.772 kayıt, tüm anlamlar ve sesli dinleme.',
+                              color: tokens.accentBlue,
+                              onTap: () => context.go('/dictionary'))),
                     ])),
           ]),
     );
   }
+}
+
+double _moduleWidth(double maxWidth) {
+  if (maxWidth >= 980) return (maxWidth - 32) / 3;
+  if (maxWidth >= 680) return (maxWidth - 16) / 2;
+  return maxWidth;
 }
 
 class _ModuleCard extends StatelessWidget {
