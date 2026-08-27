@@ -21,16 +21,25 @@ class DictionaryPage extends ConsumerStatefulWidget {
 class _DictionaryPageState extends ConsumerState<DictionaryPage> {
   late final TextEditingController _controller;
   var _result = const _DictionarySearchResult.empty();
+  var _randomEntries = const <DictionaryEntry>[];
   var _isLoading = false;
+  var _isLoadingRandom = false;
   Object? _error;
+  Object? _randomError;
   var _request = 0;
+  var _randomRequest = 0;
 
   @override
   void initState() {
     super.initState();
     _controller = TextEditingController(text: widget.initialQuery ?? '');
-    WidgetsBinding.instance
-        .addPostFrameCallback((_) => _search(_controller.text));
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (normalizeDictionaryLookup(_controller.text).isEmpty) {
+        _loadRandomEntries();
+      } else {
+        _search(_controller.text);
+      }
+    });
   }
 
   @override
@@ -49,6 +58,51 @@ class _DictionaryPageState extends ConsumerState<DictionaryPage> {
     super.dispose();
   }
 
+  Future<void> _loadRandomEntries() async {
+    final request = ++_randomRequest;
+    setState(() {
+      _isLoadingRandom = true;
+      _randomError = null;
+    });
+    try {
+      final entries =
+          await ref.read(staticDictionaryRepositoryProvider).randomEntries(
+                count: 20,
+                exclude: _randomEntries.map((entry) => entry.normalizedKey),
+              );
+      if (!mounted || request != _randomRequest) return;
+      setState(() {
+        _randomEntries = entries;
+        _isLoadingRandom = false;
+      });
+    } catch (error) {
+      if (!mounted || request != _randomRequest) return;
+      setState(() {
+        _randomError = error;
+        _isLoadingRandom = false;
+      });
+    }
+  }
+
+  Future<void> _openRandomEntry(DictionaryEntry entry) async {
+    try {
+      final entries = await ref
+          .read(staticDictionaryRepositoryProvider)
+          .findAll(entry.enWord);
+      if (!mounted) return;
+      await showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        builder: (_) => DictionaryDetailSheet(
+          entries: entries.isEmpty ? <DictionaryEntry>[entry] : entries,
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _randomError = error);
+    }
+  }
+
   Future<void> _search(String value) async {
     final query = normalizeDictionaryLookup(value);
     final request = ++_request;
@@ -58,6 +112,9 @@ class _DictionaryPageState extends ConsumerState<DictionaryPage> {
         _isLoading = false;
         _error = null;
       });
+      if (_randomEntries.isEmpty && !_isLoadingRandom) {
+        await _loadRandomEntries();
+      }
       return;
     }
     setState(() {
@@ -125,9 +182,13 @@ class _DictionaryPageState extends ConsumerState<DictionaryPage> {
             ),
             const SizedBox(height: 14),
             if (_controller.text.trim().isEmpty)
-              const _DictionaryHint(
-                  icon: Icons.menu_book_outlined,
-                  text: 'Kelimenin tüm Türkçe anlamlarını görmek için arayın.')
+              _RandomDictionarySection(
+                entries: _randomEntries,
+                isLoading: _isLoadingRandom,
+                error: _randomError,
+                onRefresh: _loadRandomEntries,
+                onEntryTap: _openRandomEntry,
+              )
             else if (_isLoading)
               const Center(
                   child: Padding(
@@ -149,6 +210,166 @@ class _DictionaryPageState extends ConsumerState<DictionaryPage> {
                 },
               ),
           ],
+        ),
+      );
+}
+
+class _RandomDictionarySection extends StatelessWidget {
+  const _RandomDictionarySection({
+    required this.entries,
+    required this.isLoading,
+    required this.error,
+    required this.onRefresh,
+    required this.onEntryTap,
+  });
+
+  final List<DictionaryEntry> entries;
+  final bool isLoading;
+  final Object? error;
+  final VoidCallback onRefresh;
+  final ValueChanged<DictionaryEntry> onEntryTap;
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+        width: double.infinity,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Row(children: <Widget>[
+              Expanded(
+                child: Text('Rastgele 20 Kelime',
+                    style: Theme.of(context).textTheme.titleLarge),
+              ),
+              OutlinedButton.icon(
+                onPressed: isLoading ? null : onRefresh,
+                icon: const Icon(Icons.refresh_rounded, size: 18),
+                label: const Text('20 Yeni Kelime'),
+              ),
+            ]),
+            const SizedBox(height: 10),
+            if (isLoading && entries.isEmpty)
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(24),
+                  child: CircularProgressIndicator(),
+                ),
+              )
+            else if (error != null)
+              _DictionaryHint(
+                icon: Icons.error_outline_rounded,
+                text: 'DATA_LOAD_ERROR: ${error.toString()}',
+              )
+            else if (entries.isNotEmpty)
+              _RandomDictionaryList(entries: entries, onEntryTap: onEntryTap),
+          ],
+        ),
+      );
+}
+
+class _RandomDictionaryList extends ConsumerWidget {
+  const _RandomDictionaryList({
+    required this.entries,
+    required this.onEntryTap,
+  });
+
+  final List<DictionaryEntry> entries;
+  final ValueChanged<DictionaryEntry> onEntryTap;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final tts = ref.watch(studentTtsControllerProvider);
+    return SurfaceCard(
+      padding: EdgeInsets.zero,
+      child: Column(
+        children: <Widget>[
+          for (var index = 0; index < entries.length; index++) ...<Widget>[
+            _RandomDictionaryTile(
+              entry: entries[index],
+              isSpeaking:
+                  tts.isSpeaking && tts.activeWordId == entries[index].id,
+              isInitializing:
+                  tts.isInitializing && tts.activeWordId == entries[index].id,
+              isUnavailable: tts.isUnavailable,
+              onPlay: () => ref
+                  .read(studentTtsControllerProvider.notifier)
+                  .playDictionaryEntry(
+                    entryId: entries[index].id,
+                    text: entries[index].enWord,
+                  ),
+              onStop: () =>
+                  ref.read(studentTtsControllerProvider.notifier).stop(),
+              onTap: () => onEntryTap(entries[index]),
+            ),
+            if (index != entries.length - 1) const Divider(height: 1),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _RandomDictionaryTile extends StatelessWidget {
+  const _RandomDictionaryTile({
+    required this.entry,
+    required this.isSpeaking,
+    required this.isInitializing,
+    required this.isUnavailable,
+    required this.onPlay,
+    required this.onStop,
+    required this.onTap,
+  });
+
+  final DictionaryEntry entry;
+  final bool isSpeaking;
+  final bool isInitializing;
+  final bool isUnavailable;
+  final Future<void> Function() onPlay;
+  final Future<void> Function() onStop;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 10, 10, 10),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: <Widget>[
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text(entry.enWord,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.titleMedium),
+                      const SizedBox(height: 3),
+                      Text(
+                        entry.pos == null || entry.pos!.isEmpty
+                            ? entry.trMeaning
+                            : '${entry.trMeaning} · ${entry.pos}',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                    ],
+                  ),
+                ),
+                StudentTtsIconButton(
+                  tooltip: 'İngilizce dinle',
+                  isSpeaking: isSpeaking,
+                  isInitializing: isInitializing,
+                  isUnavailable: isUnavailable,
+                  visualDensity: VisualDensity.compact,
+                  onPlay: onPlay,
+                  onStop: onStop,
+                ),
+                const Icon(Icons.chevron_right_rounded),
+              ],
+            ),
+          ),
         ),
       );
 }

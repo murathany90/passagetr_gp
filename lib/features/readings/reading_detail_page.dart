@@ -53,6 +53,7 @@ class _ReadingDetailBody extends ConsumerStatefulWidget {
 
 class _ReadingDetailBodyState extends ConsumerState<_ReadingDetailBody> {
   final Set<int> _revealedTranslationIndexes = <int>{};
+  final Set<String> _revealedQuestionTranslations = <String>{};
   final Map<String, int> _answers = <String, int>{};
   var _showAllTranslations = false;
   var _showSummary = false;
@@ -84,6 +85,16 @@ class _ReadingDetailBodyState extends ConsumerState<_ReadingDetailBody> {
     });
   }
 
+  void _toggleQuestionTranslation(String questionId) {
+    setState(() {
+      if (!_revealedQuestionTranslations.add(questionId)) {
+        _revealedQuestionTranslations.remove(questionId);
+      }
+    });
+  }
+
+  void _retryQuestions() => setState(_answers.clear);
+
   @override
   Widget build(BuildContext context) {
     final detail = widget.detail;
@@ -96,6 +107,15 @@ class _ReadingDetailBodyState extends ConsumerState<_ReadingDetailBody> {
         tts.activeTarget == StudentTtsTarget.passage &&
         tts.activeReadingId == passage.id;
     final compact = MediaQuery.sizeOf(context).width < 620;
+    final answeredQuestionCount = detail.questions
+        .where((question) => _answers.containsKey(question.id))
+        .length;
+    final allQuestionsAnswered = detail.questions.isNotEmpty &&
+        answeredQuestionCount == detail.questions.length;
+    final correctQuestionCount = detail.questions
+        .where(
+            (question) => _answers[question.id] == question.correctOptionIndex)
+        .length;
     return PageFrame(
       title: passage.displayTitle ?? passage.title,
       subtitle: _subtitleFor(passage),
@@ -235,10 +255,35 @@ class _ReadingDetailBodyState extends ConsumerState<_ReadingDetailBody> {
             Text('Okuduğunu Anlama',
                 style: Theme.of(context).textTheme.headlineSmall),
             const SizedBox(height: 10),
+            Wrap(
+              spacing: 12,
+              runSpacing: 4,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: <Widget>[
+                Text(
+                    '$answeredQuestionCount / ${detail.questions.length} cevaplandı',
+                    style: Theme.of(context).textTheme.bodyMedium),
+                if (allQuestionsAnswered)
+                  Text(
+                      'Doğru: $correctQuestionCount / ${detail.questions.length}',
+                      style: Theme.of(context).textTheme.bodyMedium),
+                if (allQuestionsAnswered)
+                  TextButton.icon(
+                    onPressed: _retryQuestions,
+                    icon: const Icon(Icons.refresh_rounded, size: 18),
+                    label: const Text('Tekrar dene'),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 8),
             ...detail.questions.map(
               (question) => _ComprehensionQuestion(
                 question: question,
                 selectedIndex: _answers[question.id],
+                showTranslation:
+                    _revealedQuestionTranslations.contains(question.id),
+                onToggleTranslation: () =>
+                    _toggleQuestionTranslation(question.id),
                 onSelected: (index) => setState(
                   () => _answers.putIfAbsent(question.id, () => index),
                 ),
@@ -499,11 +544,15 @@ class _ComprehensionQuestion extends StatelessWidget {
   const _ComprehensionQuestion({
     required this.question,
     required this.selectedIndex,
+    required this.showTranslation,
+    required this.onToggleTranslation,
     required this.onSelected,
   });
 
   final ReadingQuestion question;
   final int? selectedIndex;
+  final bool showTranslation;
+  final VoidCallback onToggleTranslation;
   final ValueChanged<int> onSelected;
 
   @override
@@ -512,42 +561,73 @@ class _ComprehensionQuestion extends StatelessWidget {
     final correct = selectedIndex == question.correctOptionIndex;
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
-      child: SurfaceCard(
-        child: Column(
+      child: SizedBox(
+        width: double.infinity,
+        child: SurfaceCard(
+          key: ValueKey<String>('question-card-${question.id}'),
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              Text('${question.sortOrder}. ${question.question}',
-                  style: Theme.of(context).textTheme.titleMedium),
-              if (question.questionTr case final questionTr?
-                  when questionTr.isNotEmpty) ...<Widget>[
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Expanded(
+                    child: Text('${question.sortOrder}. ${question.question}',
+                        style: Theme.of(context).textTheme.titleMedium),
+                  ),
+                  IconButton(
+                    key: ValueKey<String>('question-tr-${question.id}'),
+                    tooltip:
+                        showTranslation ? 'Türkçeyi gizle' : 'Türkçeyi göster',
+                    visualDensity: VisualDensity.compact,
+                    onPressed: onToggleTranslation,
+                    icon: Icon(showTranslation
+                        ? Icons.translate_outlined
+                        : Icons.translate_rounded),
+                  ),
+                ],
+              ),
+              if (showTranslation &&
+                  question.questionTr != null &&
+                  question.questionTr!.isNotEmpty) ...<Widget>[
                 const SizedBox(height: 4),
-                Text(questionTr, style: Theme.of(context).textTheme.bodyMedium),
+                Text(question.questionTr!,
+                    style: Theme.of(context).textTheme.bodyMedium),
               ],
               const SizedBox(height: 10),
               for (var index = 0; index < question.options.length; index++)
                 Padding(
-                  padding: const EdgeInsets.only(bottom: 6),
-                  child: OutlinedButton(
-                    onPressed: answered ? null : () => onSelected(index),
-                    style: OutlinedButton.styleFrom(
-                      alignment: Alignment.centerLeft,
-                      foregroundColor:
-                          answered && index == question.correctOptionIndex
-                              ? Colors.green
-                              : null,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: <Widget>[
-                        Text(question.options[index]),
-                        if (index < question.optionsTr.length &&
-                            question.optionsTr[index].isNotEmpty) ...<Widget>[
-                          const SizedBox(height: 2),
-                          Text(question.optionsTr[index],
-                              style: Theme.of(context).textTheme.bodySmall),
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton(
+                      key: ValueKey<String>(
+                          'question-option-${question.id}-$index'),
+                      onPressed: answered ? null : () => onSelected(index),
+                      style: OutlinedButton.styleFrom(
+                        alignment: Alignment.centerLeft,
+                        minimumSize: const Size.fromHeight(52),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 12),
+                        foregroundColor:
+                            answered && index == question.correctOptionIndex
+                                ? Colors.green
+                                : null,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: <Widget>[
+                          Text(question.options[index]),
+                          if (showTranslation &&
+                              index < question.optionsTr.length &&
+                              question.optionsTr[index].isNotEmpty) ...<Widget>[
+                            const SizedBox(height: 3),
+                            Text(question.optionsTr[index],
+                                style: Theme.of(context).textTheme.bodySmall),
+                          ],
                         ],
-                      ],
+                      ),
                     ),
                   ),
                 ),
@@ -564,24 +644,29 @@ class _ComprehensionQuestion extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                     'Doğru cevap: ${question.answerEn ?? question.options[question.correctOptionIndex]}'),
-                if (question.answerTr case final answerTr?
-                    when answerTr.isNotEmpty) ...<Widget>[
+                if (showTranslation &&
+                    question.answerTr != null &&
+                    question.answerTr!.isNotEmpty) ...<Widget>[
                   const SizedBox(height: 2),
-                  Text(answerTr, style: Theme.of(context).textTheme.bodySmall),
+                  Text(question.answerTr!,
+                      style: Theme.of(context).textTheme.bodySmall),
                 ],
                 if (question.explanation != null) ...<Widget>[
                   const SizedBox(height: 3),
                   Text(question.explanation!,
                       style: Theme.of(context).textTheme.bodySmall),
                 ],
-                if (question.explanationTr case final explanationTr?
-                    when explanationTr.isNotEmpty) ...<Widget>[
+                if (showTranslation &&
+                    question.explanationTr != null &&
+                    question.explanationTr!.isNotEmpty) ...<Widget>[
                   const SizedBox(height: 2),
-                  Text(explanationTr,
+                  Text(question.explanationTr!,
                       style: Theme.of(context).textTheme.bodySmall),
                 ],
               ],
-            ]),
+            ],
+          ),
+        ),
       ),
     );
   }

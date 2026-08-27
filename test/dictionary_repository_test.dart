@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math' as math;
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:passagetr_gp/repositories/static_content_repository.dart';
@@ -37,6 +38,37 @@ void main() {
 
     expect(result.word?.id, target.id);
     expect(result.dictionaryEntry, isNull);
+  });
+
+  test('dictionary randomEntries returns 20 unique lazy records', () async {
+    final bundle = _RecordingFileAssetBundle();
+    final repository = StaticDictionaryRepository(
+      bundle: bundle,
+      random: math.Random(17),
+    );
+
+    final first = await repository.randomEntries();
+    final second = await repository.randomEntries(
+      exclude: first.map((entry) => entry.normalizedKey),
+    );
+
+    expect(first, hasLength(20));
+    expect(first.map((entry) => entry.normalizedKey).toSet(), hasLength(20));
+    expect(second, hasLength(20));
+    expect(second.map((entry) => entry.normalizedKey).toSet(), hasLength(20));
+    expect(
+      second.map((entry) => entry.normalizedKey).toSet().intersection(
+            first.map((entry) => entry.normalizedKey).toSet(),
+          ),
+      isEmpty,
+    );
+    final shardLoads = bundle.loaded
+        .where((path) =>
+            path.contains('/dictionary/') &&
+            !path.endsWith('/dictionary/index.json'))
+        .toSet();
+    expect(shardLoads, isNotEmpty);
+    expect(shardLoads.length, lessThanOrEqualTo(6));
   });
 }
 

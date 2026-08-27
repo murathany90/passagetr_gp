@@ -14,6 +14,7 @@ import 'package:passagetr_gp/features/words/words_page.dart';
 import 'package:passagetr_gp/models/content_models.dart';
 import 'package:passagetr_gp/repositories/local_progress_repository.dart';
 import 'package:passagetr_gp/repositories/static_content_repository.dart';
+import 'package:passagetr_gp/repositories/static_dictionary_repository.dart';
 
 void main() {
   const pack = ContentPack(id: 'pack-a', name: 'Temel', wordCount: 2);
@@ -91,10 +92,13 @@ void main() {
     readings: const <ReadingPassage>[passage],
     detail: detail,
   );
+  final dictionaryRepository = _FixtureDictionaryRepository();
 
   Widget app(Widget child) => ProviderScope(
         overrides: <Override>[
           staticContentRepositoryProvider.overrideWithValue(repository),
+          staticDictionaryRepositoryProvider
+              .overrideWithValue(dictionaryRepository),
           localProgressRepositoryProvider.overrideWithValue(_MemoryProgress()),
           studentTtsEngineProvider.overrideWithValue(_SilentTtsEngine()),
         ],
@@ -151,16 +155,45 @@ void main() {
     await tester.pump();
     expect(find.text('Bilgiye erişim hayatları değiştirir.'), findsNothing);
     expect(find.text('Bir köprü insanları birbirine bağlar.'), findsNothing);
+    final trToggle =
+        find.byKey(const ValueKey<String>('question-tr-question-a'));
+    await tester.scrollUntilVisible(trToggle, 160);
+    expect(find.text('What does the passage say in Turkish?'), findsNothing);
+    expect(find.text('Knowledge changes lives in Turkish.'), findsNothing);
+    final questionCard =
+        find.byKey(const ValueKey<String>('question-card-question-a'));
+    final firstOption =
+        find.byKey(const ValueKey<String>('question-option-question-a-0'));
+    expect(
+      tester.getSize(firstOption).width,
+      closeTo(tester.getSize(questionCard).width - 40, 3),
+    );
+    await tester.tap(trToggle);
+    await tester.pump();
+    expect(find.text('What does the passage say in Turkish?'), findsOneWidget);
+    expect(find.text('Knowledge changes lives in Turkish.'), findsOneWidget);
+    await tester.tap(firstOption);
+    await tester.pump();
+    expect(find.text('Knowledge changes lives in Turkish.'), findsNWidgets(2));
+    expect(find.text('The first sentence supports this answer in Turkish.'),
+        findsOneWidget);
+    expect(find.text('Tekrar dene'), findsOneWidget);
+    await tester.tap(find.text('Tekrar dene'));
+    await tester.pump();
+    expect(find.text('Tekrar dene'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 
   testWidgets('390px Dictionary opens without overflow', (tester) async {
     await _setPhoneSize(tester);
     await tester.pumpWidget(app(const DictionaryPage()));
-    await tester.pump();
+    await _pumpContent(tester);
 
     expect(find.text('Sözlük'), findsOneWidget);
     expect(find.text('İngilizce kelime ara...'), findsOneWidget);
+    expect(find.text('Rastgele 20 Kelime'), findsOneWidget);
+    expect(find.text('20 Yeni Kelime'), findsOneWidget);
+    expect(find.text('random-0'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }
@@ -227,6 +260,38 @@ class _MissingAssetBundle extends CachingAssetBundle {
   @override
   Future<ByteData> load(String key) =>
       Future<ByteData>.error(FileSystemException('Missing asset', key));
+}
+
+class _FixtureDictionaryRepository extends StaticDictionaryRepository {
+  _FixtureDictionaryRepository() : super(bundle: _MissingAssetBundle());
+
+  final List<DictionaryEntry> _entries = List<DictionaryEntry>.generate(
+    20,
+    (index) => DictionaryEntry(
+      id: 'dictionary-$index',
+      enWord: 'random-$index',
+      normalizedKey: 'random-$index',
+      trMeaning: 'meaning $index',
+      pos: index.isEven ? 'n.' : 'v.',
+    ),
+  );
+
+  @override
+  Future<List<DictionaryEntry>> randomEntries({
+    int count = 20,
+    Iterable<String> exclude = const <String>[],
+  }) async {
+    final blocked = exclude.toSet();
+    return _entries
+        .where((entry) => !blocked.contains(entry.normalizedKey))
+        .take(count)
+        .toList(growable: false);
+  }
+
+  @override
+  Future<List<DictionaryEntry>> findAll(String query) async => _entries
+      .where((entry) => entry.normalizedKey == query.toLowerCase())
+      .toList(growable: false);
 }
 
 class _SilentTtsEngine implements StudentTtsEngine {

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math' as math;
 
 import 'package:flutter/services.dart' show AssetBundle, rootBundle;
 
@@ -37,9 +38,12 @@ class StaticDictionaryRepository {
   StaticDictionaryRepository({
     AssetBundle? bundle,
     this.root = 'assets/content/v1',
-  }) : _bundle = bundle ?? rootBundle;
+    math.Random? random,
+  })  : _bundle = bundle ?? rootBundle,
+        _random = random ?? math.Random();
 
   final AssetBundle _bundle;
+  final math.Random _random;
   final String root;
   Future<_DictionaryIndex>? _indexFuture;
   final Map<String, Future<List<DictionaryEntry>>> _shardCache =
@@ -74,6 +78,45 @@ class StaticDictionaryRepository {
       return seenMeanings.add(dedupeKey);
     }).toList(growable: false);
     return List<DictionaryEntry>.unmodifiable(matches);
+  }
+
+  /// Samples unique headwords from a few weighted dictionary shards.
+  ///
+  /// `exclude` contains normalized headwords from the immediately previous
+  /// selection. This keeps refreshes varied without building a full in-memory
+  /// dictionary catalogue.
+  Future<List<DictionaryEntry>> randomEntries({
+    int count = 20,
+    Iterable<String> exclude = const <String>[],
+  }) async {
+    if (count <= 0) return const <DictionaryEntry>[];
+    final index = await _index();
+    final seenHeadwords = <String>{
+      for (final value in exclude)
+        if (normalizeDictionaryLookup(value).isNotEmpty)
+          normalizeDictionaryLookup(value),
+    };
+    final results = <DictionaryEntry>[];
+    final remainingShards = List<DictionaryShard>.of(index.shards);
+    final initialShardCount = math.min(
+      remainingShards.length,
+      math.max(1, (count + 7) ~/ 8),
+    );
+
+    while (results.length < count && remainingShards.isNotEmpty) {
+      final requestedShards = results.isEmpty ? initialShardCount : 1;
+      final selectedShards = <DictionaryShard>[
+        for (var selected = 0;
+            selected < requestedShards && remainingShards.isNotEmpty;
+            selected++)
+          _takeWeightedShard(remainingShards),
+      ];
+      final loadedShards = await Future.wait(selectedShards.map(_loadShard));
+      for (final entries in loadedShards) {
+        _sampleEntries(entries, count, seenHeadwords, results);
+      }
+    }
+    return List<DictionaryEntry>.unmodifiable(results);
   }
 
   /// Returns one entry per matching headword without ever loading every shard.
@@ -128,6 +171,36 @@ class StaticDictionaryRepository {
       }
       return List<DictionaryEntry>.unmodifiable(entries);
     });
+  }
+
+  DictionaryShard _takeWeightedShard(List<DictionaryShard> candidates) {
+    final totalRecords = candidates.fold<int>(
+      0,
+      (total, shard) => total + shard.recordCount,
+    );
+    var ticket = _random.nextInt(totalRecords);
+    for (var index = 0; index < candidates.length; index++) {
+      final shard = candidates[index];
+      if (ticket < shard.recordCount) return candidates.removeAt(index);
+      ticket -= shard.recordCount;
+    }
+    return candidates.removeLast();
+  }
+
+  void _sampleEntries(
+    List<DictionaryEntry> entries,
+    int targetCount,
+    Set<String> seenHeadwords,
+    List<DictionaryEntry> results,
+  ) {
+    if (entries.isEmpty) return;
+    final maxAttempts = math.max(entries.length, targetCount * 10);
+    for (var attempt = 0;
+        attempt < maxAttempts && results.length < targetCount;
+        attempt++) {
+      final entry = entries[_random.nextInt(entries.length)];
+      if (seenHeadwords.add(entry.normalizedKey)) results.add(entry);
+    }
   }
 
   Future<Map<String, Object?>> _loadJson(String relativePath) async {
