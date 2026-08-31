@@ -30,23 +30,38 @@ void main() {
     expect(repaired['qualityBand'], isNot('critical_short'));
 
     final editorialOverlay = _json(
-      'source_data/quality/reading_content_repairs_101_300_v1.json',
+      'source_data/quality/reading_content_repairs_101_300_v2.json',
     );
     final repairs = editorialOverlay['repairs']! as List<Object?>;
-    final firstRangeRepair = repairs.cast<Map<String, Object?>>().singleWhere(
-          (repair) => repair['sourceNumber'] == 101,
+    final goodRepair = repairs.cast<Map<String, Object?>>().singleWhere(
+          (repair) => repair['sourceNumber'] == 103,
         );
-    expect(repairs, hasLength(102));
-    expect(firstRangeRepair['appendSentences'], isA<List<Object?>>());
+    expect(repairs, hasLength(52));
+    expect(goodRepair['appendSentences'], isA<List<Object?>>());
     expect(
-      (firstRangeRepair['appendSentences']! as List<Object?>).length,
-      greaterThanOrEqualTo(9),
+      (goodRepair['appendSentences']! as List<Object?>).length,
+      2,
     );
-    final firstRangeRecord = records.cast<Map<String, Object?>>().singleWhere(
+    final goodRecord = records.cast<Map<String, Object?>>().singleWhere(
+          (record) => record['sourceNumber'] == 103,
+        );
+    expect(goodRecord['contentRepairApplied'], isTrue);
+    expect(goodRecord['qualityBand'], isNot('critical_short'));
+
+    final editorialAudit = _json(
+      'source_data/reports/reading_repairs_101_300_editorial_audit_v2.json',
+    );
+    final summary = editorialAudit['summary']! as Map<String, Object?>;
+    final auditReadings = editorialAudit['readings']! as List<Object?>;
+    final insufficient = auditReadings.cast<Map<String, Object?>>().singleWhere(
           (record) => record['sourceNumber'] == 101,
         );
-    expect(firstRangeRecord['contentRepairApplied'], isTrue);
-    expect(firstRangeRecord['qualityBand'], isNot('critical_short'));
+    expect(summary['forbiddenTemplateOccurrencesAfter'], 0);
+    expect(insufficient['acceptedCount'], 0);
+    expect(
+      insufficient['editorialStatus'],
+      'insufficient_source_for_safe_expansion',
+    );
   });
 
   test('source baseline v2 changes when canonical content changes in memory',

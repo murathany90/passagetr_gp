@@ -175,7 +175,10 @@ def validate_source_checksums(manifest: dict[str, Any]) -> None:
         ),
         'contentRepairs': SOURCE_DATA / 'quality' / 'reading_content_repairs_v1.json',
         'contentRepairs101To300': (
-            SOURCE_DATA / 'quality' / 'reading_content_repairs_101_300_v1.json'
+            SOURCE_DATA / 'quality' / 'reading_content_repairs_101_300_v2.json'
+        ),
+        'legacyEditorialRepairHistory': (
+            SOURCE_DATA / builder.LEGACY_101_300_TEMPLATE_REPAIRS_RELATIVE_PATH
         ),
         'canonicalSourceBaselineV2': SOURCE_DATA / builder.SOURCE_BASELINE_RELATIVE_PATH,
     }
@@ -245,10 +248,37 @@ def validate_quality_reports(
     }
 
 
+def validate_editorial_repair_audit(manifest: dict[str, Any]) -> None:
+    legacy_repairs = builder.load_content_repairs(
+        SOURCE_DATA / builder.LEGACY_101_300_TEMPLATE_REPAIRS_RELATIVE_PATH
+    )
+    production_repairs = builder.load_content_repairs(
+        SOURCE_DATA / 'quality' / 'reading_content_repairs_101_300_v2.json'
+    )
+    passages = {
+        builder.source_number_for(passage): passage
+        for passage in canonical_passages().values()
+    }
+    expected = builder.editorial_repair_audit(
+        legacy_repairs, production_repairs, passages
+    )
+    actual = load(
+        SOURCE_DATA / 'reports' / 'reading_repairs_101_300_editorial_audit_v2.json'
+    )
+    if actual != expected:
+        raise ValueError('Editorial repair audit is invalid.')
+    summary = expected['summary']
+    if summary['forbiddenTemplateOccurrencesAfter'] != 0:
+        raise ValueError('Production editorial repairs contain forbidden templates.')
+    if manifest.get('editorialRepairAudit') != summary:
+        raise ValueError('Manifest editorial-repair audit is invalid.')
+
+
 def validate(content_dir: Path) -> dict[str, int]:
     manifest = load(content_dir / 'manifest.json')
     validate_source_checksums(manifest)
     validate_canonical_source_baseline()
+    validate_editorial_repair_audit(manifest)
     generated_question_backup_count = validate_pre_curated_generated_questions_backup()
     curated_package = load_curated_package()
     counts = manifest.get('counts', {})

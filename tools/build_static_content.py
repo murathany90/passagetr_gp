@@ -70,7 +70,10 @@ QUALITY_DIRECTORY = Path('quality')
 REPORTS_DIRECTORY = Path('reports')
 CONTENT_REPAIR_FILENAMES = (
     'reading_content_repairs_v1.json',
-    'reading_content_repairs_101_300_v1.json',
+    'reading_content_repairs_101_300_v2.json',
+)
+LEGACY_101_300_TEMPLATE_REPAIRS_RELATIVE_PATH = Path(
+    'legacy/reading_content_repairs_101_300_v1_template_history.json'
 )
 SOURCE_BASELINE_RELATIVE_PATH = Path(
     'baselines/readings_101_678_source_baseline_v2.json'
@@ -79,6 +82,16 @@ GENERIC_FOCUS_WORDS = frozenset({
     'because', 'different', 'good', 'idea', 'people', 'place', 'problem',
     'thing', 'things', 'time', 'topic', 'way', 'work', 'world', 'year',
 })
+FORBIDDEN_EDITORIAL_TEMPLATE_PREFIXES = (
+    'in the discussion of ',
+    'the passage develops ',
+    'this observation gives ',
+    'one important part of ',
+    'the reader can connect ',
+    'the description of ',
+    'this point helps explain ',
+    'the account asks readers to keep ',
+)
 
 
 def clean(value: str | None) -> str:
@@ -777,6 +790,128 @@ def load_content_repair_overlays(paths: list[Path]) -> list[dict[str, Any]]:
     return repairs
 
 
+def normalized_editorial_text(value: str) -> str:
+    return ' '.join(english_tokens(value))
+
+
+def forbidden_editorial_template(value: str) -> str | None:
+    text = normalized_editorial_text(value)
+    for prefix in FORBIDDEN_EDITORIAL_TEMPLATE_PREFIXES:
+        if text.startswith(normalized_editorial_text(prefix)):
+            return prefix
+    if text.startswith('for ') and ' the passage highlights ' in text:
+        return 'for X, the passage highlights'
+    return None
+
+
+def token_overlap(left: str, right: str) -> float:
+    left_tokens = set(english_tokens(left))
+    right_tokens = set(english_tokens(right))
+    if not left_tokens or not right_tokens:
+        return 0.0
+    return len(left_tokens & right_tokens) / len(left_tokens | right_tokens)
+
+
+def editorial_repair_audit(
+    legacy_repairs: list[dict[str, Any]],
+    production_repairs: list[dict[str, Any]],
+    passages: dict[int, dict[str, Any]],
+) -> dict[str, Any]:
+    """Create a reviewable, lightweight semantic-template audit for v2."""
+    production_by_number = {
+        repair['sourceNumber']: repair for repair in production_repairs
+    }
+    legacy_numbers = {repair['sourceNumber'] for repair in legacy_repairs}
+    unexpected = set(production_by_number) - legacy_numbers
+    if unexpected:
+        raise ValueError(f'Editorial v2 has unknown repair targets: {sorted(unexpected)}')
+
+    records: list[dict[str, Any]] = []
+    all_before = [
+        sentence['englishText']
+        for repair in legacy_repairs
+        for sentence in repair['appendSentences']
+    ]
+    all_after = [
+        sentence['englishText']
+        for repair in production_repairs
+        for sentence in repair['appendSentences']
+    ]
+    forbidden_before = sum(
+        forbidden_editorial_template(sentence) is not None for sentence in all_before
+    )
+    forbidden_after = sum(
+        forbidden_editorial_template(sentence) is not None for sentence in all_after
+    )
+    exact_duplicates = len(all_after) - len({normalized_editorial_text(item) for item in all_after})
+    semantic_candidates: list[dict[str, Any]] = []
+    canonical_embedding_before = canonical_embedding_after = 0
+
+    for legacy in sorted(legacy_repairs, key=lambda item: item['sourceNumber']):
+        source_number = legacy['sourceNumber']
+        production = production_by_number.get(source_number)
+        before = legacy['appendSentences']
+        after = production['appendSentences'] if production else []
+        canonical_texts = [
+            normalized_editorial_text(sentence['englishText'])
+            for sentence in passages[source_number]['sentences']
+        ]
+        canonical_embedding_before += sum(
+            any(source and source in normalized_editorial_text(sentence['englishText'])
+                for source in canonical_texts)
+            for sentence in before
+        )
+        canonical_embedding_after += sum(
+            any(source and source in normalized_editorial_text(sentence['englishText'])
+                for source in canonical_texts)
+            for sentence in after
+        )
+        for left_index, left in enumerate(after):
+            for right_index in range(left_index + 1, len(after)):
+                overlap = token_overlap(
+                    left['englishText'], after[right_index]['englishText']
+                )
+                if overlap >= 0.72:
+                    semantic_candidates.append({
+                        'sourceNumber': source_number,
+                        'leftAppendIndex': left_index + 1,
+                        'rightAppendIndex': right_index + 1,
+                        'tokenOverlap': round(overlap, 4),
+                    })
+        unchanged = production is not None and before == after
+        records.append({
+            'sourceNumber': source_number,
+            'existingAppendCount': len(before),
+            'acceptedCount': len(after),
+            'rewrittenCount': 0 if unchanged else len(after),
+            'removedCount': max(0, len(before) - len(after)),
+            'editorialStatus': (
+                'quality_safe_repaired' if production is not None
+                else 'insufficient_source_for_safe_expansion'
+            ),
+        })
+
+    return {
+        'schemaVersion': 2,
+        'summary': {
+            'repairsAudited': len(records),
+            'qualitySafeRepaired': len(production_repairs),
+            'insufficientSourceForSafeExpansion': len(records) - len(production_repairs),
+            'rewrittenAppendSentences': sum(item['rewrittenCount'] for item in records),
+            'removedAppendSentences': sum(item['removedCount'] for item in records),
+            'retainedAppendSentences': len(all_after),
+            'forbiddenTemplateOccurrencesBefore': forbidden_before,
+            'forbiddenTemplateOccurrencesAfter': forbidden_after,
+            'exactDuplicateOccurrencesAfter': exact_duplicates,
+            'semanticRepetitionCandidatesAfter': len(semantic_candidates),
+            'canonicalSentenceEmbeddingOccurrencesBefore': canonical_embedding_before,
+            'canonicalSentenceEmbeddingOccurrencesAfter': canonical_embedding_after,
+        },
+        'readings': records,
+        'semanticRepetitionCandidates': semantic_candidates,
+    }
+
+
 def passages_by_source_number(
     passages: dict[str, dict[str, Any]],
 ) -> dict[int, dict[str, Any]]:
@@ -959,6 +1094,9 @@ def build(
         source_dir / QUALITY_DIRECTORY / filename
         for filename in CONTENT_REPAIR_FILENAMES
     ]
+    legacy_template_repairs_source = (
+        source_dir / LEGACY_101_300_TEMPLATE_REPAIRS_RELATIVE_PATH
+    )
     source_baseline = source_dir / SOURCE_BASELINE_RELATIVE_PATH
     curated_package = curated_package or (
         source_dir / DEFAULT_CURATED_READINGS_RELATIVE_PATH
@@ -971,6 +1109,7 @@ def build(
         pre_curated_generated_questions_backup_source,
         translation_repairs_source,
         *content_repair_sources,
+        legacy_template_repairs_source,
         source_baseline,
         curated_package,
     ):
@@ -1086,6 +1225,16 @@ def build(
     }
     base_content_repairs = load_content_repairs(content_repair_sources[0])
     range_content_repairs = load_content_repairs(content_repair_sources[1])
+    legacy_template_repairs = load_content_repairs(legacy_template_repairs_source)
+    editorial_audit = editorial_repair_audit(
+        legacy_template_repairs, range_content_repairs, numbered_passages
+    )
+    if editorial_audit['summary']['forbiddenTemplateOccurrencesAfter'] != 0:
+        raise ValueError('Production editorial repairs contain forbidden templates.')
+    write_json(
+        source_dir / REPORTS_DIRECTORY / 'reading_repairs_101_300_editorial_audit_v2.json',
+        editorial_audit,
+    )
     content_repairs = load_content_repair_overlays(content_repair_sources)
     content_repair_reasons = apply_content_repairs(
         numbered_passages, base_content_repairs
@@ -1269,6 +1418,7 @@ def build(
             **enrichment_audit,
         },
         'readingQualityAudit': quality_audit,
+        'editorialRepairAudit': editorial_audit['summary'],
         'sourceChecksums': {
             'words': source_hash(words_source), 'passages': source_hash(passages_source),
             'sentences': source_hash(sentences_source), 'dictionary': source_hash(dictionary_source),
@@ -1279,6 +1429,7 @@ def build(
             'translationRepairs': source_hash(translation_repairs_source),
             'contentRepairs': source_hash(content_repair_sources[0]),
             'contentRepairs101To300': source_hash(content_repair_sources[1]),
+            'legacyEditorialRepairHistory': source_hash(legacy_template_repairs_source),
             'canonicalSourceBaselineV2': source_hash(source_baseline),
             **({'wordPackMap': source_hash(pack_map_source)} if pack_map_source.is_file() else {}),
         },
