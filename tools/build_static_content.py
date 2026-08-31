@@ -554,7 +554,9 @@ def build(
     sentences_source = source_dir / 'canonical' / 'readings' / 'reading_sentences.csv'
     dictionary_source = source_dir / 'canonical' / 'dictionary' / 'dictionary_tr_en.xlsx'
     pack_map_source = source_dir / 'mappings' / 'word_pack_reclassification_v1.json'
-    legacy_questions_source = source_dir / 'legacy' / 'legacy_reading_questions_v1.json'
+    pre_curated_generated_questions_backup_source = (
+        source_dir / 'legacy' / 'pre_curated_generated_questions_backup_v1.json'
+    )
     untouched_baseline_source = (
         source_dir / 'baselines' / 'readings_101_678_baseline_v1.json'
     )
@@ -566,7 +568,7 @@ def build(
         passages_source,
         sentences_source,
         dictionary_source,
-        legacy_questions_source,
+        pre_curated_generated_questions_backup_source,
         untouched_baseline_source,
         curated_package,
     ):
@@ -799,7 +801,9 @@ def build(
             'words': source_hash(words_source), 'passages': source_hash(passages_source),
             'sentences': source_hash(sentences_source), 'dictionary': source_hash(dictionary_source),
             'curatedReadings': source_hash(curated_package),
-            'legacyReadingQuestions': source_hash(legacy_questions_source),
+            'preCuratedGeneratedQuestionsBackup': source_hash(
+                pre_curated_generated_questions_backup_source
+            ),
             'curatedUntouchedBaseline': source_hash(untouched_baseline_source),
             **({'wordPackMap': source_hash(pack_map_source)} if pack_map_source.is_file() else {}),
         },

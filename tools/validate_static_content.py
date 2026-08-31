@@ -59,20 +59,22 @@ def load_untouched_baseline() -> dict[str, str]:
     return baseline
 
 
-def validate_legacy_backup() -> int:
-    payload = load(SOURCE_DATA / 'legacy' / 'legacy_reading_questions_v1.json')
+def validate_pre_curated_generated_questions_backup() -> int:
+    payload = load(
+        SOURCE_DATA / 'legacy' / 'pre_curated_generated_questions_backup_v1.json'
+    )
     readings = payload.get('readings')
     if not isinstance(readings, list) or len(readings) != 100:
-        raise ValueError('Legacy question backup must contain 100 readings.')
+        raise ValueError('Pre-curated generated-question backup must contain 100 readings.')
     questions = sum(
         len(record.get('questions', []))
         for record in readings
         if isinstance(record, dict) and isinstance(record.get('questions'), list)
     )
     if payload.get('questionCount') != questions:
-        raise ValueError('Legacy question backup count is invalid.')
+        raise ValueError('Pre-curated generated-question backup count is invalid.')
     if {record.get('sourceNumber') for record in readings if isinstance(record, dict)} != CURATED_SOURCE_NUMBERS:
-        raise ValueError('Legacy question backup source-number coverage is invalid.')
+        raise ValueError('Pre-curated generated-question backup source-number coverage is invalid.')
     return questions
 
 
@@ -114,7 +116,9 @@ def curated_question(question: dict[str, Any], order: int) -> dict[str, Any]:
 def validate(content_dir: Path) -> dict[str, int]:
     manifest = load(content_dir / 'manifest.json')
     untouched_baseline = load_untouched_baseline()
-    legacy_question_count = validate_legacy_backup()
+    generated_question_backup_count = (
+        validate_pre_curated_generated_questions_backup()
+    )
     curated_package = load_curated_package()
     counts = manifest.get('counts', {})
     if counts != EXPECTED:
@@ -365,7 +369,7 @@ def validate(content_dir: Path) -> dict[str, int]:
         'curatedSentences': curated_sentences,
         'curatedQuestions': curated_questions,
         'untouchedReadingsVerified': untouched_readings,
-        'legacyQuestionsBackedUp': legacy_question_count,
+        'preCuratedGeneratedQuestionsBackedUp': generated_question_backup_count,
     }
 
 

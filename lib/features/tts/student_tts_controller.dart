@@ -85,6 +85,7 @@ class StudentTtsController extends StateNotifier<StudentTtsState> {
       target: StudentTtsTarget.passage,
       readingId: readingId,
       sentenceIndex: filteredSegments.first.sentenceIndex,
+      languageCode: 'en-US',
     );
     if (availability != StudentTtsAvailability.available) {
       return StudentTtsActionResult.unavailable;
@@ -106,6 +107,7 @@ class StudentTtsController extends StateNotifier<StudentTtsState> {
           activeTarget: StudentTtsTarget.passage,
           activeReadingId: readingId,
           activeSentenceIndex: segment.sentenceIndex,
+          activeLanguageCode: 'en-US',
           clearError: true,
         );
         await _engine.speak(segment.text);
@@ -141,6 +143,7 @@ class StudentTtsController extends StateNotifier<StudentTtsState> {
       activeTarget: null,
       activeReadingId: null,
       activeSentenceIndex: null,
+      activeLanguageCode: null,
       activeWordId: null,
       errorMessage: null,
     );
@@ -178,6 +181,7 @@ class StudentTtsController extends StateNotifier<StudentTtsState> {
       readingId: readingId,
       sentenceIndex: sentenceIndex,
       wordId: wordId,
+      languageCode: languageCode,
     );
     if (availability != StudentTtsAvailability.available) {
       return StudentTtsActionResult.unavailable;
@@ -193,6 +197,7 @@ class StudentTtsController extends StateNotifier<StudentTtsState> {
       activeTarget: target,
       activeReadingId: readingId,
       activeSentenceIndex: sentenceIndex,
+      activeLanguageCode: languageCode,
       activeWordId: wordId,
       clearError: true,
     );
@@ -217,6 +222,7 @@ class StudentTtsController extends StateNotifier<StudentTtsState> {
     String? readingId,
     int? sentenceIndex,
     String? wordId,
+    String? languageCode,
   }) async {
     if (!mounted) {
       return StudentTtsAvailability.unsupported;
@@ -230,6 +236,7 @@ class StudentTtsController extends StateNotifier<StudentTtsState> {
       activeTarget: target,
       activeReadingId: readingId,
       activeSentenceIndex: sentenceIndex,
+      activeLanguageCode: languageCode,
       activeWordId: wordId,
       clearError: true,
     );
@@ -258,6 +265,7 @@ class StudentTtsController extends StateNotifier<StudentTtsState> {
         activeTarget: null,
         activeReadingId: null,
         activeSentenceIndex: null,
+        activeLanguageCode: null,
         activeWordId: null,
         errorMessage: _messageForAvailability(availability),
       );
@@ -280,6 +288,7 @@ class StudentTtsController extends StateNotifier<StudentTtsState> {
       activeTarget: null,
       activeReadingId: null,
       activeSentenceIndex: null,
+      activeLanguageCode: null,
       activeWordId: null,
       errorMessage: errorMessage,
     );

@@ -142,10 +142,31 @@ void main() {
     expect(find.text('Access'), findsOneWidget);
     expect(find.text('Bilgiye erişim hayatları değiştirir.'), findsNothing);
     final card = find.byKey(const ValueKey<String>('sentence-card-1'));
+    final englishSpeaker = find.descendant(
+      of: card,
+      matching: find.byTooltip('İngilizce dinle'),
+    );
+    expect(englishSpeaker, findsOneWidget);
+    expect(
+      find.descendant(of: card, matching: find.byTooltip('Türkçe dinle')),
+      findsNothing,
+    );
+    await tester.tap(englishSpeaker);
+    await tester.pump();
+    expect(find.text('Bilgiye erişim hayatları değiştirir.'), findsNothing);
     final origin = tester.getTopLeft(card);
     await tester.tapAt(origin + const Offset(5, 5));
     await tester.pump();
     expect(find.text('Bilgiye erişim hayatları değiştirir.'), findsOneWidget);
+    final turkishSpeaker = find.descendant(
+      of: card,
+      matching: find.byTooltip('Türkçe dinle'),
+    );
+    expect(turkishSpeaker, findsOneWidget);
+    expect(
+      tester.getTopLeft(turkishSpeaker).dy,
+      greaterThan(tester.getTopLeft(englishSpeaker).dy),
+    );
     expect(find.text('Bir köprü insanları birbirine bağlar.'), findsNothing);
     await tester.tap(find.text('Tüm çevirileri göster'));
     await tester.pump();

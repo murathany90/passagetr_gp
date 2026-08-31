@@ -27,6 +27,7 @@ class StudentTtsState {
     required this.activeTarget,
     required this.activeReadingId,
     required this.activeSentenceIndex,
+    required this.activeLanguageCode,
     required this.activeWordId,
     required this.errorMessage,
   });
@@ -38,6 +39,7 @@ class StudentTtsState {
         activeTarget = null,
         activeReadingId = null,
         activeSentenceIndex = null,
+        activeLanguageCode = null,
         activeWordId = null,
         errorMessage = null;
 
@@ -47,6 +49,7 @@ class StudentTtsState {
   final StudentTtsTarget? activeTarget;
   final String? activeReadingId;
   final int? activeSentenceIndex;
+  final String? activeLanguageCode;
   final String? activeWordId;
   final String? errorMessage;
 
@@ -61,6 +64,7 @@ class StudentTtsState {
     StudentTtsTarget? activeTarget,
     String? activeReadingId,
     int? activeSentenceIndex,
+    String? activeLanguageCode,
     String? activeWordId,
     String? errorMessage,
     bool clearTarget = false,
@@ -75,6 +79,8 @@ class StudentTtsState {
           clearTarget ? null : activeReadingId ?? this.activeReadingId,
       activeSentenceIndex:
           clearTarget ? null : activeSentenceIndex ?? this.activeSentenceIndex,
+      activeLanguageCode:
+          clearTarget ? null : activeLanguageCode ?? this.activeLanguageCode,
       activeWordId: clearTarget ? null : activeWordId ?? this.activeWordId,
       errorMessage: clearError ? null : errorMessage ?? this.errorMessage,
     );

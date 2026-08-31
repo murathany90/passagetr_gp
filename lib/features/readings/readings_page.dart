@@ -6,6 +6,7 @@ import '../../core/app_breakpoints.dart';
 import '../../core/app_theme_tokens.dart';
 import '../../core/content_providers.dart';
 import '../../core/local_progress.dart';
+import '../../core/presentation_order.dart';
 import '../../models/content_models.dart';
 import '../common/page_parts.dart';
 import 'reading_artwork.dart';
@@ -24,6 +25,38 @@ class _ReadingsPageState extends ConsumerState<ReadingsPage> {
   String? _category;
   int _page = 0;
   bool _filtersRestored = false;
+  late final TextEditingController _searchController;
+  late int _shuffleSeed;
+  var _order = PresentationOrder.mixed;
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController = TextEditingController();
+    _shuffleSeed = createPresentationSeed();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _clearSearch() {
+    _searchController.clear();
+    setState(() {
+      _query = '';
+      _page = 0;
+    });
+  }
+
+  void _reshuffle() {
+    setState(() {
+      _shuffleSeed = createPresentationSeed(previousSeed: _shuffleSeed);
+      _order = PresentationOrder.mixed;
+      _page = 0;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -81,10 +114,24 @@ class _ReadingsPageState extends ConsumerState<ReadingsPage> {
               (validCategory == null || item.category == validCategory) &&
               text.contains(_query.toLowerCase());
         }).toList(growable: false);
+        final ordered = orderForPresentation<ReadingPassage>(
+          filtered,
+          order: _order,
+          hasSearchQuery: _query.isNotEmpty,
+          sessionSeed: _shuffleSeed,
+          alphabeticalComparator: (left, right) {
+            final leftTitle = left.displayTitle ?? left.title;
+            final rightTitle = right.displayTitle ?? right.title;
+            final byTitle = leftTitle.toLowerCase().compareTo(
+                  rightTitle.toLowerCase(),
+                );
+            return byTitle != 0 ? byTitle : left.id.compareTo(right.id);
+          },
+        );
         final lastPage =
-            filtered.isEmpty ? 0 : (filtered.length - 1) ~/ _pageSize;
+            ordered.isEmpty ? 0 : (ordered.length - 1) ~/ _pageSize;
         final page = _page.clamp(0, lastPage);
-        final visible = filtered
+        final visible = ordered
             .skip(page * _pageSize)
             .take(_pageSize)
             .toList(growable: false);
@@ -96,9 +143,17 @@ class _ReadingsPageState extends ConsumerState<ReadingsPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 TextField(
-                    decoration: const InputDecoration(
-                        prefixIcon: Icon(Icons.search_rounded),
-                        hintText: 'Başlık, kategori veya seviye ara...'),
+                    controller: _searchController,
+                    decoration: InputDecoration(
+                        prefixIcon: const Icon(Icons.search_rounded),
+                        hintText: 'Başlık, kategori veya seviye ara...',
+                        suffixIcon: _query.isEmpty
+                            ? null
+                            : IconButton(
+                                tooltip: 'Aramayı temizle',
+                                onPressed: _clearSearch,
+                                icon: const Icon(Icons.clear_rounded),
+                              )),
                     onChanged: (value) => setState(() {
                           _query = value.trim();
                           _page = 0;
@@ -179,6 +234,37 @@ class _ReadingsPageState extends ConsumerState<ReadingsPage> {
                   },
                 ),
                 const SizedBox(height: 12),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: <Widget>[
+                    SegmentedButton<PresentationOrder>(
+                      showSelectedIcon: false,
+                      segments: const <ButtonSegment<PresentationOrder>>[
+                        ButtonSegment(
+                          value: PresentationOrder.mixed,
+                          label: Text('Karışık'),
+                        ),
+                        ButtonSegment(
+                          value: PresentationOrder.alphabetical,
+                          label: Text('A-Z'),
+                        ),
+                      ],
+                      selected: <PresentationOrder>{_order},
+                      onSelectionChanged: (selection) => setState(() {
+                        _order = selection.single;
+                        _page = 0;
+                      }),
+                    ),
+                    OutlinedButton.icon(
+                      onPressed: _reshuffle,
+                      icon: const Icon(Icons.shuffle_rounded, size: 18),
+                      label: const Text('Karıştır'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
                 Row(children: <Widget>[
                   Expanded(
                     child: Text('${filtered.length} sonuç',

@@ -349,10 +349,19 @@ class _SentenceCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final tts = ref.watch(studentTtsControllerProvider);
-    final speaking = tts.isSpeaking &&
-        tts.activeTarget == StudentTtsTarget.sentence &&
+    final isActiveSentence = tts.activeTarget == StudentTtsTarget.sentence &&
         tts.activeReadingId == readingId &&
         tts.activeSentenceIndex == section.lookupIndex;
+    final englishSpeaking =
+        isActiveSentence && tts.isSpeaking && tts.activeLanguageCode == 'en-US';
+    final turkishSpeaking =
+        isActiveSentence && tts.isSpeaking && tts.activeLanguageCode == 'tr-TR';
+    final englishInitializing = isActiveSentence &&
+        tts.isInitializing &&
+        tts.activeLanguageCode == 'en-US';
+    final turkishInitializing = isActiveSentence &&
+        tts.isInitializing &&
+        tts.activeLanguageCode == 'tr-TR';
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: SurfaceCard(
@@ -380,52 +389,67 @@ class _SentenceCard extends ConsumerWidget {
                 child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
-                      _LookupableSentence(text: section.englishText),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          Expanded(
+                            child: _LookupableSentence(
+                              text: section.englishText,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          StudentTtsIconButton(
+                            tooltip: 'İngilizce dinle',
+                            isSpeaking: englishSpeaking,
+                            isInitializing: englishInitializing,
+                            isUnavailable: tts.isUnavailable,
+                            onPlay: () => ref
+                                .read(studentTtsControllerProvider.notifier)
+                                .playSentence(
+                                  readingId: readingId,
+                                  sentenceIndex: section.lookupIndex,
+                                  text: section.englishText,
+                                ),
+                            onStop: () => ref
+                                .read(studentTtsControllerProvider.notifier)
+                                .stop(),
+                          ),
+                        ],
+                      ),
                       if (showTranslation &&
                           section.turkishText != null) ...<Widget>[
                         const SizedBox(height: 9),
-                        SelectableText(
-                          section.turkishText!,
-                          style: Theme.of(context).textTheme.bodyMedium,
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: <Widget>[
+                            Expanded(
+                              child: SelectableText(
+                                section.turkishText!,
+                                style: Theme.of(context).textTheme.bodyMedium,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            StudentTtsIconButton(
+                              tooltip: 'Türkçe dinle',
+                              isSpeaking: turkishSpeaking,
+                              isInitializing: turkishInitializing,
+                              isUnavailable: tts.isUnavailable,
+                              onPlay: () => ref
+                                  .read(studentTtsControllerProvider.notifier)
+                                  .playTurkishSentence(
+                                    readingId: readingId,
+                                    sentenceIndex: section.lookupIndex,
+                                    text: section.turkishText!,
+                                  ),
+                              onStop: () => ref
+                                  .read(studentTtsControllerProvider.notifier)
+                                  .stop(),
+                            ),
+                          ],
                         ),
                       ],
                     ]),
               ),
-              StudentTtsIconButton(
-                tooltip: 'İngilizce dinle',
-                isSpeaking: speaking,
-                isInitializing: tts.isInitializing &&
-                    tts.activeReadingId == readingId &&
-                    tts.activeSentenceIndex == section.lookupIndex,
-                isUnavailable: tts.isUnavailable,
-                onPlay: () => ref
-                    .read(studentTtsControllerProvider.notifier)
-                    .playSentence(
-                      readingId: readingId,
-                      sentenceIndex: section.lookupIndex,
-                      text: section.englishText,
-                    ),
-                onStop: () =>
-                    ref.read(studentTtsControllerProvider.notifier).stop(),
-              ),
-              if (section.turkishText != null)
-                StudentTtsIconButton(
-                  tooltip: 'Türkçe dinle',
-                  isSpeaking: speaking,
-                  isInitializing: tts.isInitializing &&
-                      tts.activeReadingId == readingId &&
-                      tts.activeSentenceIndex == section.lookupIndex,
-                  isUnavailable: tts.isUnavailable,
-                  onPlay: () => ref
-                      .read(studentTtsControllerProvider.notifier)
-                      .playTurkishSentence(
-                        readingId: readingId,
-                        sentenceIndex: section.lookupIndex,
-                        text: section.turkishText!,
-                      ),
-                  onStop: () =>
-                      ref.read(studentTtsControllerProvider.notifier).stop(),
-                ),
             ]),
       ),
     );
