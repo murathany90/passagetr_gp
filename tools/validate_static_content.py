@@ -12,6 +12,7 @@ from typing import Any
 
 
 ROOT = Path(__file__).resolve().parents[1]
+SOURCE_DATA = ROOT / 'source_data'
 EXPECTED = {
     'words': 5314,
     'readings': 678,
@@ -22,13 +23,7 @@ EXPECTED = {
 CURATED_SOURCE_NUMBERS = frozenset(range(1, 101))
 CURATED_SENTENCE_COUNT = 15
 CURATED_QUESTION_COUNT = 5
-CURATED_PACKAGE = (
-    ROOT
-    / 'docs'
-    / 'passagetr_readings_001_100_curated_v2'
-    / 'passagetr_readings_001_100_curated_v2'
-    / 'passagetr_readings_001_100_curated_v2.json'
-)
+CURATED_PACKAGE = SOURCE_DATA / 'curated' / 'readings_001_100_curated_v2.json'
 HYPHENS = str.maketrans({
     '\u2010': '-', '\u2011': '-', '\u2012': '-', '\u2013': '-',
     '\u2014': '-', '\u2212': '-',
@@ -50,7 +45,7 @@ def normalized_dictionary_key(value: object) -> str:
 
 
 def load_untouched_baseline() -> dict[str, str]:
-    payload = load(ROOT / 'source_data' / 'curated_readings_001_100_untouched_baseline_v1.json')
+    payload = load(SOURCE_DATA / 'baselines' / 'readings_101_678_baseline_v1.json')
     records = payload.get('readings')
     if not isinstance(records, list) or len(records) != 578:
         raise ValueError('The 101--678 untouched-reading baseline is invalid.')
@@ -65,7 +60,7 @@ def load_untouched_baseline() -> dict[str, str]:
 
 
 def validate_legacy_backup() -> int:
-    payload = load(ROOT / 'source_data' / 'legacy_reading_questions_v1.json')
+    payload = load(SOURCE_DATA / 'legacy' / 'legacy_reading_questions_v1.json')
     readings = payload.get('readings')
     if not isinstance(readings, list) or len(readings) != 100:
         raise ValueError('Legacy question backup must contain 100 readings.')

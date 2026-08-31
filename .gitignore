@@ -10,3 +10,5 @@ env/
 *.log
 tools/__pycache__/
 coverage/
+assets/content/v1/
+_local_source_archive/

@@ -63,12 +63,8 @@ STOP_WORDS = frozenset({
     'they', 'this', 'those', 'to', 'too', 'was', 'we', 'were', 'what', 'when',
     'which', 'who', 'will', 'with', 'would', 'you', 'your',
 })
-DEFAULT_CURATED_READINGS = (
-    ROOT
-    / 'docs'
-    / 'passagetr_readings_001_100_curated_v2'
-    / 'passagetr_readings_001_100_curated_v2'
-    / 'passagetr_readings_001_100_curated_v2.json'
+DEFAULT_CURATED_READINGS_RELATIVE_PATH = Path(
+    'curated/readings_001_100_curated_v2.json'
 )
 
 
@@ -551,15 +547,20 @@ def build_dictionary(dictionary_source: Path, output_dir: Path) -> dict[str, Any
 def build(
     source_dir: Path,
     output_dir: Path,
-    curated_package: Path = DEFAULT_CURATED_READINGS,
+    curated_package: Path | None = None,
 ) -> dict[str, Any]:
-    words_source = source_dir / 'YDS_Set_001.csv'
-    passages_source = source_dir / 'readings_passages.csv'
-    sentences_source = source_dir / 'readings_sentences.csv'
-    dictionary_source = source_dir / 'dictionary.xlsx'
-    pack_map_source = source_dir / 'word_pack_reclassification_report.json'
-    legacy_questions_source = source_dir / 'legacy_reading_questions_v1.json'
-    untouched_baseline_source = source_dir / 'curated_readings_001_100_untouched_baseline_v1.json'
+    words_source = source_dir / 'canonical' / 'words' / 'yds_words_set_001.csv'
+    passages_source = source_dir / 'canonical' / 'readings' / 'reading_passages.csv'
+    sentences_source = source_dir / 'canonical' / 'readings' / 'reading_sentences.csv'
+    dictionary_source = source_dir / 'canonical' / 'dictionary' / 'dictionary_tr_en.xlsx'
+    pack_map_source = source_dir / 'mappings' / 'word_pack_reclassification_v1.json'
+    legacy_questions_source = source_dir / 'legacy' / 'legacy_reading_questions_v1.json'
+    untouched_baseline_source = (
+        source_dir / 'baselines' / 'readings_101_678_baseline_v1.json'
+    )
+    curated_package = curated_package or (
+        source_dir / DEFAULT_CURATED_READINGS_RELATIVE_PATH
+    )
     for source in (
         words_source,
         passages_source,
@@ -811,12 +812,16 @@ def main() -> int:
     parser = argparse.ArgumentParser(description='Build public PASSAGETR static content.')
     parser.add_argument('--source-dir', type=Path, default=ROOT / 'source_data')
     parser.add_argument('--output-dir', type=Path, default=ROOT / 'assets' / 'content' / 'v1')
-    parser.add_argument('--curated-package', type=Path, default=DEFAULT_CURATED_READINGS)
+    parser.add_argument(
+        '--curated-package',
+        type=Path,
+        help='Optional curated reading package override. Defaults to source_data/curated.',
+    )
     args = parser.parse_args()
     manifest = build(
         args.source_dir.resolve(),
         args.output_dir.resolve(),
-        args.curated_package.resolve(),
+        args.curated_package.resolve() if args.curated_package else None,
     )
     print(json.dumps({**manifest['counts'], 'dictionaryAudit': manifest['dictionaryAudit']}, ensure_ascii=False))
     return 0
