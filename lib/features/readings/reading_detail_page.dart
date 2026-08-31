@@ -235,7 +235,11 @@ class _ReadingDetailBodyState extends ConsumerState<_ReadingDetailBody> {
               icon: Icon(_showSummary
                   ? Icons.expand_less_rounded
                   : Icons.expand_more_rounded),
-              label: Text(_showSummary ? 'Özeti gizle' : 'Özeti göster'),
+              label: Text(
+                passage.summaryType == 'extractive'
+                    ? (_showSummary ? 'Bölümü gizle' : 'Bölümü göster')
+                    : (_showSummary ? 'Özeti gizle' : 'Özeti göster'),
+              ),
             ),
             if (_showSummary)
               SurfaceCard(

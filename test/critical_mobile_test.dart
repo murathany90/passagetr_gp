@@ -44,6 +44,8 @@ void main() {
     sentenceCount: 2,
     level: 'B1',
     category: 'Science',
+    summary: 'Access to knowledge changes lives.',
+    summaryType: 'extractive',
   );
   const detail = ReadingDetail(
     passage: passage,
@@ -144,6 +146,8 @@ void main() {
     expect(find.text('Access'), findsOneWidget);
     expect(find.text('Okuduğunu Anlama'), findsNothing);
     expect(find.text('Kelime Pratiği'), findsOneWidget);
+    expect(find.text('Bölümü göster'), findsOneWidget);
+    expect(find.text('Özeti göster'), findsNothing);
     expect(find.text('Bilgiye erişim hayatları değiştirir.'), findsNothing);
     final card = find.byKey(const ValueKey<String>('sentence-card-1'));
     final englishSpeaker = find.descendant(

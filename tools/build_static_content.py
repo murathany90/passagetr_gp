@@ -68,6 +68,10 @@ DEFAULT_CURATED_READINGS_RELATIVE_PATH = Path(
 )
 QUALITY_DIRECTORY = Path('quality')
 REPORTS_DIRECTORY = Path('reports')
+CONTENT_REPAIR_FILENAMES = (
+    'reading_content_repairs_v1.json',
+    'reading_content_repairs_101_300_v1.json',
+)
 SOURCE_BASELINE_RELATIVE_PATH = Path(
     'baselines/readings_101_678_source_baseline_v2.json'
 )
@@ -757,6 +761,22 @@ def load_content_repairs(path: Path) -> list[dict[str, Any]]:
     return result
 
 
+def load_content_repair_overlays(paths: list[Path]) -> list[dict[str, Any]]:
+    """Load versioned append-only overlays without allowing a target collision."""
+    repairs: list[dict[str, Any]] = []
+    seen: set[int] = set()
+    for path in paths:
+        for repair in load_content_repairs(path):
+            source_number = repair['sourceNumber']
+            if source_number in seen:
+                raise ValueError(
+                    f'Duplicate content repair target across overlays: {source_number}'
+                )
+            seen.add(source_number)
+            repairs.append(repair)
+    return repairs
+
+
 def passages_by_source_number(
     passages: dict[str, dict[str, Any]],
 ) -> dict[int, dict[str, Any]]:
@@ -873,6 +893,10 @@ def write_quality_reports(
             'qualityBand': quality_band,
             'wasCriticalShort': was_critical,
             'contentRepairApplied': source_number in content_repair_reasons,
+            'repairStatus': (
+                'unrecoverable_source_missing' if not sentences
+                else ('repaired' if source_number in content_repair_reasons else None)
+            ),
         })
     reports_dir = source_dir / REPORTS_DIRECTORY
     translation_report = {
@@ -931,9 +955,10 @@ def build(
     translation_repairs_source = (
         source_dir / QUALITY_DIRECTORY / 'reading_translation_repairs_v1.json'
     )
-    content_repairs_source = (
-        source_dir / QUALITY_DIRECTORY / 'reading_content_repairs_v1.json'
-    )
+    content_repair_sources = [
+        source_dir / QUALITY_DIRECTORY / filename
+        for filename in CONTENT_REPAIR_FILENAMES
+    ]
     source_baseline = source_dir / SOURCE_BASELINE_RELATIVE_PATH
     curated_package = curated_package or (
         source_dir / DEFAULT_CURATED_READINGS_RELATIVE_PATH
@@ -945,7 +970,7 @@ def build(
         dictionary_source,
         pre_curated_generated_questions_backup_source,
         translation_repairs_source,
-        content_repairs_source,
+        *content_repair_sources,
         source_baseline,
         curated_package,
     ):
@@ -1059,8 +1084,12 @@ def build(
         )
         for source_number, passage in numbered_passages.items()
     }
-    content_repairs = load_content_repairs(content_repairs_source)
-    content_repair_reasons = apply_content_repairs(numbered_passages, content_repairs)
+    base_content_repairs = load_content_repairs(content_repair_sources[0])
+    range_content_repairs = load_content_repairs(content_repair_sources[1])
+    content_repairs = load_content_repair_overlays(content_repair_sources)
+    content_repair_reasons = apply_content_repairs(
+        numbered_passages, base_content_repairs
+    )
 
     for source_number, curated in curated_readings.items():
         passage = numbered_passages[source_number]
@@ -1085,6 +1114,13 @@ def build(
             for sentence in passage['sentences']
             for token in english_tokens(sentence['englishText'])
         })
+
+    # Keep the document-frequency corpus stable for untouched readings.  The
+    # range overlay is editorial content for 101–300, not a reason to change
+    # focus-word ranking in 301–678.
+    content_repair_reasons.update(
+        apply_content_repairs(numbered_passages, range_content_repairs)
+    )
 
     enrichment_audit = {
         'wordCountReadings': 0,
@@ -1241,7 +1277,8 @@ def build(
                 pre_curated_generated_questions_backup_source
             ),
             'translationRepairs': source_hash(translation_repairs_source),
-            'contentRepairs': source_hash(content_repairs_source),
+            'contentRepairs': source_hash(content_repair_sources[0]),
+            'contentRepairs101To300': source_hash(content_repair_sources[1]),
             'canonicalSourceBaselineV2': source_hash(source_baseline),
             **({'wordPackMap': source_hash(pack_map_source)} if pack_map_source.is_file() else {}),
         },

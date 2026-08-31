@@ -10,10 +10,10 @@ Builder ve validator’ın güncel çıktıları:
 
 - Words: 5.314
 - Readings: 678
-- Generated sentences: 6.135
+- Generated sentences: 6.557
 - Dictionary entries / unique headwords: 121.772 / 121.501
 - Curated 001–100: 1.500 cümle, 500 comprehension sorusu
-- Derived 101–678: 1.634 vocabulary-practice cloze sorusu
+- Derived 101–678: 1.658 vocabulary-practice cloze sorusu
 
 ## Source Data
 
@@ -26,6 +26,7 @@ Builder ve validator’ın güncel çıktıları:
 | `source_data/curated/readings_001_100_curated_v2.json` | JSON | İlk 100 immutable bilingual reading | 100 | `source_number`, 15 EN/TR cümle, başlıklar, özetler, soru/cevap/açıklama | 001–100 source-of-truth |
 | `source_data/quality/reading_translation_repairs_v1.json` | JSON | Eksik canonical TR için kaynak-bağlı overlay | 0 repair | `sourceNumber`, `readingId`, `sentenceIndex`, EN/TR metin, neden | Canonical CSV’yi değiştirmeden çeviri onarımı |
 | `source_data/quality/reading_content_repairs_v1.json` | JSON | Critical-short reading’ler için append-only bilingual overlay | 2 reading / 11 cümle | `sourceNumber`, `readingId`, neden, `appendSentences` | Kaynak cümleleri koruyarak kontrollü genişletme |
+| `source_data/quality/reading_content_repairs_101_300_v1.json` | JSON | 101–300’deki kaynaklı critical-short reading’ler için append-only bilingual overlay | 102 reading / 422 cümle | `sourceNumber`, `readingId`, neden, `appendSentences` | 001–100 ve 301–678’e dokunmadan editoryal genişletme |
 | `source_data/mappings/word_pack_reclassification_v1.json` | JSON | Kelime paket eşlemesi | 5.314 | `word_id`, `target_pack_name`, eşleme nedeni | Kelime paketleri |
 | `source_data/baselines/readings_101_678_source_baseline_v2.json` | JSON | Canonical 101–678 kaynak bütünlüğü | 578 | kayıt/cümle sayısı, canonical EN/TR proje SHA-256 | Derived metadata değişirken canonical kaynak değişikliğini yakalar |
 | `source_data/legacy/pre_curated_generated_questions_backup_v1.json` | JSON | Curated öncesi generated soru yedeği | 100 reading / 282 soru | `sourceNumber`, soru, seçenekler, cevap | Audit/backup; orijinal legacy soru bankası değildir |
@@ -41,8 +42,8 @@ etiketlenir; UI’da “Metinden Kısa Bölüm” başlığını alır.
 `source_data/reports/reading_length_audit_v1.json` builder tarafından
 deterministik üretilen denetim kayıtlarıdır.
 
-- TR kapsamı: 6.135 / 6.135 cümle (%100); translation repair: 0
-- Critical short: 404 önce, 2 kontrollü repair, 402 kalan
+- TR kapsamı: 6.557 / 6.557 cümle (%100); translation repair: 0
+- Critical short: 404 önce, 104 kontrollü repair, 300 kalan
 - Curated 001–100 sabit kalır; quality overlay’ler yalnız 101–678 içindir.
 - Kalan critical-short kayıtlar otomatik metin uydurmamak için audit’te açıkça
   işaretlenir; sonraki editoryal aşamada kaynakla birlikte ele alınmalıdır.

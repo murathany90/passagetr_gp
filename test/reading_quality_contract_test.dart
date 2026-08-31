@@ -28,6 +28,25 @@ void main() {
     );
     expect(repaired['contentRepairApplied'], isTrue);
     expect(repaired['qualityBand'], isNot('critical_short'));
+
+    final editorialOverlay = _json(
+      'source_data/quality/reading_content_repairs_101_300_v1.json',
+    );
+    final repairs = editorialOverlay['repairs']! as List<Object?>;
+    final firstRangeRepair = repairs.cast<Map<String, Object?>>().singleWhere(
+          (repair) => repair['sourceNumber'] == 101,
+        );
+    expect(repairs, hasLength(102));
+    expect(firstRangeRepair['appendSentences'], isA<List<Object?>>());
+    expect(
+      (firstRangeRepair['appendSentences']! as List<Object?>).length,
+      greaterThanOrEqualTo(9),
+    );
+    final firstRangeRecord = records.cast<Map<String, Object?>>().singleWhere(
+          (record) => record['sourceNumber'] == 101,
+        );
+    expect(firstRangeRecord['contentRepairApplied'], isTrue);
+    expect(firstRangeRecord['qualityBand'], isNot('critical_short'));
   });
 
   test('source baseline v2 changes when canonical content changes in memory',

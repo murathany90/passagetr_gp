@@ -174,6 +174,9 @@ def validate_source_checksums(manifest: dict[str, Any]) -> None:
             SOURCE_DATA / 'quality' / 'reading_translation_repairs_v1.json'
         ),
         'contentRepairs': SOURCE_DATA / 'quality' / 'reading_content_repairs_v1.json',
+        'contentRepairs101To300': (
+            SOURCE_DATA / 'quality' / 'reading_content_repairs_101_300_v1.json'
+        ),
         'canonicalSourceBaselineV2': SOURCE_DATA / builder.SOURCE_BASELINE_RELATIVE_PATH,
     }
     mapping = SOURCE_DATA / 'mappings' / 'word_pack_reclassification_v1.json'
@@ -447,9 +450,10 @@ def validate(content_dir: Path) -> dict[str, int]:
         'translationRepairs': len(builder.load_translation_repairs(
             SOURCE_DATA / 'quality' / 'reading_translation_repairs_v1.json'
         )),
-        'contentRepairs': len(builder.load_content_repairs(
-            SOURCE_DATA / 'quality' / 'reading_content_repairs_v1.json'
-        )),
+        'contentRepairs': len(builder.load_content_repair_overlays([
+            SOURCE_DATA / 'quality' / filename
+            for filename in builder.CONTENT_REPAIR_FILENAMES
+        ])),
     }
     if manifest.get('readingEnrichment') != expected_enrichment:
         raise ValueError('Reading enrichment manifest is invalid.')
@@ -468,8 +472,15 @@ def validate(content_dir: Path) -> dict[str, int]:
                 raise ValueError(f'Reading length audit record is invalid: {key}')
         if not isinstance(generated.get('wasCriticalShort'), bool) or not isinstance(generated.get('contentRepairApplied'), bool):
             raise ValueError('Reading length audit repair flags are invalid.')
+        expected_status = (
+            'unrecoverable_source_missing' if expected['sentenceCount'] == 0
+            else ('repaired' if generated['contentRepairApplied'] else None)
+        )
+        if generated.get('repairStatus') != expected_status:
+            raise ValueError('Reading length audit repair status is invalid.')
         expected['wasCriticalShort'] = generated['wasCriticalShort']
         expected['contentRepairApplied'] = generated['contentRepairApplied']
+        expected['repairStatus'] = expected_status
     quality_counts = validate_quality_reports(
         sentence_count, report_records, translation_missing, manifest
     )
