@@ -66,6 +66,15 @@ STOP_WORDS = frozenset({
 DEFAULT_CURATED_READINGS_RELATIVE_PATH = Path(
     'curated/readings_001_100_curated_v2.json'
 )
+QUALITY_DIRECTORY = Path('quality')
+REPORTS_DIRECTORY = Path('reports')
+SOURCE_BASELINE_RELATIVE_PATH = Path(
+    'baselines/readings_101_678_source_baseline_v2.json'
+)
+GENERIC_FOCUS_WORDS = frozenset({
+    'because', 'different', 'good', 'idea', 'people', 'place', 'problem',
+    'thing', 'things', 'time', 'topic', 'way', 'work', 'world', 'year',
+})
 
 
 def clean(value: str | None) -> str:
@@ -219,6 +228,7 @@ def curated_questions(record: dict[str, Any]) -> list[dict[str, Any]]:
             'id': curated_text(question, 'id'),
             'sortOrder': order,
             'type': curated_text(question, 'type'),
+            'questionCategory': 'comprehension',
             'question': curated_text(question, 'question_en'),
             'questionTr': curated_text(question, 'question_tr'),
             'options': question['options_en'],
@@ -260,11 +270,113 @@ def extractive_summary(sentences: list[dict[str, Any]]) -> str | None:
     return ' '.join(source_sentences[:2]) or None
 
 
+def reading_thresholds(level: str | None) -> tuple[int, int]:
+    """Return editorial short-reading thresholds by CEFR band."""
+    if clean(level) in {'A1', 'A2'}:
+        return 8, 80
+    if clean(level) in {'B1', 'B2'}:
+        return 10, 120
+    return 12, 150
+
+
+def reading_quality_band(level: str | None, sentence_count: int, word_count: int) -> str:
+    """Classify length for audit; it is not a publishing hard-fail."""
+    minimum_sentences, minimum_words = reading_thresholds(level)
+    if sentence_count < minimum_sentences or word_count < minimum_words:
+        return 'critical_short'
+    if (
+        sentence_count >= minimum_sentences + 5
+        and word_count >= minimum_words * 2
+    ):
+        return 'long'
+    if (
+        sentence_count < minimum_sentences + 2
+        or word_count < int(minimum_words * 1.2)
+    ):
+        return 'short'
+    return 'normal'
+
+
+def source_number_for(passage: dict[str, Any]) -> int:
+    source_number, _, _ = display_titles(str(passage['title']))
+    try:
+        number = int(source_number)
+    except (TypeError, ValueError) as error:
+        raise ValueError(f'Passage lacks a numeric source title: {passage["title"]!r}') from error
+    if not 1 <= number <= 678:
+        raise ValueError(f'Passage source number is out of range: {number}')
+    return number
+
+
+def load_json_object(path: Path, label: str) -> dict[str, Any]:
+    try:
+        value = json.loads(path.read_text(encoding='utf-8'))
+    except json.JSONDecodeError as error:
+        raise ValueError(f'Invalid {label} JSON: {path}') from error
+    if not isinstance(value, dict):
+        raise ValueError(f'{label} must be a JSON object: {path}')
+    return value
+
+
+def canonical_source_baseline_payload(
+    passages: dict[str, dict[str, Any]],
+) -> dict[str, Any]:
+    """Hash canonical 101–678 title and bilingual sentence source only."""
+    records = []
+    for passage in passages.values():
+        source_number = source_number_for(passage)
+        if source_number <= 100:
+            continue
+        records.append({
+            'sourceNumber': source_number,
+            'sourceTitle': passage['title'],
+            'sentences': [
+                {
+                    'index': sentence['index'],
+                    'englishText': sentence['englishText'],
+                    'turkishText': sentence['turkishText'],
+                }
+                for sentence in passage['sentences']
+            ],
+        })
+    records.sort(key=lambda item: item['sourceNumber'])
+    if [record['sourceNumber'] for record in records] != list(range(101, 679)):
+        raise ValueError('Canonical source baseline does not cover 101--678.')
+    return {
+        'schemaVersion': 2,
+        'recordCount': len(records),
+        'canonicalSentenceCount': sum(len(record['sentences']) for record in records),
+        'canonicalContentSha256': hashlib.sha256(json_bytes(records)).hexdigest(),
+    }
+
+
+def validate_canonical_source_baseline(
+    path: Path,
+    passages: dict[str, dict[str, Any]],
+) -> dict[str, Any]:
+    expected = canonical_source_baseline_payload(passages)
+    actual = load_json_object(path, 'canonical source baseline')
+    for field in (
+        'schemaVersion',
+        'recordCount',
+        'canonicalSentenceCount',
+        'canonicalContentSha256',
+    ):
+        if actual.get(field) != expected[field]:
+            raise ValueError(
+                f'Canonical 101--678 source baseline mismatch for {field}: '
+                'the canonical CSV source changed or the baseline is invalid.'
+            )
+    return expected
+
+
 def focus_word_ids(
     sentences: list[dict[str, Any]],
     primary_word_ids: dict[str, list[str]],
+    document_frequency: Counter[str],
+    corpus_reading_count: int,
 ) -> list[str]:
-    """Select up to eight in-passage educational words from the 5,314-word set."""
+    """Select distinctive in-passage educational words with stable TF-IDF-like scoring."""
     occurrences: list[str] = []
     for sentence in sentences:
         occurrences.extend(english_tokens(sentence['englishText']))
@@ -278,9 +390,20 @@ def focus_word_ids(
     }
     selected: list[str] = []
     seen_ids: set[str] = set()
-    for token, _ in sorted(
-        frequency.items(), key=lambda item: (-item[1], first_position[item[0]], item[0])
-    ):
+    scored = sorted(
+        frequency,
+        key=lambda token: (
+            -(
+                frequency[token] * 10_000
+                + (corpus_reading_count * 1_000) // max(1, document_frequency[token])
+                + 500
+                - (8_000 if token in GENERIC_FOCUS_WORDS else 0)
+            ),
+            first_position[token],
+            token,
+        ),
+    )
+    for token in scored:
         for identifier in primary_word_ids[token]:
             if identifier not in seen_ids:
                 seen_ids.add(identifier)
@@ -291,11 +414,11 @@ def focus_word_ids(
     return selected
 
 
-def comprehension_questions(
+def vocabulary_practice_questions(
     passage_identifier: str,
     sentences: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
-    """Make deterministic cloze/detail checks from exact source sentences only.
+    """Make deterministic vocabulary cloze practice from exact source sentences only.
 
     Distractors are other words appearing in the same passage. This deliberately
     avoids generated facts, interpretations, translations, or external knowledge.
@@ -354,13 +477,18 @@ def comprehension_questions(
         questions.append({
             'id': question_id,
             'sortOrder': len(questions) + 1,
-            'question': (
+            'type': 'vocabulary_cloze',
+            'questionCategory': 'vocabulary_practice',
+            'question': f'Complete sentence {sentence["index"]} with the correct word:\n{excerpt}',
+            'questionTr': (
                 f'Metindeki {sentence["index"]}. cümleyi doğru kelimeyle tamamlayın:\n{excerpt}'
             ),
             'options': options,
             'correctOptionIndex': options.index(target),
-            'explanation': (
-                f'Cevap, metnin {sentence["index"]}. cümlesindeki “{target}” sözcüğüdür.'
+            'answerEn': target,
+            'explanation': f'The correct word in sentence {sentence["index"]} is “{target}”.',
+            'explanationTr': (
+                f'Metnin {sentence["index"]}. cümlesindeki doğru kelime “{target}” sözcüğüdür.'
             ),
         })
         used_sentence_indexes.add(sentence['index'])
@@ -544,6 +672,249 @@ def build_dictionary(dictionary_source: Path, output_dir: Path) -> dict[str, Any
     }
 
 
+def load_translation_repairs(path: Path) -> list[dict[str, Any]]:
+    payload = load_json_object(path, 'translation repair overlay')
+    repairs = payload.get('repairs')
+    if payload.get('schemaVersion') != 1 or not isinstance(repairs, list):
+        raise ValueError('Translation repair overlay has an invalid schema.')
+    result: list[dict[str, Any]] = []
+    seen: set[tuple[int, int]] = set()
+    for repair in repairs:
+        if not isinstance(repair, dict):
+            raise ValueError('Translation repair must be an object.')
+        source_number = repair.get('sourceNumber')
+        sentence_index = repair.get('sentenceIndex')
+        reading_id = clean(repair.get('readingId'))
+        english_text = clean(repair.get('englishText'))
+        turkish_text = clean(repair.get('turkishText'))
+        reason = clean(repair.get('reason'))
+        if (
+            not isinstance(source_number, int)
+            or not 101 <= source_number <= 678
+            or not isinstance(sentence_index, int)
+            or sentence_index < 1
+            or not all((reading_id, english_text, turkish_text, reason))
+        ):
+            raise ValueError('Translation repair lacks required source-bound fields.')
+        key = (source_number, sentence_index)
+        if key in seen:
+            raise ValueError(f'Duplicate translation repair: {key}')
+        seen.add(key)
+        result.append({
+            'sourceNumber': source_number,
+            'sentenceIndex': sentence_index,
+            'readingId': reading_id,
+            'englishText': english_text,
+            'turkishText': turkish_text,
+            'reason': reason,
+        })
+    return result
+
+
+def load_content_repairs(path: Path) -> list[dict[str, Any]]:
+    payload = load_json_object(path, 'content repair overlay')
+    repairs = payload.get('repairs')
+    if payload.get('schemaVersion') != 1 or not isinstance(repairs, list):
+        raise ValueError('Content repair overlay has an invalid schema.')
+    result: list[dict[str, Any]] = []
+    seen: set[int] = set()
+    for repair in repairs:
+        if not isinstance(repair, dict):
+            raise ValueError('Content repair must be an object.')
+        source_number = repair.get('sourceNumber')
+        reading_id = clean(repair.get('readingId'))
+        reason = clean(repair.get('reason'))
+        appended = repair.get('appendSentences')
+        if (
+            not isinstance(source_number, int)
+            or not 101 <= source_number <= 678
+            or not reading_id
+            or not reason
+            or not isinstance(appended, list)
+            or not appended
+            or source_number in seen
+        ):
+            raise ValueError('Content repair lacks required append-only fields.')
+        sentences: list[dict[str, str]] = []
+        for sentence in appended:
+            if not isinstance(sentence, dict):
+                raise ValueError('Content repair sentence must be an object.')
+            english_text = clean(sentence.get('englishText'))
+            turkish_text = clean(sentence.get('turkishText'))
+            if not english_text or not turkish_text:
+                raise ValueError('Content repair sentence must be bilingual.')
+            sentences.append({
+                'englishText': english_text,
+                'turkishText': turkish_text,
+            })
+        seen.add(source_number)
+        result.append({
+            'sourceNumber': source_number,
+            'readingId': reading_id,
+            'reason': reason,
+            'appendSentences': sentences,
+        })
+    return result
+
+
+def passages_by_source_number(
+    passages: dict[str, dict[str, Any]],
+) -> dict[int, dict[str, Any]]:
+    result = {source_number_for(passage): passage for passage in passages.values()}
+    if set(result) != set(range(1, 679)):
+        raise ValueError('Passage source-number coverage is invalid.')
+    return result
+
+
+def apply_translation_repairs(
+    passages: dict[int, dict[str, Any]], repairs: list[dict[str, Any]]
+) -> None:
+    for repair in repairs:
+        passage = passages[repair['sourceNumber']]
+        if passage['id'] != repair['readingId']:
+            raise ValueError('Translation repair reading ID does not match canonical source.')
+        sentence = next(
+            (item for item in passage['sentences'] if item['index'] == repair['sentenceIndex']),
+            None,
+        )
+        if sentence is None or sentence['englishText'] != repair['englishText']:
+            raise ValueError('Translation repair English source does not match canonical sentence.')
+        if sentence['turkishText'] is not None:
+            raise ValueError('Translation repair may only fill a missing canonical Turkish sentence.')
+        sentence['turkishText'] = repair['turkishText']
+
+
+def apply_content_repairs(
+    passages: dict[int, dict[str, Any]], repairs: list[dict[str, Any]]
+) -> dict[int, str]:
+    applied: dict[int, str] = {}
+    for repair in repairs:
+        source_number = repair['sourceNumber']
+        passage = passages[source_number]
+        if passage['id'] != repair['readingId']:
+            raise ValueError('Content repair reading ID does not match canonical source.')
+        word_count = sum(
+            len(english_tokens(sentence['englishText']))
+            for sentence in passage['sentences']
+        )
+        if reading_quality_band(passage['level'], len(passage['sentences']), word_count) != 'critical_short':
+            raise ValueError('Content repair target is not a critical-short canonical reading.')
+        next_index = max((item['index'] for item in passage['sentences']), default=0) + 1
+        passage['sentences'].extend({
+            'index': next_index + offset,
+            'englishText': sentence['englishText'],
+            'turkishText': sentence['turkishText'],
+        } for offset, sentence in enumerate(repair['appendSentences']))
+        applied[source_number] = repair['reason']
+    return applied
+
+
+def write_quality_reports(
+    source_dir: Path,
+    passages: dict[int, dict[str, Any]],
+    translation_repairs: list[dict[str, Any]],
+    content_repair_reasons: dict[int, str],
+    canonical_quality_bands: dict[int, str],
+) -> dict[str, Any]:
+    """Write deterministic, reviewable quality audits beside source overlays."""
+    translation_missing: list[dict[str, Any]] = []
+    length_records: list[dict[str, Any]] = []
+    translated = total_sentences = complete = partial = zero = 0
+    before_critical = after_critical = repaired_critical = 0
+    bands: Counter[str] = Counter()
+    for source_number, passage in sorted(passages.items()):
+        sentences = passage['sentences']
+        sentence_count = len(sentences)
+        translated_count = sum(
+            1 for sentence in sentences if clean(sentence.get('turkishText'))
+        )
+        missing_count = sentence_count - translated_count
+        translated += translated_count
+        total_sentences += sentence_count
+        if missing_count == 0:
+            complete += 1
+        elif translated_count == 0:
+            zero += 1
+        else:
+            partial += 1
+        for sentence in sentences:
+            if clean(sentence.get('turkishText')):
+                continue
+            translation_missing.append({
+                'sourceNumber': source_number,
+                'readingId': passage['id'],
+                'sentenceIndex': sentence['index'],
+                'englishText': sentence['englishText'],
+            })
+        word_count = sum(len(english_tokens(sentence['englishText'])) for sentence in sentences)
+        quality_band = reading_quality_band(passage['level'], sentence_count, word_count)
+        bands[quality_band] += 1
+        canonical_band = canonical_quality_bands.get(source_number, quality_band)
+        was_critical = canonical_band == 'critical_short'
+        before_critical += int(was_critical)
+        after_critical += int(quality_band == 'critical_short')
+        repaired_critical += int(
+            was_critical
+            and source_number in content_repair_reasons
+            and quality_band != 'critical_short'
+        )
+        length_records.append({
+            'sourceNumber': source_number,
+            'level': passage['level'],
+            'sentenceCount': sentence_count,
+            'wordCount': word_count,
+            'estimatedMinutes': (
+                max(1, (word_count + READING_WORDS_PER_MINUTE - 1) // READING_WORDS_PER_MINUTE)
+                if word_count else 0
+            ),
+            'translationCoverage': (
+                round(translated_count / sentence_count, 6) if sentence_count else 1.0
+            ),
+            'qualityBand': quality_band,
+            'wasCriticalShort': was_critical,
+            'contentRepairApplied': source_number in content_repair_reasons,
+        })
+    reports_dir = source_dir / REPORTS_DIRECTORY
+    translation_report = {
+        'schemaVersion': 1,
+        'summary': {
+            'totalReadings': len(passages),
+            'totalSentences': total_sentences,
+            'sentencesWithTr': translated,
+            'sentencesWithoutTr': total_sentences - translated,
+            'readingsWithCompleteTr': complete,
+            'readingsWithPartialTr': partial,
+            'readingsWithZeroTr': zero,
+            'translationRepairs': len(translation_repairs),
+        },
+        'missingSentences': translation_missing,
+    }
+    length_report = {
+        'schemaVersion': 1,
+        'thresholds': {
+            'A1_A2': {'minSentences': 8, 'minWords': 80},
+            'B1_B2': {'minSentences': 10, 'minWords': 120},
+            'C1_C2': {'minSentences': 12, 'minWords': 150},
+        },
+        'summary': {
+            'totalReadings': len(passages),
+            'criticalShortBefore': before_critical,
+            'criticalShort': after_critical,
+            'criticalShortRepaired': repaired_critical,
+            'short': bands['short'],
+            'normal': bands['normal'],
+            'long': bands['long'],
+        },
+        'readings': length_records,
+    }
+    write_json(reports_dir / 'reading_translation_audit_v1.json', translation_report)
+    write_json(reports_dir / 'reading_length_audit_v1.json', length_report)
+    return {
+        'translation': translation_report['summary'],
+        'length': length_report['summary'],
+    }
+
+
 def build(
     source_dir: Path,
     output_dir: Path,
@@ -557,9 +928,13 @@ def build(
     pre_curated_generated_questions_backup_source = (
         source_dir / 'legacy' / 'pre_curated_generated_questions_backup_v1.json'
     )
-    untouched_baseline_source = (
-        source_dir / 'baselines' / 'readings_101_678_baseline_v1.json'
+    translation_repairs_source = (
+        source_dir / QUALITY_DIRECTORY / 'reading_translation_repairs_v1.json'
     )
+    content_repairs_source = (
+        source_dir / QUALITY_DIRECTORY / 'reading_content_repairs_v1.json'
+    )
+    source_baseline = source_dir / SOURCE_BASELINE_RELATIVE_PATH
     curated_package = curated_package or (
         source_dir / DEFAULT_CURATED_READINGS_RELATIVE_PATH
     )
@@ -569,7 +944,9 @@ def build(
         sentences_source,
         dictionary_source,
         pre_curated_generated_questions_backup_source,
-        untouched_baseline_source,
+        translation_repairs_source,
+        content_repairs_source,
+        source_baseline,
         curated_package,
     ):
         if not source.is_file():
@@ -670,6 +1047,45 @@ def build(
         passage['sentences'] = sentences
         sentence_count += len(sentences)
 
+    numbered_passages = passages_by_source_number(passages)
+    validate_canonical_source_baseline(source_baseline, passages)
+    translation_repairs = load_translation_repairs(translation_repairs_source)
+    apply_translation_repairs(numbered_passages, translation_repairs)
+    canonical_quality_bands = {
+        source_number: reading_quality_band(
+            passage['level'],
+            len(passage['sentences']),
+            sum(len(english_tokens(sentence['englishText'])) for sentence in passage['sentences']),
+        )
+        for source_number, passage in numbered_passages.items()
+    }
+    content_repairs = load_content_repairs(content_repairs_source)
+    content_repair_reasons = apply_content_repairs(numbered_passages, content_repairs)
+
+    for source_number, curated in curated_readings.items():
+        passage = numbered_passages[source_number]
+        passage['sentences'] = [
+            {
+                'index': sentence['index'],
+                'englishText': curated_text(sentence, 'en'),
+                'turkishText': curated_text(sentence, 'tr'),
+            }
+            for sentence in curated['sentences']
+        ]
+        canonical_quality_bands[source_number] = reading_quality_band(
+            passage['level'],
+            len(passage['sentences']),
+            sum(len(english_tokens(sentence['englishText'])) for sentence in passage['sentences']),
+        )
+
+    document_frequency: Counter[str] = Counter()
+    for passage in passages.values():
+        document_frequency.update({
+            token
+            for sentence in passage['sentences']
+            for token in english_tokens(sentence['englishText'])
+        })
+
     enrichment_audit = {
         'wordCountReadings': 0,
         'durationReadings': 0,
@@ -677,42 +1093,45 @@ def build(
         'summaryReadings': 0,
         'questionReadings': 0,
         'totalQuestions': 0,
+        'comprehensionQuestions': 0,
+        'vocabularyPracticeQuestions': 0,
         'curatedReadings': 0,
         'curatedSentences': 0,
         'curatedQuestions': 0,
+        'translationRepairs': len(translation_repairs),
+        'contentRepairs': len(content_repairs),
     }
     for passage in passages.values():
         source_number, display_title, turkish_title = display_titles(passage['title'])
-        curated = curated_readings.get(int(source_number)) if source_number else None
+        source_number_int = source_number_for(passage)
+        curated = curated_readings.get(source_number_int)
+        sentences = passage['sentences']
         if curated is not None:
-            sentences = [
-                {
-                    'index': sentence['index'],
-                    'englishText': curated_text(sentence, 'en'),
-                    'turkishText': curated_text(sentence, 'tr'),
-                }
-                for sentence in curated['sentences']
-            ]
-            passage['sentences'] = sentences
             display_title = curated_text(curated, 'replacement_title_en')
             turkish_title = curated_text(curated, 'replacement_title_tr')
             summary = curated_text(curated, 'summary_en')
             summary_tr: str | None = curated_text(curated, 'summary_tr')
+            summary_type = 'curated'
             questions = curated_questions(curated)
             content_source = 'curated_v2'
             enrichment_audit['curatedReadings'] += 1
             enrichment_audit['curatedSentences'] += len(sentences)
             enrichment_audit['curatedQuestions'] += len(questions)
         else:
-            sentences = passage['sentences']
             summary = extractive_summary(sentences)
             summary_tr = None
-            questions = comprehension_questions(passage['id'], sentences)
+            summary_type = 'extractive'
+            questions = vocabulary_practice_questions(passage['id'], sentences)
             content_source = 'derived_v1'
         word_count = sum(
             len(english_tokens(sentence['englishText'])) for sentence in sentences
         )
-        focus_ids = focus_word_ids(sentences, primary_word_ids)
+        focus_ids = focus_word_ids(
+            sentences,
+            primary_word_ids,
+            document_frequency,
+            len(passages),
+        )
         enrichment = {
             'schemaVersion': 1,
             'sourceNumber': source_number,
@@ -725,10 +1144,11 @@ def build(
             ),
             'focusWordIds': focus_ids,
             'summary': summary,
+            'summaryType': summary_type,
             'questions': questions,
+            'contentSource': content_source,
         }
-        if content_source == 'curated_v2':
-            enrichment['contentSource'] = content_source
+        if curated is not None:
             enrichment['summaryTr'] = summary_tr
         passage['enrichment'] = enrichment
         enrichment_audit['wordCountReadings'] += int(word_count > 0)
@@ -737,10 +1157,25 @@ def build(
         enrichment_audit['summaryReadings'] += int(summary is not None)
         enrichment_audit['questionReadings'] += int(bool(questions))
         enrichment_audit['totalQuestions'] += len(questions)
+        enrichment_audit['comprehensionQuestions'] += sum(
+            question.get('questionCategory') == 'comprehension'
+            for question in questions
+        )
+        enrichment_audit['vocabularyPracticeQuestions'] += sum(
+            question.get('questionCategory') == 'vocabulary_practice'
+            for question in questions
+        )
 
     if enrichment_audit['curatedReadings'] != len(curated_readings):
         raise ValueError('Every curated reading must map to exactly one source_number.')
     sentence_count = sum(len(passage['sentences']) for passage in passages.values())
+    quality_audit = write_quality_reports(
+        source_dir,
+        numbered_passages,
+        translation_repairs,
+        content_repair_reasons,
+        canonical_quality_bands,
+    )
 
     if output_dir.exists():
         shutil.rmtree(output_dir)
@@ -797,6 +1232,7 @@ def build(
             'wordsPerMinute': READING_WORDS_PER_MINUTE,
             **enrichment_audit,
         },
+        'readingQualityAudit': quality_audit,
         'sourceChecksums': {
             'words': source_hash(words_source), 'passages': source_hash(passages_source),
             'sentences': source_hash(sentences_source), 'dictionary': source_hash(dictionary_source),
@@ -804,7 +1240,9 @@ def build(
             'preCuratedGeneratedQuestionsBackup': source_hash(
                 pre_curated_generated_questions_backup_source
             ),
-            'curatedUntouchedBaseline': source_hash(untouched_baseline_source),
+            'translationRepairs': source_hash(translation_repairs_source),
+            'contentRepairs': source_hash(content_repairs_source),
+            'canonicalSourceBaselineV2': source_hash(source_baseline),
             **({'wordPackMap': source_hash(pack_map_source)} if pack_map_source.is_file() else {}),
         },
     }

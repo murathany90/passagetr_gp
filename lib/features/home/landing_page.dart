@@ -75,7 +75,7 @@ class LandingPage extends StatelessWidget {
                               icon: Icons.translate_rounded,
                               title: 'Sözlük',
                               description:
-                                  '121.772 kayıt, tüm anlamlar ve sesli dinleme.',
+                                  'Geniş sözlük, tüm anlamlar ve sesli dinleme.',
                               color: tokens.accentBlue,
                               onTap: () => context.go('/dictionary'))),
                     ])),

@@ -46,11 +46,13 @@ void main() {
         'focusWordIds': <String>['word-1'],
         'summary': 'A real source sentence.',
         'summaryTr': 'A real Turkish source sentence.',
+        'summaryType': 'extractive',
         'questions': <Object?>[
           <String, Object?>{
             'id': 'question-1',
             'sortOrder': 1,
             'type': 'detail',
+            'questionCategory': 'vocabulary_practice',
             'question': 'Complete: A real ____ sentence.',
             'questionTr': 'Complete in Turkish: a real ____ sentence.',
             'options': <String>['source', 'other', 'wrong', 'choice'],
@@ -69,11 +71,13 @@ void main() {
     expect(detail.passage.displayTitle, 'Source title');
     expect(detail.passage.wordCount, 4);
     expect(detail.passage.summaryTr, 'A real Turkish source sentence.');
+    expect(detail.passage.summaryType, 'extractive');
     expect(detail.focusWordIds, <String>['word-1']);
     expect(detail.questions, hasLength(1));
     expect(detail.questions.single.questionTr,
         'Complete in Turkish: a real ____ sentence.');
     expect(detail.questions.single.optionsTr, hasLength(4));
+    expect(detail.questions.single.questionCategory, 'vocabulary_practice');
     expect(detail.questions.single.evidenceSentenceIndexes, <int>[1]);
   });
 }

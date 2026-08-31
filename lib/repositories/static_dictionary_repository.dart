@@ -34,6 +34,16 @@ String normalizeDictionaryLookup(String value) {
   return result.replaceAll(_edgePunctuation, '').trim();
 }
 
+class DictionaryMetadata {
+  const DictionaryMetadata({
+    required this.recordCount,
+    required this.uniqueHeadwords,
+  });
+
+  final int recordCount;
+  final int uniqueHeadwords;
+}
+
 class StaticDictionaryRepository {
   StaticDictionaryRepository({
     AssetBundle? bundle,
@@ -52,6 +62,14 @@ class StaticDictionaryRepository {
   Future<DictionaryEntry?> find(String query) async {
     final entries = await findAll(query);
     return entries.firstOrNull;
+  }
+
+  Future<DictionaryMetadata> metadata() async {
+    final index = await _index();
+    return DictionaryMetadata(
+      recordCount: index.recordCount,
+      uniqueHeadwords: index.uniqueHeadwords,
+    );
   }
 
   Future<List<DictionaryEntry>> findAll(String query) async {
@@ -152,10 +170,21 @@ class StaticDictionaryRepository {
     final shards = ((json['shards'] as List<Object?>?) ?? const <Object?>[])
         .map((item) => DictionaryShard.fromJson(_jsonMap(item)))
         .toList(growable: false);
-    if (json['contentVersion'] != 'v1' || shards.isEmpty) {
+    final recordCount = json['recordCount'];
+    final uniqueHeadwords = json['uniqueNormalizedHeadwords'];
+    if (json['contentVersion'] != 'v1' ||
+        shards.isEmpty ||
+        recordCount is! int ||
+        recordCount < 1 ||
+        uniqueHeadwords is! int ||
+        uniqueHeadwords < 1) {
       throw const StaticContentException('Sözlük indeksi eksik veya bozuk.');
     }
-    return _DictionaryIndex(List<DictionaryShard>.unmodifiable(shards));
+    return _DictionaryIndex(
+      List<DictionaryShard>.unmodifiable(shards),
+      recordCount: recordCount,
+      uniqueHeadwords: uniqueHeadwords,
+    );
   }
 
   Future<List<DictionaryEntry>> _loadShard(DictionaryShard shard) {
@@ -227,9 +256,15 @@ String _dictionaryPrefix(String normalized) {
 }
 
 class _DictionaryIndex {
-  const _DictionaryIndex(this.shards);
+  const _DictionaryIndex(
+    this.shards, {
+    required this.recordCount,
+    required this.uniqueHeadwords,
+  });
 
   final List<DictionaryShard> shards;
+  final int recordCount;
+  final int uniqueHeadwords;
 }
 
 extension _FirstOrNull<T> on Iterable<T> {

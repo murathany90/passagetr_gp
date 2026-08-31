@@ -10,6 +10,7 @@ import 'package:passagetr_gp/features/readings/reading_detail_page.dart';
 import 'package:passagetr_gp/features/readings/readings_page.dart';
 import 'package:passagetr_gp/features/dictionary/dictionary_page.dart';
 import 'package:passagetr_gp/features/tts/student_tts_engine.dart';
+import 'package:passagetr_gp/features/words/dictionary_detail_sheet.dart';
 import 'package:passagetr_gp/features/words/words_page.dart';
 import 'package:passagetr_gp/models/content_models.dart';
 import 'package:passagetr_gp/repositories/local_progress_repository.dart';
@@ -63,6 +64,7 @@ void main() {
       ReadingQuestion(
         id: 'question-a',
         sortOrder: 1,
+        questionCategory: 'vocabulary_practice',
         question: 'What does the passage say?',
         questionTr: 'What does the passage say in Turkish?',
         options: <String>[
@@ -140,6 +142,8 @@ void main() {
     await _pumpContent(tester);
 
     expect(find.text('Access'), findsOneWidget);
+    expect(find.text('Okuduğunu Anlama'), findsNothing);
+    expect(find.text('Kelime Pratiği'), findsOneWidget);
     expect(find.text('Bilgiye erişim hayatları değiştirir.'), findsNothing);
     final card = find.byKey(const ValueKey<String>('sentence-card-1'));
     final englishSpeaker = find.descendant(
@@ -216,6 +220,81 @@ void main() {
     expect(find.text('20 Yeni Kelime'), findsOneWidget);
     expect(find.text('random-0'), findsOneWidget);
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('missing Turkish translation is explicit and has no TR speaker',
+      (tester) async {
+    const missingPassage = ReadingPassage(
+      id: 'reading-missing-tr',
+      packId: 'pack-a',
+      title: 'Eksik çeviri',
+      sentenceCount: 1,
+      level: 'B1',
+    );
+    const missingDetail = ReadingDetail(
+      passage: missingPassage,
+      sentences: <ReadingSentence>[
+        ReadingSentence(
+            index: 1, englishText: 'A source sentence has no translation.'),
+      ],
+      focusWordIds: <String>[],
+      questions: <ReadingQuestion>[],
+    );
+    final missingRepository = _FixtureRepository(
+      packs: const <ContentPack>[pack],
+      words: const <WordEntry>[firstWord, secondWord],
+      readings: const <ReadingPassage>[missingPassage],
+      detail: missingDetail,
+    );
+    final fallbackApp = ProviderScope(
+      overrides: <Override>[
+        staticContentRepositoryProvider.overrideWithValue(missingRepository),
+        staticDictionaryRepositoryProvider
+            .overrideWithValue(_FixtureDictionaryRepository()),
+        localProgressRepositoryProvider.overrideWithValue(_MemoryProgress()),
+        studentTtsEngineProvider.overrideWithValue(_SilentTtsEngine()),
+      ],
+      child: MaterialApp(
+        theme: AppTheme.light(),
+        home: const Scaffold(
+          body: ReadingDetailPage(readingId: 'reading-missing-tr'),
+        ),
+      ),
+    );
+    await _setPhoneSize(tester);
+    await tester.pumpWidget(fallbackApp);
+    await _pumpContent(tester);
+
+    final card = find.byKey(const ValueKey<String>('sentence-card-1'));
+    await tester.tapAt(tester.getTopLeft(card) + const Offset(5, 5));
+    await tester.pump();
+    expect(
+        find.text('Bu cümle için Türkçe çeviri mevcut değil.'), findsOneWidget);
+    expect(
+      find.descendant(of: card, matching: find.byTooltip('Türkçe dinle')),
+      findsNothing,
+    );
+  });
+
+  testWidgets(
+      'dictionary detail hides redundant open action in dictionary context',
+      (tester) async {
+    await tester.pumpWidget(app(DictionaryDetailSheet(
+      entries: <DictionaryEntry>[
+        DictionaryEntry(
+          id: 'dictionary-detail',
+          enWord: 'access',
+          normalizedKey: 'access',
+          trMeaning: 'erişim',
+          pos: 'n.',
+        ),
+      ],
+      showOpenInDictionaryAction: false,
+    )));
+    await tester.pump();
+
+    expect(find.text('Sözlükte aç'), findsNothing);
+    expect(find.text('erişim'), findsOneWidget);
   });
 }
 

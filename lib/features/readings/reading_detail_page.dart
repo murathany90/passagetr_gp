@@ -107,15 +107,14 @@ class _ReadingDetailBodyState extends ConsumerState<_ReadingDetailBody> {
         tts.activeTarget == StudentTtsTarget.passage &&
         tts.activeReadingId == passage.id;
     final compact = MediaQuery.sizeOf(context).width < 620;
-    final answeredQuestionCount = detail.questions
-        .where((question) => _answers.containsKey(question.id))
-        .length;
-    final allQuestionsAnswered = detail.questions.isNotEmpty &&
-        answeredQuestionCount == detail.questions.length;
-    final correctQuestionCount = detail.questions
-        .where(
-            (question) => _answers[question.id] == question.correctOptionIndex)
-        .length;
+    final comprehensionQuestions = detail.questions
+        .where((question) =>
+            question.questionCategory == null ||
+            question.questionCategory == 'comprehension')
+        .toList(growable: false);
+    final vocabularyPracticeQuestions = detail.questions
+        .where((question) => question.questionCategory == 'vocabulary_practice')
+        .toList(growable: false);
     return PageFrame(
       title: passage.displayTitle ?? passage.title,
       subtitle: _subtitleFor(passage),
@@ -224,7 +223,12 @@ class _ReadingDetailBodyState extends ConsumerState<_ReadingDetailBody> {
           ],
           if (passage.summary != null) ...<Widget>[
             const SizedBox(height: 18),
-            Text('Kısa Özet', style: Theme.of(context).textTheme.headlineSmall),
+            Text(
+              passage.summaryType == 'extractive'
+                  ? 'Metinden Kısa Bölüm'
+                  : 'Kısa Özet',
+              style: Theme.of(context).textTheme.headlineSmall,
+            ),
             const SizedBox(height: 6),
             TextButton.icon(
               onPressed: () => setState(() => _showSummary = !_showSummary),
@@ -250,44 +254,32 @@ class _ReadingDetailBodyState extends ConsumerState<_ReadingDetailBody> {
                 ),
               ),
           ],
-          if (detail.questions.isNotEmpty) ...<Widget>[
+          if (comprehensionQuestions.isNotEmpty) ...<Widget>[
             const SizedBox(height: 18),
-            Text('Okuduğunu Anlama',
-                style: Theme.of(context).textTheme.headlineSmall),
-            const SizedBox(height: 10),
-            Wrap(
-              spacing: 12,
-              runSpacing: 4,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: <Widget>[
-                Text(
-                    '$answeredQuestionCount / ${detail.questions.length} cevaplandı',
-                    style: Theme.of(context).textTheme.bodyMedium),
-                if (allQuestionsAnswered)
-                  Text(
-                      'Doğru: $correctQuestionCount / ${detail.questions.length}',
-                      style: Theme.of(context).textTheme.bodyMedium),
-                if (allQuestionsAnswered)
-                  TextButton.icon(
-                    onPressed: _retryQuestions,
-                    icon: const Icon(Icons.refresh_rounded, size: 18),
-                    label: const Text('Tekrar dene'),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            ...detail.questions.map(
-              (question) => _ComprehensionQuestion(
-                question: question,
-                selectedIndex: _answers[question.id],
-                showTranslation:
-                    _revealedQuestionTranslations.contains(question.id),
-                onToggleTranslation: () =>
-                    _toggleQuestionTranslation(question.id),
-                onSelected: (index) => setState(
-                  () => _answers.putIfAbsent(question.id, () => index),
-                ),
+            _QuestionSection(
+              title: 'Okuduğunu Anlama',
+              questions: comprehensionQuestions,
+              answers: _answers,
+              revealedTranslations: _revealedQuestionTranslations,
+              onToggleTranslation: _toggleQuestionTranslation,
+              onSelected: (question, index) => setState(
+                () => _answers.putIfAbsent(question.id, () => index),
               ),
+              onRetry: _retryQuestions,
+            ),
+          ],
+          if (vocabularyPracticeQuestions.isNotEmpty) ...<Widget>[
+            const SizedBox(height: 18),
+            _QuestionSection(
+              title: 'Kelime Pratiği',
+              questions: vocabularyPracticeQuestions,
+              answers: _answers,
+              revealedTranslations: _revealedQuestionTranslations,
+              onToggleTranslation: _toggleQuestionTranslation,
+              onSelected: (question, index) => setState(
+                () => _answers.putIfAbsent(question.id, () => index),
+              ),
+              onRetry: _retryQuestions,
             ),
           ],
           const SizedBox(height: 20),
@@ -362,6 +354,7 @@ class _SentenceCard extends ConsumerWidget {
     final turkishInitializing = isActiveSentence &&
         tts.isInitializing &&
         tts.activeLanguageCode == 'tr-TR';
+    final turkishText = section.turkishText;
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: SurfaceCard(
@@ -417,14 +410,15 @@ class _SentenceCard extends ConsumerWidget {
                         ],
                       ),
                       if (showTranslation &&
-                          section.turkishText != null) ...<Widget>[
+                          turkishText != null &&
+                          turkishText.isNotEmpty) ...<Widget>[
                         const SizedBox(height: 9),
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: <Widget>[
                             Expanded(
                               child: SelectableText(
-                                section.turkishText!,
+                                turkishText,
                                 style: Theme.of(context).textTheme.bodyMedium,
                               ),
                             ),
@@ -439,13 +433,19 @@ class _SentenceCard extends ConsumerWidget {
                                   .playTurkishSentence(
                                     readingId: readingId,
                                     sentenceIndex: section.lookupIndex,
-                                    text: section.turkishText!,
+                                    text: turkishText,
                                   ),
                               onStop: () => ref
                                   .read(studentTtsControllerProvider.notifier)
                                   .stop(),
                             ),
                           ],
+                        ),
+                      ] else if (showTranslation) ...<Widget>[
+                        const SizedBox(height: 9),
+                        Text(
+                          'Bu cümle için Türkçe çeviri mevcut değil.',
+                          style: Theme.of(context).textTheme.bodySmall,
                         ),
                       ],
                     ]),
@@ -560,6 +560,72 @@ class _FocusWords extends ConsumerWidget {
               .toList(growable: false),
         );
       },
+    );
+  }
+}
+
+class _QuestionSection extends StatelessWidget {
+  const _QuestionSection({
+    required this.title,
+    required this.questions,
+    required this.answers,
+    required this.revealedTranslations,
+    required this.onToggleTranslation,
+    required this.onSelected,
+    required this.onRetry,
+  });
+
+  final String title;
+  final List<ReadingQuestion> questions;
+  final Map<String, int> answers;
+  final Set<String> revealedTranslations;
+  final ValueChanged<String> onToggleTranslation;
+  final void Function(ReadingQuestion question, int index) onSelected;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final answeredCount =
+        questions.where((question) => answers.containsKey(question.id)).length;
+    final allAnswered = answeredCount == questions.length;
+    final correctCount = questions
+        .where(
+            (question) => answers[question.id] == question.correctOptionIndex)
+        .length;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Text(title, style: Theme.of(context).textTheme.headlineSmall),
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 12,
+          runSpacing: 4,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: <Widget>[
+            Text('$answeredCount / ${questions.length} cevaplandı',
+                style: Theme.of(context).textTheme.bodyMedium),
+            if (allAnswered)
+              Text('Doğru: $correctCount / ${questions.length}',
+                  style: Theme.of(context).textTheme.bodyMedium),
+            if (allAnswered)
+              TextButton.icon(
+                onPressed: onRetry,
+                icon: const Icon(Icons.refresh_rounded, size: 18),
+                label: const Text('Tekrar dene'),
+              ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        ...questions.map(
+          (question) => _ComprehensionQuestion(
+            question: question,
+            selectedIndex: answers[question.id],
+            showTranslation: revealedTranslations.contains(question.id),
+            onToggleTranslation: () => onToggleTranslation(question.id),
+            onSelected: (index) => onSelected(question, index),
+          ),
+        ),
+      ],
     );
   }
 }

@@ -14,6 +14,7 @@ void main() {
 
     final entries = await repository.findAll('  “access” ');
     final suggestions = await repository.suggest('ac');
+    final metadata = await repository.metadata();
 
     expect(entries, hasLength(2));
     expect(entries.map((entry) => entry.enWord.toLowerCase()),
@@ -21,6 +22,8 @@ void main() {
     expect(entries.map((entry) => entry.trMeaning).toSet(), hasLength(2));
     expect(suggestions, isNotEmpty);
     expect(suggestions.first.normalizedKey, startsWith('ac'));
+    expect(metadata.recordCount, 121772);
+    expect(metadata.uniqueHeadwords, 121501);
     final dictionaryLoads = bundle.loaded
         .where((path) => path.contains('/dictionary/'))
         .toList(growable: false);

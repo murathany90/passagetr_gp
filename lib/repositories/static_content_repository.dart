@@ -56,7 +56,8 @@ class StaticContentRepository {
     final counts = _jsonMap(manifest['counts']);
     if (counts['words'] != 5314 ||
         counts['readings'] != 678 ||
-        counts['sentences'] != 6124) {
+        counts['sentences'] is! int ||
+        (counts['sentences'] as int) < 1) {
       throw StaticContentException('İçerik manifest sayıları doğrulanamadı.');
     }
     final packs = ((manifest['packs'] as List<Object?>?) ?? const <Object?>[])

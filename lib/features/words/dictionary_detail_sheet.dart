@@ -8,10 +8,14 @@ import '../../models/content_models.dart';
 import '../tts/student_tts_icon_button.dart';
 
 class DictionaryDetailSheet extends ConsumerWidget {
-  const DictionaryDetailSheet({super.key, required this.entries})
-      : assert(entries.length > 0);
+  const DictionaryDetailSheet({
+    super.key,
+    required this.entries,
+    this.showOpenInDictionaryAction = true,
+  }) : assert(entries.length > 0);
 
   final List<DictionaryEntry> entries;
+  final bool showOpenInDictionaryAction;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -83,16 +87,18 @@ class DictionaryDetailSheet extends ConsumerWidget {
                   entry: entries[index],
                   isLast: index == entries.length - 1,
                 ),
-              const SizedBox(height: 12),
-              OutlinedButton.icon(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                  context.go(
-                      '/dictionary?q=${Uri.encodeQueryComponent(first.enWord)}');
-                },
-                icon: const Icon(Icons.open_in_new_rounded),
-                label: const Text('Sözlükte aç'),
-              ),
+              if (showOpenInDictionaryAction) ...<Widget>[
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    context.go(
+                        '/dictionary?q=${Uri.encodeQueryComponent(first.enWord)}');
+                  },
+                  icon: const Icon(Icons.open_in_new_rounded),
+                  label: const Text('Sözlükte aç'),
+                ),
+              ],
             ],
           ),
         ),

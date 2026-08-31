@@ -128,6 +128,7 @@ class ReadingPassage {
     this.tags = const <String>[],
     this.summary,
     this.summaryTr,
+    this.summaryType,
     this.sourceNumber,
     this.displayTitle,
     this.turkishTitle,
@@ -149,6 +150,7 @@ class ReadingPassage {
   final List<String> tags;
   final String? summary;
   final String? summaryTr;
+  final String? summaryType;
   final String? sourceNumber;
   final String? displayTitle;
   final String? turkishTitle;
@@ -170,6 +172,7 @@ class ReadingPassage {
         tags: _stringList(json['tags']),
         summary: json['summary'] as String?,
         summaryTr: json['summaryTr'] as String?,
+        summaryType: json['summaryType'] as String?,
         sourceNumber: json['sourceNumber'] as String?,
         displayTitle: json['displayTitle'] as String?,
         turkishTitle: json['turkishTitle'] as String?,
@@ -212,6 +215,7 @@ class ReadingQuestion {
     required this.options,
     required this.correctOptionIndex,
     this.type,
+    this.questionCategory,
     this.questionTr,
     this.optionsTr = const <String>[],
     this.answerEn,
@@ -227,6 +231,7 @@ class ReadingQuestion {
   final List<String> options;
   final int correctOptionIndex;
   final String? type;
+  final String? questionCategory;
   final String? questionTr;
   final List<String> optionsTr;
   final String? answerEn;
@@ -243,6 +248,7 @@ class ReadingQuestion {
         options: _stringList(json['options']),
         correctOptionIndex: json['correctOptionIndex']! as int,
         type: json['type'] as String?,
+        questionCategory: json['questionCategory'] as String?,
         questionTr: json['questionTr'] as String?,
         optionsTr: _stringList(json['optionsTr']),
         answerEn: json['answerEn'] as String?,

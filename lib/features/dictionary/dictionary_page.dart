@@ -24,6 +24,7 @@ class _DictionaryPageState extends ConsumerState<DictionaryPage> {
   var _randomEntries = const <DictionaryEntry>[];
   var _isLoading = false;
   var _isLoadingRandom = false;
+  DictionaryMetadata? _metadata;
   Object? _error;
   Object? _randomError;
   var _request = 0;
@@ -34,12 +35,23 @@ class _DictionaryPageState extends ConsumerState<DictionaryPage> {
     super.initState();
     _controller = TextEditingController(text: widget.initialQuery ?? '');
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadMetadata();
       if (normalizeDictionaryLookup(_controller.text).isEmpty) {
         _loadRandomEntries();
       } else {
         _search(_controller.text);
       }
     });
+  }
+
+  Future<void> _loadMetadata() async {
+    try {
+      final metadata =
+          await ref.read(staticDictionaryRepositoryProvider).metadata();
+      if (mounted) setState(() => _metadata = metadata);
+    } catch (_) {
+      // Search and lazy shard errors are surfaced by their own UI states.
+    }
   }
 
   @override
@@ -95,6 +107,7 @@ class _DictionaryPageState extends ConsumerState<DictionaryPage> {
         isScrollControlled: true,
         builder: (_) => DictionaryDetailSheet(
           entries: entries.isEmpty ? <DictionaryEntry>[entry] : entries,
+          showOpenInDictionaryAction: false,
         ),
       );
     } catch (error) {
@@ -153,8 +166,11 @@ class _DictionaryPageState extends ConsumerState<DictionaryPage> {
   @override
   Widget build(BuildContext context) => PageFrame(
         title: 'Sözlük',
-        subtitle:
-            '121.772 kayıt; tam eşleşme ve yalnız gerekli lazy shard yüklemesi.',
+        subtitle: _metadata == null
+            ? 'Tam eşleşme ve yalnız gerekli lazy shard yüklemesi.'
+            : '${_formatCount(_metadata!.recordCount)} kayıt · '
+                '${_formatCount(_metadata!.uniqueHeadwords)} başlık · '
+                'lazy yükleme',
         maxWidth: 760,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -493,7 +509,10 @@ class _DictionaryResultCard extends ConsumerWidget {
                 onPressed: () => showModalBottomSheet<void>(
                   context: context,
                   isScrollControlled: true,
-                  builder: (_) => DictionaryDetailSheet(entries: entries),
+                  builder: (_) => DictionaryDetailSheet(
+                    entries: entries,
+                    showOpenInDictionaryAction: false,
+                  ),
                 ),
                 child: const Text('Ayrıntılar'),
               ),
@@ -535,4 +554,12 @@ class _DictionarySearchResult {
   final List<DictionaryEntry> exact;
   final List<DictionaryEntry> suggestions;
   bool get hasResults => exact.isNotEmpty || suggestions.isNotEmpty;
+}
+
+String _formatCount(int value) {
+  final digits = value.toString();
+  return digits.replaceAllMapped(
+    RegExp(r'(?<!^)(?=(\d{3})+$)'),
+    (_) => '.',
+  );
 }
