@@ -40,7 +40,7 @@ class LandingPage extends StatelessWidget {
                               fontSize: 26,
                               height: 1.15)),
                       SizedBox(height: 10),
-                      Text('5.314 kelime · 678 okuma · 121 bin sözlük kaydı',
+                      Text('5.314 kelime · 678 okuma · geniş sözlük içeriği',
                           style: TextStyle(
                               color: Colors.white70,
                               fontWeight: FontWeight.w700)),
