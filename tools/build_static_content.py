@@ -11,6 +11,7 @@ here.
 from __future__ import annotations
 
 import argparse
+import copy
 import csv
 import hashlib
 import json
@@ -70,10 +71,11 @@ QUALITY_DIRECTORY = Path('quality')
 REPORTS_DIRECTORY = Path('reports')
 CONTENT_REPAIR_FILENAMES = (
     'reading_content_repairs_v1.json',
-    'reading_content_repairs_101_300_v2.json',
+    'reading_content_repairs_101_300_v3.json',
+    'reading_content_repairs_301_500_v1.json',
 )
-LEGACY_101_300_TEMPLATE_REPAIRS_RELATIVE_PATH = Path(
-    'legacy/reading_content_repairs_101_300_v1_template_history.json'
+LEGACY_101_300_PRE_POLISH_REPAIRS_RELATIVE_PATH = Path(
+    'legacy/reading_content_repairs_101_300_v2_language_pre_polish_history.json'
 )
 SOURCE_BASELINE_RELATIVE_PATH = Path(
     'baselines/readings_101_678_source_baseline_v2.json'
@@ -912,6 +914,215 @@ def editorial_repair_audit(
     }
 
 
+def language_polish_audit(
+    pre_polish_repairs: list[dict[str, Any]],
+    polished_repairs: list[dict[str, Any]],
+    passages: dict[int, dict[str, Any]],
+) -> dict[str, Any]:
+    """Record the deliberately small v2-to-v3 EN/TR language edit pass."""
+    before_by_number = {
+        repair['sourceNumber']: repair for repair in pre_polish_repairs
+    }
+    after_by_number = {
+        repair['sourceNumber']: repair for repair in polished_repairs
+    }
+    if set(before_by_number) != set(after_by_number):
+        raise ValueError('Language-polish overlay must retain the v2 repair targets.')
+
+    changes: list[dict[str, Any]] = []
+    level_counts: Counter[str] = Counter()
+    audited = rewritten = 0
+    for source_number in sorted(before_by_number):
+        before = before_by_number[source_number]['appendSentences']
+        after = after_by_number[source_number]['appendSentences']
+        if len(before) != len(after):
+            raise ValueError('Language-polish overlay may not change append counts.')
+        for append_index, (old, new) in enumerate(zip(before, after), start=1):
+            audited += 1
+            if old == new:
+                continue
+            rewritten += 1
+            level = clean(passages[source_number].get('level')) or 'unknown'
+            level_counts[level] += 1
+            changes.append({
+                'sourceNumber': source_number,
+                'appendIndex': append_index,
+                'level': level,
+                'englishChanged': old['englishText'] != new['englishText'],
+                'turkishChanged': old['turkishText'] != new['turkishText'],
+            })
+    return {
+        'schemaVersion': 1,
+        'summary': {
+            'retainedRepairSentencesAudited': audited,
+            'sentencesRewritten': rewritten,
+            'retainedWithoutChange': audited - rewritten,
+            'enTrQualityIssuesFixed': rewritten,
+            'cefrIssuesFixed': {
+                'A1_A2': sum(level_counts[level] for level in ('A1', 'A2')),
+                'B1': level_counts['B1'],
+                'B2': level_counts['B2'],
+                'C1_C2': sum(level_counts[level] for level in ('C1', 'C2')),
+            },
+        },
+        'changes': changes,
+    }
+
+
+def production_repair_quality_audit(
+    repairs: list[dict[str, Any]],
+    passages: dict[int, dict[str, Any]],
+) -> dict[str, Any]:
+    """Lightweight hard-fail checks for production editorial overlays."""
+    forbidden: list[dict[str, Any]] = []
+    exact_duplicates: list[dict[str, Any]] = []
+    semantic_candidates: list[dict[str, Any]] = []
+    canonical_embeddings: list[dict[str, Any]] = []
+    missing_bilingual: list[dict[str, Any]] = []
+    seen_texts: dict[str, tuple[int, int]] = {}
+
+    for repair in sorted(repairs, key=lambda item: item['sourceNumber']):
+        source_number = repair['sourceNumber']
+        canonical_texts = [
+            normalized_editorial_text(sentence['englishText'])
+            for sentence in passages[source_number]['sentences']
+        ]
+        appends = repair['appendSentences']
+        for append_index, sentence in enumerate(appends, start=1):
+            english = clean(sentence.get('englishText'))
+            turkish = clean(sentence.get('turkishText'))
+            if not english or not turkish:
+                missing_bilingual.append({
+                    'sourceNumber': source_number, 'appendIndex': append_index,
+                })
+                continue
+            template = forbidden_editorial_template(english)
+            if template is not None:
+                forbidden.append({
+                    'sourceNumber': source_number,
+                    'appendIndex': append_index,
+                    'template': template,
+                })
+            normalized_english = normalized_editorial_text(english)
+            previous = seen_texts.get(normalized_english)
+            if previous is not None:
+                exact_duplicates.append({
+                    'sourceNumber': source_number,
+                    'appendIndex': append_index,
+                    'matchesSourceNumber': previous[0],
+                    'matchesAppendIndex': previous[1],
+                })
+            else:
+                seen_texts[normalized_english] = (source_number, append_index)
+            if any(source and source in normalized_english for source in canonical_texts):
+                canonical_embeddings.append({
+                    'sourceNumber': source_number, 'appendIndex': append_index,
+                })
+        for left_index, left in enumerate(appends):
+            for right_index in range(left_index + 1, len(appends)):
+                overlap = token_overlap(
+                    left['englishText'], appends[right_index]['englishText']
+                )
+                if overlap >= 0.72:
+                    semantic_candidates.append({
+                        'sourceNumber': source_number,
+                        'leftAppendIndex': left_index + 1,
+                        'rightAppendIndex': right_index + 1,
+                        'tokenOverlap': round(overlap, 4),
+                    })
+    result = {
+        'schemaVersion': 1,
+        'summary': {
+            'repairCount': len(repairs),
+            'appendSentenceCount': sum(len(item['appendSentences']) for item in repairs),
+            'forbiddenTemplateOccurrences': len(forbidden),
+            'exactDuplicateOccurrences': len(exact_duplicates),
+            'semanticRepetitionCandidates': len(semantic_candidates),
+            'canonicalSentenceEmbeddingOccurrences': len(canonical_embeddings),
+            'missingBilingualOccurrences': len(missing_bilingual),
+        },
+        'forbiddenTemplates': forbidden,
+        'exactDuplicates': exact_duplicates,
+        'semanticRepetitionCandidates': semantic_candidates,
+        'canonicalSentenceEmbeddings': canonical_embeddings,
+        'missingBilingual': missing_bilingual,
+    }
+    if any(result['summary'][field] for field in (
+        'forbiddenTemplateOccurrences',
+        'exactDuplicateOccurrences',
+        'semanticRepetitionCandidates',
+        'canonicalSentenceEmbeddingOccurrences',
+        'missingBilingualOccurrences',
+    )):
+        raise ValueError('Production editorial repairs fail the quality detector.')
+    return result
+
+
+def reading_301_500_editorial_audit(
+    passages: dict[int, dict[str, Any]],
+    repairs: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """Audit every 301–500 source before allowing a narrow safe overlay."""
+    repair_numbers = {repair['sourceNumber'] for repair in repairs}
+    records: list[dict[str, Any]] = []
+    critical = source_missing = insufficient = normal = 0
+    for source_number in range(301, 501):
+        passage = passages[source_number]
+        sentence_count = len(passage['sentences'])
+        word_count = sum(
+            len(english_tokens(sentence['englishText']))
+            for sentence in passage['sentences']
+        )
+        if sentence_count == 0:
+            quality_status = 'source_missing'
+            safe = False
+            reason = 'Canonical CSV has no English sentence; authored replacement is out of scope.'
+            source_missing += 1
+        elif reading_quality_band(passage['level'], sentence_count, word_count) == 'critical_short':
+            critical += 1
+            safe = source_number in repair_numbers
+            if safe:
+                reason = ('Canonical source has sufficient distinct detail for a small, '
+                          'non-repetitive bilingual expansion without new facts.')
+            else:
+                reason = ('insufficient_source_for_safe_expansion; preserving a short '
+                          'reading is safer than paraphrase-based filler.')
+                insufficient += 1
+            quality_status = 'critical_short'
+        else:
+            quality_status = 'normal'
+            safe = False
+            reason = 'No editorial expansion is required in this phase.'
+            normal += 1
+        records.append({
+            'sourceNumber': source_number,
+            'level': passage['level'],
+            'title': passage['title'],
+            'category': passage['category'],
+            'sentenceCount': sentence_count,
+            'wordCount': word_count,
+            'sourceSentenceCount': sentence_count,
+            'qualityStatus': quality_status,
+            'safeToExpand': safe,
+            'reason': reason,
+        })
+    if not repair_numbers.issubset({record['sourceNumber'] for record in records}):
+        raise ValueError('301–500 repair is outside its audited range.')
+    return {
+        'schemaVersion': 1,
+        'summary': {
+            'audited': len(records),
+            'criticalShortBefore': critical,
+            'safeToExpand': len(repair_numbers),
+            'qualitySafeExpanded': len(repair_numbers),
+            'insufficientSourceForSafeExpansion': insufficient,
+            'sourceMissing': source_missing,
+            'normal': normal,
+        },
+        'readings': records,
+    }
+
+
 def passages_by_source_number(
     passages: dict[str, dict[str, Any]],
 ) -> dict[int, dict[str, Any]]:
@@ -1094,8 +1305,8 @@ def build(
         source_dir / QUALITY_DIRECTORY / filename
         for filename in CONTENT_REPAIR_FILENAMES
     ]
-    legacy_template_repairs_source = (
-        source_dir / LEGACY_101_300_TEMPLATE_REPAIRS_RELATIVE_PATH
+    legacy_pre_polish_repairs_source = (
+        source_dir / LEGACY_101_300_PRE_POLISH_REPAIRS_RELATIVE_PATH
     )
     source_baseline = source_dir / SOURCE_BASELINE_RELATIVE_PATH
     curated_package = curated_package or (
@@ -1109,7 +1320,7 @@ def build(
         pre_curated_generated_questions_backup_source,
         translation_repairs_source,
         *content_repair_sources,
-        legacy_template_repairs_source,
+        legacy_pre_polish_repairs_source,
         source_baseline,
         curated_package,
     ):
@@ -1224,18 +1435,31 @@ def build(
         for source_number, passage in numbered_passages.items()
     }
     base_content_repairs = load_content_repairs(content_repair_sources[0])
-    range_content_repairs = load_content_repairs(content_repair_sources[1])
-    legacy_template_repairs = load_content_repairs(legacy_template_repairs_source)
-    editorial_audit = editorial_repair_audit(
-        legacy_template_repairs, range_content_repairs, numbered_passages
+    range_101_300_content_repairs = load_content_repairs(content_repair_sources[1])
+    range_301_500_content_repairs = load_content_repairs(content_repair_sources[2])
+    legacy_pre_polish_repairs = load_content_repairs(legacy_pre_polish_repairs_source)
+    language_audit = language_polish_audit(
+        legacy_pre_polish_repairs, range_101_300_content_repairs, numbered_passages
     )
-    if editorial_audit['summary']['forbiddenTemplateOccurrencesAfter'] != 0:
-        raise ValueError('Production editorial repairs contain forbidden templates.')
+    repair_quality_101_300 = production_repair_quality_audit(
+        range_101_300_content_repairs, numbered_passages
+    )
+    repair_quality_301_500 = production_repair_quality_audit(
+        range_301_500_content_repairs, numbered_passages
+    )
+    editorial_301_500_audit = reading_301_500_editorial_audit(
+        numbered_passages, range_301_500_content_repairs
+    )
     write_json(
-        source_dir / REPORTS_DIRECTORY / 'reading_repairs_101_300_editorial_audit_v2.json',
-        editorial_audit,
+        source_dir / REPORTS_DIRECTORY / 'reading_101_300_language_polish_audit_v3.json',
+        language_audit,
+    )
+    write_json(
+        source_dir / REPORTS_DIRECTORY / 'reading_301_500_editorial_audit_v1.json',
+        editorial_301_500_audit,
     )
     content_repairs = load_content_repair_overlays(content_repair_sources)
+    question_passages = copy.deepcopy(numbered_passages)
     content_repair_reasons = apply_content_repairs(
         numbered_passages, base_content_repairs
     )
@@ -1256,6 +1480,14 @@ def build(
             sum(len(english_tokens(sentence['englishText'])) for sentence in passage['sentences']),
         )
 
+    # Keep derived vocabulary practice stable while editorial overlays improve
+    # reading prose.  101–300 deliberately uses the pre-polish v2 question
+    # source; 301–500 keeps its canonical question source.  This prevents a
+    # language-only repair or a new reading append from silently changing a
+    # learner's existing questions, options, or answers.
+    apply_content_repairs(question_passages, base_content_repairs)
+    apply_content_repairs(question_passages, legacy_pre_polish_repairs)
+
     document_frequency: Counter[str] = Counter()
     for passage in passages.values():
         document_frequency.update({
@@ -1268,7 +1500,10 @@ def build(
     # range overlay is editorial content for 101–300, not a reason to change
     # focus-word ranking in 301–678.
     content_repair_reasons.update(
-        apply_content_repairs(numbered_passages, range_content_repairs)
+        apply_content_repairs(numbered_passages, range_101_300_content_repairs)
+    )
+    content_repair_reasons.update(
+        apply_content_repairs(numbered_passages, range_301_500_content_repairs)
     )
 
     enrichment_audit = {
@@ -1306,7 +1541,10 @@ def build(
             summary = extractive_summary(sentences)
             summary_tr = None
             summary_type = 'extractive'
-            questions = vocabulary_practice_questions(passage['id'], sentences)
+            questions = vocabulary_practice_questions(
+                passage['id'],
+                question_passages[source_number_int]['sentences'],
+            )
             content_source = 'derived_v1'
         word_count = sum(
             len(english_tokens(sentence['englishText'])) for sentence in sentences
@@ -1418,7 +1656,11 @@ def build(
             **enrichment_audit,
         },
         'readingQualityAudit': quality_audit,
-        'editorialRepairAudit': editorial_audit['summary'],
+        'editorialRepairAudit': language_audit['summary'],
+        'productionEditorialQuality': {
+            'repairs101To300V3': repair_quality_101_300['summary'],
+            'repairs301To500V1': repair_quality_301_500['summary'],
+        },
         'sourceChecksums': {
             'words': source_hash(words_source), 'passages': source_hash(passages_source),
             'sentences': source_hash(sentences_source), 'dictionary': source_hash(dictionary_source),
@@ -1429,7 +1671,8 @@ def build(
             'translationRepairs': source_hash(translation_repairs_source),
             'contentRepairs': source_hash(content_repair_sources[0]),
             'contentRepairs101To300': source_hash(content_repair_sources[1]),
-            'legacyEditorialRepairHistory': source_hash(legacy_template_repairs_source),
+            'contentRepairs301To500': source_hash(content_repair_sources[2]),
+            'legacyEditorialRepairHistory': source_hash(legacy_pre_polish_repairs_source),
             'canonicalSourceBaselineV2': source_hash(source_baseline),
             **({'wordPackMap': source_hash(pack_map_source)} if pack_map_source.is_file() else {}),
         },

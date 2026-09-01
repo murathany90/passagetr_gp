@@ -110,6 +110,7 @@ def canonical_passages() -> dict[str, dict[str, Any]]:
         passages[key] = {
             'title': title,
             'level': builder.nullable(row.get('level')),
+            'category': builder.nullable(row.get('Category')),
             'sentences': [],
         }
     grouped: dict[str, list[dict[str, Any]]] = defaultdict(list)
@@ -175,10 +176,13 @@ def validate_source_checksums(manifest: dict[str, Any]) -> None:
         ),
         'contentRepairs': SOURCE_DATA / 'quality' / 'reading_content_repairs_v1.json',
         'contentRepairs101To300': (
-            SOURCE_DATA / 'quality' / 'reading_content_repairs_101_300_v2.json'
+            SOURCE_DATA / 'quality' / 'reading_content_repairs_101_300_v3.json'
+        ),
+        'contentRepairs301To500': (
+            SOURCE_DATA / 'quality' / 'reading_content_repairs_301_500_v1.json'
         ),
         'legacyEditorialRepairHistory': (
-            SOURCE_DATA / builder.LEGACY_101_300_TEMPLATE_REPAIRS_RELATIVE_PATH
+            SOURCE_DATA / builder.LEGACY_101_300_PRE_POLISH_REPAIRS_RELATIVE_PATH
         ),
         'canonicalSourceBaselineV2': SOURCE_DATA / builder.SOURCE_BASELINE_RELATIVE_PATH,
     }
@@ -249,29 +253,47 @@ def validate_quality_reports(
 
 
 def validate_editorial_repair_audit(manifest: dict[str, Any]) -> None:
-    legacy_repairs = builder.load_content_repairs(
-        SOURCE_DATA / builder.LEGACY_101_300_TEMPLATE_REPAIRS_RELATIVE_PATH
+    pre_polish_repairs = builder.load_content_repairs(
+        SOURCE_DATA / builder.LEGACY_101_300_PRE_POLISH_REPAIRS_RELATIVE_PATH
     )
-    production_repairs = builder.load_content_repairs(
-        SOURCE_DATA / 'quality' / 'reading_content_repairs_101_300_v2.json'
+    polished_repairs = builder.load_content_repairs(
+        SOURCE_DATA / 'quality' / 'reading_content_repairs_101_300_v3.json'
+    )
+    range_301_500_repairs = builder.load_content_repairs(
+        SOURCE_DATA / 'quality' / 'reading_content_repairs_301_500_v1.json'
     )
     passages = {
         builder.source_number_for(passage): passage
         for passage in canonical_passages().values()
     }
-    expected = builder.editorial_repair_audit(
-        legacy_repairs, production_repairs, passages
+    expected = builder.language_polish_audit(
+        pre_polish_repairs, polished_repairs, passages
     )
     actual = load(
-        SOURCE_DATA / 'reports' / 'reading_repairs_101_300_editorial_audit_v2.json'
+        SOURCE_DATA / 'reports' / 'reading_101_300_language_polish_audit_v3.json'
     )
     if actual != expected:
-        raise ValueError('Editorial repair audit is invalid.')
-    summary = expected['summary']
-    if summary['forbiddenTemplateOccurrencesAfter'] != 0:
-        raise ValueError('Production editorial repairs contain forbidden templates.')
-    if manifest.get('editorialRepairAudit') != summary:
+        raise ValueError('101–300 language-polish audit is invalid.')
+    if manifest.get('editorialRepairAudit') != expected['summary']:
         raise ValueError('Manifest editorial-repair audit is invalid.')
+    expected_301_500 = builder.reading_301_500_editorial_audit(
+        passages, range_301_500_repairs
+    )
+    actual_301_500 = load(
+        SOURCE_DATA / 'reports' / 'reading_301_500_editorial_audit_v1.json'
+    )
+    if actual_301_500 != expected_301_500:
+        raise ValueError('301–500 editorial audit is invalid.')
+    expected_quality = {
+        'repairs101To300V3': builder.production_repair_quality_audit(
+            polished_repairs, passages
+        )['summary'],
+        'repairs301To500V1': builder.production_repair_quality_audit(
+            range_301_500_repairs, passages
+        )['summary'],
+    }
+    if manifest.get('productionEditorialQuality') != expected_quality:
+        raise ValueError('Production editorial quality metadata is invalid.')
 
 
 def validate(content_dir: Path) -> dict[str, int]:
