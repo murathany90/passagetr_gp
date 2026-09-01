@@ -1108,6 +1108,20 @@ def reading_301_500_editorial_audit(
         })
     if not repair_numbers.issubset({record['sourceNumber'] for record in records}):
         raise ValueError('301–500 repair is outside its audited range.')
+    projected_passages = copy.deepcopy(passages)
+    apply_content_repairs(projected_passages, repairs)
+    critical_remaining = sum(
+        len(projected_passages[source_number]['sentences']) > 0
+        and reading_quality_band(
+            projected_passages[source_number]['level'],
+            len(projected_passages[source_number]['sentences']),
+            sum(
+                len(english_tokens(sentence['englishText']))
+                for sentence in projected_passages[source_number]['sentences']
+            ),
+        ) == 'critical_short'
+        for source_number in range(301, 501)
+    )
     return {
         'schemaVersion': 1,
         'summary': {
@@ -1117,6 +1131,7 @@ def reading_301_500_editorial_audit(
             'qualitySafeExpanded': len(repair_numbers),
             'insufficientSourceForSafeExpansion': insufficient,
             'sourceMissing': source_missing,
+            'criticalShortRemaining': critical_remaining,
             'normal': normal,
         },
         'readings': records,

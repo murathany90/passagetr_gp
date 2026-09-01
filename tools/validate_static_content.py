@@ -108,6 +108,7 @@ def canonical_passages() -> dict[str, dict[str, Any]]:
         if key in passages:
             raise ValueError(f'Duplicate canonical passage title: {title!r}')
         passages[key] = {
+            'id': builder.passage_id(title),
             'title': title,
             'level': builder.nullable(row.get('level')),
             'category': builder.nullable(row.get('Category')),
