@@ -54,7 +54,7 @@ class StaticContentRepository {
   Future<_Catalog> _loadCatalog() async {
     final manifest = await _loadJson('manifest.json');
     final counts = _jsonMap(manifest['counts']);
-    if (counts['words'] != 5314 ||
+    if (counts['words'] != 7500 ||
         counts['readings'] != 678 ||
         counts['sentences'] is! int ||
         (counts['sentences'] as int) < 1) {
@@ -92,7 +92,7 @@ class StaticContentRepository {
     }));
     final result = chunks.expand((chunk) => chunk).toList(growable: false)
       ..sort((left, right) => left.enWord.compareTo(right.enWord));
-    if (result.length != 5314 ||
+    if (result.length != 7500 ||
         result.map((item) => item.id).toSet().length != result.length) {
       throw StaticContentException('Kelime indeksi eksik veya bozuk.');
     }

@@ -1,5 +1,0 @@
-{
-  "schemaVersion": 1,
-  "description": "Only non-curated source sentences that lack Turkish text may be repaired here. The current canonical 101–678 source has no blank Turkish sentence.",
-  "repairs": []
-}

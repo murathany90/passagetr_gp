@@ -34,8 +34,8 @@ void main() {
     final detail = await repository.loadReading(readings.first.id);
 
     expect(packs, isNotEmpty);
-    expect(words, hasLength(5314));
-    expect(words.map((word) => word.id).toSet(), hasLength(5314));
+    expect(words, hasLength(7500));
+    expect(words.map((word) => word.id).toSet(), hasLength(7500));
     expect(readings, hasLength(678));
     expect(detail.sentences, isNotEmpty);
     expect(detail.sentences.first.englishText, isNotEmpty);
