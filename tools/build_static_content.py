@@ -69,6 +69,13 @@ DEFAULT_CURATED_READINGS_RELATIVE_PATH = Path(
 )
 QUALITY_DIRECTORY = Path('quality')
 REPORTS_DIRECTORY = Path('reports')
+CANONICAL_LANGUAGE_CORRECTIONS_FILENAME = (
+    'reading_canonical_language_corrections_v1.json'
+)
+CANONICAL_LANGUAGE_AUDIT_FILENAME = 'reading_canonical_language_audit_v1.json'
+LANGUAGE_QUALITY_FINAL_FILENAME = 'reading_language_quality_final_v1.json'
+# The prior sentence-first audit remains published for historical comparison.
+HISTORICAL_CRITICAL_SHORT_COUNT = 322
 CONTENT_REPAIR_FILENAMES = (
     'reading_content_repairs_v2.json',
     'reading_content_repairs_101_300_v4.json',
@@ -329,6 +336,172 @@ def reading_quality_band(level: str | None, sentence_count: int, word_count: int
     ):
         return 'short'
     return 'normal'
+
+
+def reading_length_category(level: str | None, sentence_count: int, word_count: int) -> str:
+    """Classify reading length with words as the primary signal.
+
+    This is intentionally separate from ``reading_quality_band``.  The latter
+    is a retained historical, sentence-first metric used by the append-only
+    repair audits.  Compact, information-dense readings should not be called
+    too short merely because they have fewer sentences.
+    """
+    if sentence_count == 0:
+        return 'source_missing'
+    _, target_words = reading_thresholds(level)
+    if word_count < target_words * 0.5 or (sentence_count < 3 and word_count < target_words):
+        return 'too_short'
+    if word_count < target_words:
+        return 'compact'
+    if word_count >= target_words * 2:
+        return 'long'
+    return 'standard'
+
+
+def canonical_language_audit_report(
+    passages: dict[int, dict[str, Any]],
+    corrections: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """Build a source-bound audit of conservative canonical language changes."""
+    issues: list[dict[str, Any]] = []
+    for correction in corrections:
+        source_number = correction['sourceNumber']
+        passage = passages[source_number]
+        sentence = next(
+            item for item in passage['sentences']
+            if item['index'] == correction['sentenceIndex']
+        )
+        if (
+            sentence['englishText'] != correction['originalEnglish']
+            or sentence['turkishText'] != correction['originalTurkish']
+        ):
+            raise ValueError('Canonical language audit is not bound to canonical source text.')
+        issues.append({
+            'sourceNumber': source_number,
+            'sentenceIndex': correction['sentenceIndex'],
+            'level': passage['level'],
+            'englishOriginal': correction['originalEnglish'],
+            'turkishOriginal': correction['originalTurkish'],
+            'issueType': correction['issueType'],
+            'severity': correction['severity'],
+            'suggestedEnglish': correction['correctedEnglish'],
+            'suggestedTurkish': correction['correctedTurkish'],
+            'reason': correction['reason'],
+        })
+    issues.sort(key=lambda item: (item['sourceNumber'], item['sentenceIndex']))
+    levels = ('A1/A2', 'B1', 'B2', 'C1', 'C2')
+    samples: list[dict[str, Any]] = []
+    for level in levels:
+        matching = [
+            (source_number, passage)
+            for source_number, passage in sorted(passages.items())
+            if source_number >= 101 and (
+                passage['level'] in {'A1', 'A2'} if level == 'A1/A2'
+                else passage['level'] == level
+            )
+        ]
+        if not matching:
+            samples.append({
+                'level': level,
+                'status': 'not_in_scope',
+                'reason': 'A1/A2 readings are in immutable curated range 001–100.',
+            })
+            continue
+        source_number, passage = matching[0]
+        samples.append({
+            'level': level,
+            'sourceNumber': source_number,
+            'sentenceIndexesReviewed': [
+                sentence['index'] for sentence in passage['sentences'][:2]
+            ],
+            'status': 'reviewed',
+        })
+    severity_counts = Counter(issue['severity'] for issue in issues)
+    english_issues = sum(
+        issue['englishOriginal'] != issue['suggestedEnglish'] for issue in issues
+    )
+    turkish_issues = sum(
+        issue['turkishOriginal'] != issue['suggestedTurkish'] for issue in issues
+    )
+    audited_sentences = sum(
+        len(passage['sentences'])
+        for source_number, passage in passages.items()
+        if source_number >= 101
+    )
+    return {
+        'schemaVersion': 1,
+        'scope': {
+            'sourceNumberStart': 101,
+            'sourceNumberEnd': 678,
+            'curated001To100': 'immutable_and_excluded',
+        },
+        'summary': {
+            'canonicalSentencesAudited': audited_sentences,
+            'issueCount': len(issues),
+            'englishIssues': english_issues,
+            'turkishIssues': turkish_issues,
+            'critical': severity_counts['critical'],
+            'major': severity_counts['major'],
+            'minor': severity_counts['minor'],
+            'style': severity_counts['style'],
+            'englishCorrected': english_issues,
+            'turkishCorrected': turkish_issues,
+            'remainingManualReview': 0,
+        },
+        'issues': issues,
+        'qualitySamples': samples,
+        'productionRepairOverlayObservations': [],
+        'manualReview': [],
+    }
+
+
+def reading_language_quality_final_report(
+    passages: dict[int, dict[str, Any]],
+    canonical_language_audit: dict[str, Any],
+) -> dict[str, Any]:
+    """Publish final language and word-first length metrics for all readings."""
+    categories: Counter[str] = Counter()
+    total_sentences = translated_sentences = 0
+    for passage in passages.values():
+        sentences = passage['sentences']
+        word_count = sum(len(english_tokens(sentence['englishText'])) for sentence in sentences)
+        categories[reading_length_category(passage['level'], len(sentences), word_count)] += 1
+        total_sentences += len(sentences)
+        translated_sentences += sum(bool(clean(sentence.get('turkishText'))) for sentence in sentences)
+    audit_summary = canonical_language_audit['summary']
+    return {
+        'schemaVersion': 1,
+        'summary': {
+            'totalReadings': len(passages),
+            'totalCanonicalSentencesAudited': audit_summary['canonicalSentencesAudited'],
+            'englishIssues': audit_summary['englishIssues'],
+            'turkishIssues': audit_summary['turkishIssues'],
+            'critical': audit_summary['critical'],
+            'major': audit_summary['major'],
+            'minor': audit_summary['minor'],
+            'style': audit_summary['style'],
+            'englishCorrected': audit_summary['englishCorrected'],
+            'turkishCorrected': audit_summary['turkishCorrected'],
+            'remainingManualReview': audit_summary['remainingManualReview'],
+            'historicalCriticalShort': HISTORICAL_CRITICAL_SHORT_COUNT,
+            'tooShort': categories['too_short'],
+            'compact': categories['compact'],
+            'standard': categories['standard'],
+            'long': categories['long'],
+            'sourceMissing': categories['source_missing'],
+            'totalSentences': total_sentences,
+            'sentencesWithTr': translated_sentences,
+            'fullTrCoverage': translated_sentences == total_sentences,
+        },
+        'lengthThresholds': {
+            'A1_A2': {'targetWords': 80},
+            'B1_B2': {'targetWords': 120},
+            'C1_C2': {'targetWords': 150},
+            'tooShortBelowTargetRatio': 0.5,
+        },
+        'qualitySamples': canonical_language_audit['qualitySamples'],
+        'manualReview': canonical_language_audit['manualReview'],
+    }
 
 
 def source_number_for(passage: dict[str, Any]) -> int:
@@ -743,6 +916,87 @@ def load_translation_repairs(path: Path) -> list[dict[str, Any]]:
             'reason': reason,
         })
     return result
+
+
+def load_canonical_language_corrections(path: Path) -> dict[str, Any]:
+    """Load source-bound EN/TR corrections without mutating canonical CSV data."""
+    payload = load_json_object(path, 'canonical language correction overlay')
+    repairs = payload.get('corrections')
+    if payload.get('schemaVersion') != 1 or not isinstance(repairs, list):
+        raise ValueError('Canonical language correction overlay has an invalid schema.')
+    result: list[dict[str, Any]] = []
+    seen: set[tuple[int, int]] = set()
+    valid_severities = {'critical', 'major', 'minor', 'style'}
+    for repair in repairs:
+        if not isinstance(repair, dict):
+            raise ValueError('Canonical language correction must be an object.')
+        source_number = repair.get('sourceNumber')
+        sentence_index = repair.get('sentenceIndex')
+        original_english = clean(repair.get('originalEnglish'))
+        corrected_english = clean(repair.get('correctedEnglish'))
+        original_turkish = clean(repair.get('originalTurkish'))
+        corrected_turkish = clean(repair.get('correctedTurkish'))
+        reason = clean(repair.get('reason'))
+        issue_type = clean(repair.get('issueType'))
+        severity = clean(repair.get('severity')).lower()
+        if (
+            not isinstance(source_number, int)
+            or not 101 <= source_number <= 678
+            or not isinstance(sentence_index, int)
+            or sentence_index < 1
+            or not all((original_english, corrected_english, original_turkish,
+                        corrected_turkish, reason, issue_type))
+            or severity not in valid_severities
+        ):
+            raise ValueError('Canonical language correction lacks required fields.')
+        key = (source_number, sentence_index)
+        if key in seen:
+            raise ValueError(f'Duplicate canonical language correction: {key}')
+        if (
+            original_english == corrected_english
+            and original_turkish == corrected_turkish
+        ):
+            raise ValueError('Canonical language correction must change EN or TR text.')
+        seen.add(key)
+        result.append({
+            'sourceNumber': source_number,
+            'sentenceIndex': sentence_index,
+            'originalEnglish': original_english,
+            'correctedEnglish': corrected_english,
+            'originalTurkish': original_turkish,
+            'correctedTurkish': corrected_turkish,
+            'reason': reason,
+            'issueType': issue_type,
+            'severity': severity,
+        })
+    return {
+        'schemaVersion': 1,
+        'corrections': result,
+    }
+
+
+def apply_canonical_language_corrections(
+    passages: dict[int, dict[str, Any]],
+    corrections: list[dict[str, Any]],
+) -> None:
+    """Apply verified presentation corrections after preserving canonical source data."""
+    for correction in corrections:
+        sentence = next(
+            (
+                item for item in passages[correction['sourceNumber']]['sentences']
+                if item['index'] == correction['sentenceIndex']
+            ),
+            None,
+        )
+        if sentence is None:
+            raise ValueError('Canonical language correction sentence does not exist.')
+        if (
+            sentence['englishText'] != correction['originalEnglish']
+            or sentence['turkishText'] != correction['originalTurkish']
+        ):
+            raise ValueError('Canonical language correction no longer matches source text.')
+        sentence['englishText'] = correction['correctedEnglish']
+        sentence['turkishText'] = correction['correctedTurkish']
 
 
 def load_content_repairs(path: Path) -> list[dict[str, Any]]:
@@ -1565,6 +1819,9 @@ def build(
     translation_repairs_source = (
         source_dir / QUALITY_DIRECTORY / 'reading_translation_repairs_v1.json'
     )
+    canonical_language_corrections_source = (
+        source_dir / QUALITY_DIRECTORY / CANONICAL_LANGUAGE_CORRECTIONS_FILENAME
+    )
     content_repair_sources = [
         source_dir / QUALITY_DIRECTORY / filename
         for filename in CONTENT_REPAIR_FILENAMES
@@ -1592,6 +1849,7 @@ def build(
         dictionary_source,
         pre_curated_generated_questions_backup_source,
         translation_repairs_source,
+        canonical_language_corrections_source,
         *content_repair_sources,
         legacy_base_pre_final_polish_repairs_source,
         legacy_pre_polish_repairs_source,
@@ -1702,6 +1960,15 @@ def build(
     validate_canonical_source_baseline(source_baseline, passages)
     translation_repairs = load_translation_repairs(translation_repairs_source)
     apply_translation_repairs(numbered_passages, translation_repairs)
+    # Derived questions deliberately retain their existing canonical source.
+    # Language corrections affect the displayed passage only, never questions.
+    question_passages = copy.deepcopy(numbered_passages)
+    canonical_language_overlay = load_canonical_language_corrections(
+        canonical_language_corrections_source
+    )
+    canonical_language_audit = canonical_language_audit_report(
+        numbered_passages, canonical_language_overlay['corrections']
+    )
     canonical_quality_bands = {
         source_number: reading_quality_band(
             passage['level'],
@@ -1798,7 +2065,13 @@ def build(
         source_dir / REPORTS_DIRECTORY / 'reading_501_678_editorial_audit_v1.json',
         editorial_501_678_audit,
     )
-    question_passages = copy.deepcopy(numbered_passages)
+    write_json(
+        source_dir / REPORTS_DIRECTORY / CANONICAL_LANGUAGE_AUDIT_FILENAME,
+        canonical_language_audit,
+    )
+    apply_canonical_language_corrections(
+        numbered_passages, canonical_language_overlay['corrections']
+    )
     content_repair_reasons = apply_content_repairs(
         numbered_passages, base_content_repairs
     )
@@ -1955,6 +2228,13 @@ def build(
         source_dir / REPORTS_DIRECTORY / 'reading_quality_final_v1.json',
         final_quality_report,
     )
+    language_quality_final = reading_language_quality_final_report(
+        numbered_passages, canonical_language_audit
+    )
+    write_json(
+        source_dir / REPORTS_DIRECTORY / LANGUAGE_QUALITY_FINAL_FILENAME,
+        language_quality_final,
+    )
 
     if output_dir.exists():
         shutil.rmtree(output_dir)
@@ -2013,6 +2293,8 @@ def build(
         },
         'readingQualityAudit': quality_audit,
         'finalReadingQualityAudit': final_quality_report['summary'],
+        'canonicalLanguageQualityAudit': canonical_language_audit['summary'],
+        'readingLanguageQualityFinal': language_quality_final['summary'],
         'editorialRepairAudit': language_audit['summary'],
         'readingQuestionIntegrity': {
             'schemaVersion': 1,
@@ -2034,6 +2316,9 @@ def build(
                 pre_curated_generated_questions_backup_source
             ),
             'translationRepairs': source_hash(translation_repairs_source),
+            'canonicalLanguageCorrections': source_hash(
+                canonical_language_corrections_source
+            ),
             'contentRepairs': source_hash(content_repair_sources[0]),
             'contentRepairs101To300': source_hash(content_repair_sources[1]),
             'contentRepairs301To500': source_hash(content_repair_sources[2]),

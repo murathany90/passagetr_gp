@@ -176,6 +176,9 @@ def validate_source_checksums(manifest: dict[str, Any]) -> None:
         'translationRepairs': (
             SOURCE_DATA / 'quality' / 'reading_translation_repairs_v1.json'
         ),
+        'canonicalLanguageCorrections': (
+            SOURCE_DATA / 'quality' / builder.CANONICAL_LANGUAGE_CORRECTIONS_FILENAME
+        ),
         'contentRepairs': SOURCE_DATA / 'quality' / 'reading_content_repairs_v2.json',
         'contentRepairs101To300': (
             SOURCE_DATA / 'quality' / 'reading_content_repairs_101_300_v4.json'
@@ -430,6 +433,18 @@ def validate_final_editorial_repair_audit(manifest: dict[str, Any]) -> None:
             SOURCE_DATA / 'quality' / 'reading_translation_repairs_v1.json'
         ),
     )
+    canonical_language_overlay = builder.load_canonical_language_corrections(
+        SOURCE_DATA / 'quality' / builder.CANONICAL_LANGUAGE_CORRECTIONS_FILENAME
+    )
+    expected_canonical_language_audit = builder.canonical_language_audit_report(
+        final_passages, canonical_language_overlay['corrections']
+    )
+    if load(
+        SOURCE_DATA / 'reports' / builder.CANONICAL_LANGUAGE_AUDIT_FILENAME
+    ) != expected_canonical_language_audit:
+        raise ValueError('Canonical language audit is invalid.')
+    if manifest.get('canonicalLanguageQualityAudit') != expected_canonical_language_audit['summary']:
+        raise ValueError('Canonical language audit metadata is invalid.')
     canonical_quality_bands = {
         source_number: builder.reading_quality_band(
             passage['level'],
@@ -441,6 +456,9 @@ def validate_final_editorial_repair_audit(manifest: dict[str, Any]) -> None:
         )
         for source_number, passage in final_passages.items()
     }
+    builder.apply_canonical_language_corrections(
+        final_passages, canonical_language_overlay['corrections']
+    )
     builder.apply_content_repairs(final_passages, base_repairs)
     curated = load_curated_package()
     for source_number, record in curated.items():
@@ -478,6 +496,15 @@ def validate_final_editorial_repair_audit(manifest: dict[str, Any]) -> None:
         raise ValueError('Final reading-quality report is invalid.')
     if manifest.get('finalReadingQualityAudit') != expected_final_quality['summary']:
         raise ValueError('Manifest final reading-quality audit is invalid.')
+    expected_language_quality_final = builder.reading_language_quality_final_report(
+        final_passages, expected_canonical_language_audit
+    )
+    if load(
+        SOURCE_DATA / 'reports' / builder.LANGUAGE_QUALITY_FINAL_FILENAME
+    ) != expected_language_quality_final:
+        raise ValueError('Final canonical language-quality report is invalid.')
+    if manifest.get('readingLanguageQualityFinal') != expected_language_quality_final['summary']:
+        raise ValueError('Final canonical language-quality metadata is invalid.')
 
 
 def validate(content_dir: Path) -> dict[str, int]:

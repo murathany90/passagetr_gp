@@ -156,6 +156,53 @@ assert builder.canonical_source_baseline_payload(passages)['canonicalContentSha2
 
     expect(result.exitCode, 0, reason: result.stderr.toString());
   });
+
+  test(
+      'canonical language corrections are source-bound and leave curated data immutable',
+      () {
+    final overlay = _json(
+      'source_data/quality/reading_canonical_language_corrections_v1.json',
+    );
+    final corrections = overlay['corrections']! as List<Object?>;
+    expect(corrections, hasLength(30));
+
+    final canonicalAudit = _json(
+      'source_data/reports/reading_canonical_language_audit_v1.json',
+    );
+    final summary = canonicalAudit['summary']! as Map<String, Object?>;
+    expect(summary['canonicalSentencesAudited'], 4624);
+    expect(summary['critical'], 5);
+
+    final index = _json('assets/content/v1/readings/index.json');
+    final entry = (index['readings']! as List<Object?>)
+        .cast<Map<String, Object?>>()
+        .singleWhere((item) => item['sourceNumber'] == '513');
+    final napster = _json('assets/content/v1/${entry['file']}');
+    final sentence = (napster['sentences']! as List<Object?>)
+        .cast<Map<String, Object?>>()
+        .singleWhere((item) => item['index'] == 6);
+    expect(sentence['englishText'],
+        contains('contributory copyright infringement'));
+
+    final curatedReadings = jsonDecode(File(
+      'source_data/curated/readings_001_100_curated_v2.json',
+    ).readAsStringSync()) as List<Object?>;
+    final firstCurated = Map<String, Object?>.from(
+      curatedReadings.first as Map,
+    );
+    final curatedEntry = (index['readings']! as List<Object?>)
+        .cast<Map<String, Object?>>()
+        .singleWhere((item) => item['sourceNumber'] == '001');
+    final generatedCurated = _json('assets/content/v1/${curatedEntry['file']}');
+    final expectedSentence = Map<String, Object?>.from(
+      (firstCurated['sentences']! as List<Object?>).first as Map,
+    );
+    final generatedSentence = Map<String, Object?>.from(
+      (generatedCurated['sentences']! as List<Object?>).first as Map,
+    );
+    expect(generatedSentence['englishText'], expectedSentence['en']);
+    expect(generatedSentence['turkishText'], expectedSentence['tr']);
+  });
 }
 
 Map<String, Object?> _json(String path) =>
