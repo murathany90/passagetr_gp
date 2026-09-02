@@ -157,6 +157,54 @@ assert builder.canonical_source_baseline_payload(passages)['canonicalContentSha2
     expect(result.exitCode, 0, reason: result.stderr.toString());
   });
 
+  test('word spreadsheet-error placeholders are rejected and repaired data is generated',
+      () async {
+    const script = r'''
+import json
+import sys
+sys.path.insert(0, 'tools')
+import build_static_content as builder
+
+assert builder.has_invalid_spreadsheet_token('#AD?')
+assert builder.has_invalid_spreadsheet_token('before #VALUE! after')
+assert builder.has_invalid_spreadsheet_token('#BÖL/0!')
+assert not builder.has_invalid_spreadsheet_token('79 AD')
+
+from pathlib import Path
+rows = builder.read_csv(Path('source_data/canonical/words/yds_words_set_001.csv'))
+ledger = builder.load_word_tr_meaning_corrections(
+    __import__('pathlib').Path('source_data/quality/word_tr_meaning_corrections_v1.json')
+)
+audit = builder.word_content_quality_audit_report(rows, ledger)
+assert len(rows) == 5314
+assert len(ledger) == 138
+assert audit['summary']['invalidMeaningCountAfter'] == 0
+assert audit['summary']['spreadsheetErrorTokenCountAfter'] == 0
+
+word_index = json.load(open('assets/content/v1/words/index.json', encoding='utf-8'))
+generated = []
+for pack in word_index['packs']:
+    generated.extend(json.load(open('assets/content/v1/' + pack['file'], encoding='utf-8'))['words'])
+for correction in ledger:
+    assert any(
+        word['enWord'] == correction['enWord']
+        and word['trMeaning'] == correction['correctedValue']
+        for word in generated
+    )
+
+dictionary = json.load(open('assets/content/v1/dictionary/index.json', encoding='utf-8'))
+assert dictionary['recordCount'] == 121772
+assert builder.has_invalid_spreadsheet_token('#REF!')
+''';
+    final result = await Process.run(
+      'python',
+      <String>['-c', script],
+      workingDirectory: Directory.current.path,
+    );
+
+    expect(result.exitCode, 0, reason: result.stderr.toString());
+  });
+
   test(
       'canonical language corrections are source-bound and leave curated data immutable',
       () {
@@ -174,15 +222,24 @@ assert builder.canonical_source_baseline_payload(passages)['canonicalContentSha2
     expect(summary['critical'], 6);
 
     final manualOverlay = _json(
-      'source_data/quality/reading_canonical_language_corrections_101_300_v2.json',
+      'source_data/quality/reading_canonical_language_corrections_101_300_v3.json',
     );
     final manualCorrections = manualOverlay['corrections']! as List<Object?>;
-    expect(manualCorrections, hasLength(29));
+    expect(manualCorrections, hasLength(42));
     expect(
       manualCorrections.cast<Map<String, Object?>>().map(
             (correction) => correction['sourceNumber'] as int,
           ),
       everyElement(inInclusiveRange(101, 300)),
+    );
+    expect(
+      manualCorrections.cast<Map<String, Object?>>().every(
+            (correction) =>
+                correction['englishReviewed'] == true &&
+                correction['turkishReviewed'] == true &&
+                correction['pairAlignmentReviewed'] == true,
+          ),
+      isTrue,
     );
 
     final manualReview = _json(
@@ -192,6 +249,9 @@ assert builder.canonical_source_baseline_payload(passages)['canonicalContentSha2
     expect(manualSummary['readingsReviewed'], 200);
     expect(manualSummary['sentencePairsReviewed'], 1687);
     expect(manualSummary['manualReviewRemaining'], 0);
+    expect(manualSummary['bilingualSpotPairsReviewed'], 200);
+    expect(manualSummary['bilingualSpotCleanWithoutChange'], 187);
+    expect(manualSummary['bilingualSpotNewIssuesFound'], 13);
     expect(manualSummary['sourceMissingReadings'], <int>[118, 175, 196, 226, 244, 269]);
 
     final reviewedReadings = manualReview['reviewedReadings']! as List<Object?>;

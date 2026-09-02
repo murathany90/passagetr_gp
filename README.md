@@ -19,6 +19,8 @@ Builder ve validator’ın güncel çıktıları:
 
 | Path | Format | İçerik | Yaklaşık kayıt | Ana alanlar | Kullanım |
 | --- | --- | --- | ---: | --- | --- |
+| `source_data/quality/word_tr_meaning_corrections_v1.json` | JSON | Historical `#AD?` source correction ledger | 138 | `enWord`, `originalValue`, `correctedValue`, `reason` | Canonical word meaning correction traceability |
+| `source_data/quality/reading_canonical_language_corrections_101_300_v3.json` | JSON | 101–300 reviewed canonical EN/TR corrections | 42 | source/sentence binding, EN/TR values, review flags | Production bilingual reading overlay |
 | `source_data/canonical/words/yds_words_set_001.csv` | CSV | İngilizce kelime çalışması | 5.314 | `en_word`, `tr_meaning`, `pos`, `example_en`, `example_tr`, `synonyms_raw`, `antonyms_raw`, `level`, `tags_raw`, `notes` | Kelime, flashcard, mini test ve focus-word adayları |
 | `source_data/canonical/readings/reading_passages.csv` | CSV | Okuma üst bilgisi | 678 | `pack_name`, `title`, `level`, `tags_raw`, `Category` | Reading index ve filtreler |
 | `source_data/canonical/readings/reading_sentences.csv` | CSV | Canonical reading–cümle ilişkisi | 5.242 | `passage_title`, `idx`, `sentence_en`, `sentence_tr` | Builder’ın temel reading girdisi |
@@ -42,6 +44,17 @@ Builder, curated 001–100 başlık/cümle/özet/sorularını değiştirmez. 101
 üretilen cloze’lar `vocabulary_practice` olarak sınıflanır; gerçek Okuduğunu
 Anlama sorusu diye sunulmaz. Derived ilk iki cümle de `extractive` olarak
 etiketlenir; UI’da “Metinden Kısa Bölüm” başlığını alır.
+
+## Veri Kalitesi
+
+- Word records: 5.314
+- Spreadsheet-error audit: `#AD?` before 138, after 0. Kaynakta istemdeki
+  48 kayıt dışında aynı placeholder’ı taşıyan 90 kayıt daha bulundu ve aynı
+  denetim kapsamında düzeltildi.
+- Kullanıcıya gösterilen kelime alanlarında geçersiz spreadsheet placeholder
+  sonrası: 0.
+- Ayrıntılı, source-bound kayıtlar:
+  `source_data/reports/word_content_quality_audit_v1.json`.
 
 ## Reading Quality
 

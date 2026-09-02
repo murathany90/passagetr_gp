@@ -74,11 +74,17 @@ CANONICAL_LANGUAGE_CORRECTIONS_FILENAME = (
 )
 CANONICAL_LANGUAGE_CORRECTION_FILENAMES = (
     CANONICAL_LANGUAGE_CORRECTIONS_FILENAME,
-    'reading_canonical_language_corrections_101_300_v2.json',
+    'reading_canonical_language_corrections_101_300_v3.json',
 )
 CANONICAL_LANGUAGE_AUDIT_FILENAME = 'reading_canonical_language_audit_v1.json'
 CANONICAL_EDITORIAL_REVIEW_101_300_FILENAME = (
     'reading_canonical_editorial_review_101_300_v1.json'
+)
+WORD_TR_MEANING_CORRECTIONS_FILENAME = 'word_tr_meaning_corrections_v1.json'
+WORD_CONTENT_QUALITY_AUDIT_FILENAME = 'word_content_quality_audit_v1.json'
+INVALID_SPREADSHEET_TOKENS = (
+    '#AD?', '#NAME?', '#N/A', '#VALUE!', '#REF!', '#DIV/0!', '#NUM!', '#NULL!',
+    '#YOK', '#YOK?', '#DE\u011eER!', '#BA\u015eV!', '#SAYI!', '#B\u00d6L/0!',
 )
 LANGUAGE_QUALITY_FINAL_FILENAME = 'reading_language_quality_final_v1.json'
 # The prior sentence-first audit remains published for historical comparison.
@@ -129,6 +135,19 @@ def clean(value: str | None) -> str:
     text = (value or '').translate(SMART_QUOTES).replace('\r', ' ').replace('\n', ' ')
     text = re.sub(r'[\u200b\u200c\u200d]', '', text)
     return re.sub(r'\s+', ' ', text).strip()
+
+
+def invalid_spreadsheet_tokens(value: str | None) -> list[str]:
+    """Return known spreadsheet-error tokens embedded in user-visible text."""
+    text = clean(value).casefold()
+    return [
+        token for token in INVALID_SPREADSHEET_TOKENS
+        if token.casefold() in text
+    ]
+
+
+def has_invalid_spreadsheet_token(value: str | None) -> bool:
+    return bool(invalid_spreadsheet_tokens(value))
 
 
 def normalized(value: str | None) -> str:
@@ -532,6 +551,86 @@ def load_json_object(path: Path, label: str) -> dict[str, Any]:
     return value
 
 
+def load_word_tr_meaning_corrections(path: Path) -> list[dict[str, str]]:
+    """Load the historical #AD? correction ledger and bind it to source rows."""
+    payload = load_json_object(path, 'word Turkish-meaning correction ledger')
+    corrections = payload.get('corrections')
+    if payload.get('schemaVersion') != 1 or not isinstance(corrections, list):
+        raise ValueError('Word Turkish-meaning correction ledger has an invalid schema.')
+    result: list[dict[str, str]] = []
+    seen: set[str] = set()
+    for correction in corrections:
+        if not isinstance(correction, dict):
+            raise ValueError('Word Turkish-meaning correction must be an object.')
+        word = clean(correction.get('enWord'))
+        field = clean(correction.get('field'))
+        original = clean(correction.get('originalValue'))
+        corrected = clean(correction.get('correctedValue'))
+        reason = clean(correction.get('reason'))
+        if (
+            not word or field != 'tr_meaning' or original != '#AD?'
+            or not corrected or has_invalid_spreadsheet_token(corrected)
+            or not reason or word in seen
+        ):
+            raise ValueError('Word Turkish-meaning correction is invalid.')
+        seen.add(word)
+        result.append({
+            'enWord': word,
+            'field': field,
+            'originalValue': original,
+            'correctedValue': corrected,
+            'reason': reason,
+        })
+    return result
+
+
+def word_content_quality_audit_report(
+    word_rows: list[dict[str, str]],
+    corrections: list[dict[str, str]],
+) -> dict[str, Any]:
+    """Report historical spreadsheet placeholders and verify their source repair."""
+    by_word = {clean(row.get('en_word')): row for row in word_rows}
+    if len(by_word) != len(word_rows):
+        raise ValueError('Word audit requires unique source headwords.')
+    for correction in corrections:
+        row = by_word.get(correction['enWord'])
+        if row is None or clean(row.get('tr_meaning')) != correction['correctedValue']:
+            raise ValueError(
+                f'Word correction no longer matches canonical source: {correction["enWord"]}'
+            )
+    visible_fields = ('en_word', 'tr_meaning', 'example_en', 'example_tr')
+    current_invalid: list[dict[str, str]] = []
+    invalid_examples = 0
+    for row in word_rows:
+        for field in visible_fields:
+            tokens = invalid_spreadsheet_tokens(row.get(field))
+            if tokens:
+                if field in {'example_en', 'example_tr'}:
+                    invalid_examples += 1
+                current_invalid.append({
+                    'enWord': clean(row.get('en_word')),
+                    'field': field,
+                    'tokens': tokens,
+                })
+    return {
+        'schemaVersion': 1,
+        'summary': {
+            'totalWords': len(word_rows),
+            'invalidMeaningCount': len(corrections),
+            'invalidExampleCount': 0,
+            'spreadsheetErrorTokenCount': len(corrections),
+            'invalidMeaningCountAfter': sum(
+                1 for record in current_invalid if record['field'] == 'tr_meaning'
+            ),
+            'invalidExampleCountAfter': invalid_examples,
+            'spreadsheetErrorTokenCountAfter': len(current_invalid),
+            'invalidUserVisiblePlaceholderAfter': len(current_invalid),
+        },
+        'records': corrections,
+        'currentInvalidRecords': current_invalid,
+    }
+
+
 def canonical_source_baseline_payload(
     passages: dict[str, dict[str, Any]],
 ) -> dict[str, Any]:
@@ -794,6 +893,8 @@ def build_dictionary(dictionary_source: Path, output_dir: Path) -> dict[str, Any
         english = clean(value('en_word'))
         meaning = clean(value('tr_meaning_clean'))
         pos = clean(value('pos')) or None
+        if has_invalid_spreadsheet_token(english) or has_invalid_spreadsheet_token(meaning):
+            raise ValueError('Dictionary source contains an invalid spreadsheet-error token.')
         if english and not meaning:
             empty_meaning_rows += 1
         if not english or not meaning:
@@ -934,6 +1035,9 @@ def load_canonical_language_corrections(path: Path) -> dict[str, Any]:
     result: list[dict[str, Any]] = []
     seen: set[tuple[int, int]] = set()
     valid_severities = {'critical', 'major', 'minor', 'style'}
+    requires_bilingual_review_flags = (
+        path.name == 'reading_canonical_language_corrections_101_300_v3.json'
+    )
     for repair in repairs:
         if not isinstance(repair, dict):
             raise ValueError('Canonical language correction must be an object.')
@@ -954,6 +1058,16 @@ def load_canonical_language_corrections(path: Path) -> dict[str, Any]:
             or not all((original_english, corrected_english, original_turkish,
                         corrected_turkish, reason, issue_type))
             or severity not in valid_severities
+            or (
+                requires_bilingual_review_flags
+                and not all(
+                    repair.get(flag) is True
+                    for flag in (
+                        'englishReviewed', 'turkishReviewed',
+                        'pairAlignmentReviewed',
+                    )
+                )
+            )
         ):
             raise ValueError('Canonical language correction lacks required fields.')
         key = (source_number, sentence_index)
@@ -1026,8 +1140,32 @@ def load_manual_editorial_review_101_300(path: Path) -> dict[str, Any]:
     repair_review = payload.get('productionRepairReview')
     if not isinstance(repair_review, dict):
         raise ValueError('Manual editorial review ledger lacks production repair review data.')
+    spot_review = payload.get('bilingualSpotReview')
+    if not isinstance(spot_review, dict) or spot_review.get('reviewed') is not True:
+        raise ValueError('Manual editorial review ledger lacks bilingual spot-review data.')
+    spot_records = spot_review.get('records')
+    if not isinstance(spot_records, list) or len(spot_records) < 200:
+        raise ValueError('Bilingual spot review must contain at least 200 sentence pairs.')
+    seen_spot_pairs: set[tuple[int, int]] = set()
+    for record in spot_records:
+        if not isinstance(record, dict):
+            raise ValueError('Bilingual spot-review record is invalid.')
+        key = (record.get('sourceNumber'), record.get('sentenceIndex'))
+        if (
+            not isinstance(key[0], int) or not 101 <= key[0] <= 300
+            or not isinstance(key[1], int) or key[1] < 1 or key in seen_spot_pairs
+            or record.get('englishReviewed') is not True
+            or record.get('turkishReviewed') is not True
+            or record.get('pairAlignmentReviewed') is not True
+            or record.get('status') not in {'clean_without_change', 'corrected'}
+        ):
+            raise ValueError('Bilingual spot-review record is invalid.')
+        seen_spot_pairs.add(key)
+    if spot_review.get('sentencePairsReviewed') != len(spot_records):
+        raise ValueError('Bilingual spot-review count is invalid.')
     return {'schemaVersion': 1, 'reviewedSourceNumbers': sorted(reviewed),
-            'productionRepairReview': repair_review}
+            'productionRepairReview': repair_review,
+            'bilingualSpotReview': spot_review}
 
 
 def canonical_editorial_review_101_300_report(
@@ -1063,6 +1201,32 @@ def canonical_editorial_review_101_300_report(
         if not passages[source_number]['sentences']
     ]
     repair_review = ledger['productionRepairReview']
+    spot_review = ledger['bilingualSpotReview']
+    spot_records = spot_review['records']
+    correction_keys = {
+        (correction['sourceNumber'], correction['sentenceIndex'])
+        for correction in in_scope
+    }
+    for record in spot_records:
+        source_number = record['sourceNumber']
+        sentence_index = record['sentenceIndex']
+        if not any(
+            sentence['index'] == sentence_index
+            for sentence in passages[source_number]['sentences']
+        ):
+            raise ValueError('Bilingual spot-review sentence does not exist.')
+        is_corrected = (source_number, sentence_index) in correction_keys
+        if (
+            (record['status'] == 'corrected') != is_corrected
+        ):
+            raise ValueError('Bilingual spot-review status is not source-bound.')
+    spot_clean = sum(record['status'] == 'clean_without_change' for record in spot_records)
+    spot_corrected = len(spot_records) - spot_clean
+    if (
+        spot_review.get('cleanWithoutChange') != spot_clean
+        or spot_review.get('newIssuesFound') != spot_corrected
+    ):
+        raise ValueError('Bilingual spot-review summary is invalid.')
     return {
         'schemaVersion': 1,
         'scope': {'sourceNumberStart': 101, 'sourceNumberEnd': 300,
@@ -1086,6 +1250,9 @@ def canonical_editorial_review_101_300_report(
             'minor': severity_counts['minor'],
             'style': severity_counts['style'],
             'manualReviewRemaining': 0,
+            'bilingualSpotPairsReviewed': len(spot_records),
+            'bilingualSpotCleanWithoutChange': spot_clean,
+            'bilingualSpotNewIssuesFound': spot_corrected,
             'productionRepairSentencePairsReviewed': repair_review.get('sentencePairsReviewed'),
             'productionRepairFlowIssuesRemaining': repair_review.get('flowIssuesRemaining'),
         },
@@ -1102,6 +1269,7 @@ def canonical_editorial_review_101_300_report(
             item['sourceNumber'], item['sentenceIndex']
         )),
         'productionRepairReview': repair_review,
+        'bilingualSpotReview': spot_review,
     }
 
 
@@ -1943,6 +2111,9 @@ def build(
     sentences_source = source_dir / 'canonical' / 'readings' / 'reading_sentences.csv'
     dictionary_source = source_dir / 'canonical' / 'dictionary' / 'dictionary_tr_en.xlsx'
     pack_map_source = source_dir / 'mappings' / 'word_pack_reclassification_v1.json'
+    word_tr_meaning_corrections_source = (
+        source_dir / QUALITY_DIRECTORY / WORD_TR_MEANING_CORRECTIONS_FILENAME
+    )
     pre_curated_generated_questions_backup_source = (
         source_dir / 'legacy' / 'pre_curated_generated_questions_backup_v1.json'
     )
@@ -1981,6 +2152,7 @@ def build(
         passages_source,
         sentences_source,
         dictionary_source,
+        word_tr_meaning_corrections_source,
         pre_curated_generated_questions_backup_source,
         translation_repairs_source,
         *canonical_language_correction_sources,
@@ -2007,6 +2179,10 @@ def build(
         }
 
     word_rows = read_csv(words_source)
+    word_content_quality_audit = word_content_quality_audit_report(
+        word_rows,
+        load_word_tr_meaning_corrections(word_tr_meaning_corrections_source),
+    )
     seen_words: set[tuple[str, str]] = set()
     words_by_pack: dict[str, list[dict[str, Any]]] = defaultdict(list)
     primary_word_ids: dict[str, list[str]] = defaultdict(list)
@@ -2014,6 +2190,9 @@ def build(
     for row in word_rows:
         english = clean(row.get('en_word'))
         meaning = clean(row.get('tr_meaning'))
+        examples = (clean(row.get('example_en')), clean(row.get('example_tr')))
+        if any(has_invalid_spreadsheet_token(value) for value in (english, meaning, *examples)):
+            raise ValueError('Word source contains an invalid spreadsheet-error token.')
         pos = canonical_pos(row.get('pos'))
         if not english or not meaning:
             continue
@@ -2420,6 +2599,10 @@ def build(
     write_json(output_dir / 'words' / 'index.json', {'packs': word_index})
     write_json(output_dir / 'readings' / 'index.json', {'readings': reading_index})
     dictionary = build_dictionary(dictionary_source, output_dir)
+    write_json(
+        source_dir / REPORTS_DIRECTORY / WORD_CONTENT_QUALITY_AUDIT_FILENAME,
+        word_content_quality_audit,
+    )
     manifest = {
         'schemaVersion': 1, 'generatedAt': datetime.now(UTC).isoformat(), 'contentVersion': 'v1',
         'counts': {
@@ -2439,6 +2622,7 @@ def build(
         'finalReadingQualityAudit': final_quality_report['summary'],
         'canonicalLanguageQualityAudit': canonical_language_audit['summary'],
         'canonicalEditorialReview101To300': canonical_editorial_review_101_300['summary'],
+        'wordContentQualityAudit': word_content_quality_audit['summary'],
         'readingLanguageQualityFinal': language_quality_final['summary'],
         'editorialRepairAudit': language_audit['summary'],
         'readingQuestionIntegrity': {
@@ -2464,9 +2648,10 @@ def build(
             'canonicalLanguageCorrections': source_hash(
                 canonical_language_correction_sources[0]
             ),
-            'canonicalLanguageCorrections101To300V2': source_hash(
+            'canonicalLanguageCorrections101To300V3': source_hash(
                 canonical_language_correction_sources[1]
             ),
+            'wordTrMeaningCorrections': source_hash(word_tr_meaning_corrections_source),
             'canonicalEditorialReview101To300': source_hash(
                 canonical_editorial_review_101_300_source
             ),

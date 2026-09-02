@@ -179,9 +179,12 @@ def validate_source_checksums(manifest: dict[str, Any]) -> None:
         'canonicalLanguageCorrections': (
             SOURCE_DATA / 'quality' / builder.CANONICAL_LANGUAGE_CORRECTIONS_FILENAME
         ),
-        'canonicalLanguageCorrections101To300V2': (
+        'canonicalLanguageCorrections101To300V3': (
             SOURCE_DATA / 'quality'
-            / 'reading_canonical_language_corrections_101_300_v2.json'
+            / 'reading_canonical_language_corrections_101_300_v3.json'
+        ),
+        'wordTrMeaningCorrections': (
+            SOURCE_DATA / 'quality' / builder.WORD_TR_MEANING_CORRECTIONS_FILENAME
         ),
         'canonicalEditorialReview101To300': (
             SOURCE_DATA / 'quality' / builder.CANONICAL_EDITORIAL_REVIEW_101_300_FILENAME
@@ -562,6 +565,26 @@ def validate(content_dir: Path) -> dict[str, int]:
         raise ValueError('Word count or unique word IDs are invalid.')
     if any(not item.get('id') or not item.get('enWord') or not item.get('trMeaning') or not item.get('pos') for item in words):
         raise ValueError('A word lacks required content.')
+    if any(
+        builder.has_invalid_spreadsheet_token(item.get(field))
+        for item in words
+        for field in ('enWord', 'trMeaning', 'exampleEn', 'exampleTr')
+    ):
+        raise ValueError('Generated word content contains an invalid spreadsheet-error token.')
+    expected_word_quality_audit = builder.word_content_quality_audit_report(
+        builder.read_csv(
+            SOURCE_DATA / 'canonical' / 'words' / 'yds_words_set_001.csv'
+        ),
+        builder.load_word_tr_meaning_corrections(
+            SOURCE_DATA / 'quality' / builder.WORD_TR_MEANING_CORRECTIONS_FILENAME
+        ),
+    )
+    if load(
+        SOURCE_DATA / 'reports' / builder.WORD_CONTENT_QUALITY_AUDIT_FILENAME
+    ) != expected_word_quality_audit:
+        raise ValueError('Word content-quality audit is invalid.')
+    if manifest.get('wordContentQualityAudit') != expected_word_quality_audit['summary']:
+        raise ValueError('Word content-quality audit metadata is invalid.')
     word_ids = {str(item['id']) for item in words}
 
     readings_index = load(content_dir / str(manifest['readingsIndex']))
@@ -840,6 +863,12 @@ def validate(content_dir: Path) -> dict[str, int]:
         for record in records
     ):
         raise ValueError('Dictionary record is invalid.')
+    if any(
+        builder.has_invalid_spreadsheet_token(record.get(field))
+        for record in records
+        for field in ('enWord', 'trMeaning')
+    ):
+        raise ValueError('Generated dictionary content contains an invalid spreadsheet-error token.')
     duplicate_normalized_keys = len(keys) - len(set(keys))
     if dictionary_index.get('recordCount') != len(records):
         raise ValueError('Dictionary record count is invalid.')
