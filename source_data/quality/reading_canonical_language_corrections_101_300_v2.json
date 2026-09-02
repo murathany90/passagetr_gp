@@ -6,7 +6,7 @@
       "sourceNumber": 101,
       "sentenceIndex": 1,
       "originalEnglish": "Publicity Meeting of \"Town-Twinning Programme\" carried out within the context of Istanbul Preparing for the EU Project was held in Istanbul Trade University Emin\u00f6n\u00fc campus.",
-      "correctedEnglish": "The publicity meeting for the \"Town-Twinning Programme\", carried out within the scope of the Istanbul Preparing for the EU Project, was held at Istanbul Trade University's Eminonu campus.",
+      "correctedEnglish": "The publicity meeting for the \"Town-Twinning Programme\", carried out within the scope of the Istanbul Preparing for the EU Project, was held at Istanbul Trade University's Emin\u00f6n\u00fc campus.",
       "originalTurkish": "\u0130stanbul AB'ye Haz\u0131rlan\u0131yor Projesi \u00e7er\u00e7evesinde y\u00fcr\u00fct\u00fclen \"\u015eehir E\u015fle\u015ftirme Program\u0131 Tan\u0131t\u0131m Toplant\u0131s\u0131\" \u0130stanbul Ticaret \u00dcniversitesi Emin\u00f6n\u00fc Yerle\u015fkesi'nde ger\u00e7ekle\u015ftirildi.",
       "correctedTurkish": "\u0130stanbul AB'ye Haz\u0131rlan\u0131yor Projesi \u00e7er\u00e7evesinde y\u00fcr\u00fct\u00fclen \"\u015eehir E\u015fle\u015ftirme Program\u0131 Tan\u0131t\u0131m Toplant\u0131s\u0131\" \u0130stanbul Ticaret \u00dcniversitesi Emin\u00f6n\u00fc Yerle\u015fkesi'nde ger\u00e7ekle\u015ftirildi.",
       "issueType": "english_grammar",
@@ -127,23 +127,23 @@
       "sourceNumber": 115,
       "sentenceIndex": 7,
       "originalEnglish": "In 1990, he became free.",
-      "correctedEnglish": "After twenty-seven years in prison, Mandela was released in 1990.",
+      "correctedEnglish": "In 1990, he was released.",
       "originalTurkish": "1990'da serbest kald\u0131.",
       "correctedTurkish": "1990'da serbest kald\u0131.",
       "issueType": "english_collocation",
       "severity": "major",
-      "reason": "Uses the precise prison-release expression."
+      "reason": "Replaces the unnatural expression \"became free\" without adding biographical detail."
     },
     {
       "sourceNumber": 117,
       "sentenceIndex": 6,
       "originalEnglish": "The Chinese government has established many nature reserves to protect pandas and their natural habitat from extinction.",
-      "correctedEnglish": "Many organizations work to protect pandas and their natural habitat.",
+      "correctedEnglish": "The Chinese government has established many nature reserves to protect pandas and their natural habitat.",
       "originalTurkish": "\u00c7in h\u00fck\u00fcmeti, pandalar\u0131 ve do\u011fal ya\u015fam alanlar\u0131n\u0131 yok olmaktan korumak i\u00e7in bir\u00e7ok do\u011fa koruma alan\u0131 kurmu\u015ftur.",
       "correctedTurkish": "\u00c7in h\u00fck\u00fcmeti, pandalar\u0131 ve do\u011fal ya\u015fam alanlar\u0131n\u0131 yok olmaktan korumak i\u00e7in bir\u00e7ok do\u011fa koruma alan\u0131 kurmu\u015ftur.",
       "issueType": "english_meaning",
       "severity": "major",
-      "reason": "Avoids the illogical claim that a habitat can become extinct."
+      "reason": "Removes the illogical claim that a habitat can become extinct while preserving the original subject and action."
     },
     {
       "sourceNumber": 119,
@@ -160,7 +160,7 @@
       "sourceNumber": 120,
       "sentenceIndex": 1,
       "originalEnglish": "Pompei was an ancient city in Italy.",
-      "correctedEnglish": "The ancient city of Pompeii was buried by volcanic ash.",
+      "correctedEnglish": "Pompeii was an ancient city in Italy.",
       "originalTurkish": "Pompei \u0130talya'da eski bir \u015fehirdi.",
       "correctedTurkish": "Pompei \u0130talya'da eski bir \u015fehirdi.",
       "issueType": "english_proper_name",
@@ -171,7 +171,7 @@
       "sourceNumber": 120,
       "sentenceIndex": 2,
       "originalEnglish": "Vesivius was a volcano near the city.",
-      "correctedEnglish": "Mount Vesuvius erupted suddenly in AD 79.",
+      "correctedEnglish": "Vesuvius was a volcano near the city.",
       "originalTurkish": "Vesivius \u015fehrin yak\u0131n\u0131nda bir volkand\u0131.",
       "correctedTurkish": "Vesivius \u015fehrin yak\u0131n\u0131nda bir volkand\u0131.",
       "issueType": "english_proper_name",
@@ -182,12 +182,12 @@
       "sourceNumber": 120,
       "sentenceIndex": 6,
       "originalEnglish": "Before the eruption, there were shakes, but the people weren't afraid of them.",
-      "correctedEnglish": "For several days, the people felt small tremors but did not understand what they meant.",
+      "correctedEnglish": "Before the eruption, there were tremors, but the people were not afraid of them.",
       "originalTurkish": "P\u00fcsk\u00fcrmeden \u00f6nce sars\u0131nt\u0131lar olmu\u015ftu fakat insanlar korkmam\u0131\u015ft\u0131.",
       "correctedTurkish": "P\u00fcsk\u00fcrmeden \u00f6nce sars\u0131nt\u0131lar olmu\u015ftu fakat insanlar korkmam\u0131\u015ft\u0131.",
       "issueType": "technical_wording",
       "severity": "major",
-      "reason": "Uses the correct earthquake term."
+      "reason": "Replaces the informal noun \"shakes\" with the correct geological term without adding context."
     },
     {
       "sourceNumber": 120,
@@ -215,12 +215,12 @@
       "sourceNumber": 181,
       "sentenceIndex": 3,
       "originalEnglish": "Therefore, several sophisticated methods have been devised to prevent computer crime and protect sensitive data. One of the most effective of these is data encryptation.",
-      "correctedEnglish": "Data encryption protects information by changing it into a form that cannot be read without the correct key.",
+      "correctedEnglish": "Therefore, several sophisticated methods have been devised to prevent computer crime and protect sensitive data. One of the most effective of these is data encryption.",
       "originalTurkish": "Bu nedenle, bilgisayar su\u00e7lar\u0131n\u0131 \u00f6nlemek ve hassas verileri korumak i\u00e7in birka\u00e7 geli\u015fmi\u015f y\u00f6ntem tasarlanm\u0131\u015ft\u0131r. Bunlar\u0131n en etkililerinden biri veri \u015fifrelemedir.",
       "correctedTurkish": "Bu nedenle, bilgisayar su\u00e7lar\u0131n\u0131 \u00f6nlemek ve hassas verileri korumak i\u00e7in birka\u00e7 geli\u015fmi\u015f y\u00f6ntem tasarlanm\u0131\u015ft\u0131r. Bunlar\u0131n en etkililerinden biri veri \u015fifrelemedir.",
       "issueType": "english_technical_term",
       "severity": "major",
-      "reason": "Corrects the technical noun \"encryptation\" to \"encryption\"."
+      "reason": "Corrects the technical noun \"encryptation\" to \"encryption\" while preserving the source claim."
     }
   ,
   {
