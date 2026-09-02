@@ -10,7 +10,7 @@ Builder ve validator’ın güncel çıktıları:
 
 - Words: 5.314
 - Readings: 678
-- Generated sentences: 6.259
+- Generated sentences: 6.275
 - Dictionary entries / unique headwords: 121.772 / 121.501
 - Curated 001–100: 1.500 cümle, 500 comprehension sorusu
 - Derived 101–678: 1.634 vocabulary-practice cloze sorusu
@@ -25,10 +25,14 @@ Builder ve validator’ın güncel çıktıları:
 | `source_data/canonical/dictionary/dictionary_tr_en.xlsx` | XLSX | Geniş EN→TR sözlük | 121.783 satır / 121.772 kayıt | `en_word`, `pos`, `tr_meaning_clean` | Lazy shard sözlük indeksi |
 | `source_data/curated/readings_001_100_curated_v2.json` | JSON | İlk 100 immutable bilingual reading | 100 | `source_number`, 15 EN/TR cümle, başlıklar, özetler, soru/cevap/açıklama | 001–100 source-of-truth |
 | `source_data/quality/reading_translation_repairs_v1.json` | JSON | Eksik canonical TR için kaynak-bağlı overlay | 0 repair | `sourceNumber`, `readingId`, `sentenceIndex`, EN/TR metin, neden | Canonical CSV’yi değiştirmeden çeviri onarımı |
-| `source_data/quality/reading_content_repairs_v1.json` | JSON | Critical-short reading’ler için append-only bilingual overlay | 2 reading / 11 cümle | `sourceNumber`, `readingId`, neden, `appendSentences` | Kaynak cümleleri koruyarak kontrollü genişletme |
-| `source_data/quality/reading_content_repairs_101_300_v3.json` | JSON | 101–300 için quality-safe append-only bilingual overlay | 52 reading / 108 cümle | `sourceNumber`, `readingId`, neden, `appendSentences` | Production authoritative overlay; v3 yalnız gerekli EN/TR dil düzeltmelerini içerir |
-| `source_data/quality/reading_content_repairs_301_500_v1.json` | JSON | 301–500 içindeki güvenle genişletilebilen critical-short readingler | 8 reading / 16 cümle | `sourceNumber`, `readingId`, neden, `appendSentences` | Production overlay; source-missing ve yetersiz kaynaklı kayıtlar dışarıda bırakılır |
-| `source_data/legacy/reading_content_repairs_101_300_v2_language_pre_polish_history.json` | JSON | v3 öncesi quality-safe repair geçmişi | 52 reading / 108 cümle | v2 append kayıtları | Production’da kullanılmaz; v3 language-polish audit karşılaştırması için tutulur |
+| `source_data/quality/reading_content_repairs_v2.json` | JSON | 102 ve 122 için append-only bilingual overlay | 2 reading / 11 cümle | `sourceNumber`, `readingId`, neden, `appendSentences` | Production overlay; v2 yalnız final EN/TR doğallık düzeltmelerini içerir |
+| `source_data/quality/reading_content_repairs_101_300_v4.json` | JSON | 101–300 için quality-safe append-only bilingual overlay | 52 reading / 108 cümle | `sourceNumber`, `readingId`, neden, `appendSentences` | Production authoritative overlay; v4 yalnız gerekli EN/TR dil düzeltmelerini içerir |
+| `source_data/quality/reading_content_repairs_301_500_v2.json` | JSON | 301–500 için quality-safe append-only bilingual overlay | 8 reading / 16 cümle | `sourceNumber`, `readingId`, neden, `appendSentences` | Production authoritative overlay; v2 yalnız gerekli EN/TR doğallık düzeltmelerini içerir |
+| `source_data/quality/reading_content_repairs_501_678_v1.json` | JSON | 501–678 içindeki güvenle genişletilebilen critical-short readingler | 8 reading / 16 cümle | `sourceNumber`, `readingId`, neden, `appendSentences` | Production overlay; source-missing ve yetersiz kaynaklı kayıtlar dışarıda bırakılır |
+| `source_data/legacy/reading_content_repairs_101_300_v2_language_pre_polish_history.json` | JSON | v3 öncesi quality-safe repair geçmişi | 52 reading / 108 cümle | v2 append kayıtları | Dondurulmuş derived-question kaynağı ve tarihsel audit karşılaştırması |
+| `source_data/legacy/reading_content_repairs_v1_pre_final_polish_history.json` | JSON | 102/122 final polish öncesi overlay geçmişi | 2 reading / 11 cümle | append kayıtları | Dondurulmuş derived-question kaynağı ve audit karşılaştırması |
+| `source_data/legacy/reading_content_repairs_101_300_v3_pre_final_polish_history.json` | JSON | 101–300 v4 öncesi overlay geçmişi | 52 reading / 108 cümle | append kayıtları | Production’da kullanılmaz; final language audit karşılaştırması |
+| `source_data/legacy/reading_content_repairs_301_500_v1_pre_final_polish_history.json` | JSON | 301–500 v2 öncesi overlay geçmişi | 8 reading / 16 cümle | append kayıtları | Production’da kullanılmaz; final language audit karşılaştırması |
 | `source_data/legacy/reading_content_repairs_101_300_v1_template_history.json` | JSON | Daha eski template ağırlıklı repair geçmişi | 102 reading / 422 cümle | v1 append kayıtları | Production’da kullanılmaz; editoryal geçmiş için korunur |
 | `source_data/mappings/word_pack_reclassification_v1.json` | JSON | Kelime paket eşlemesi | 5.314 | `word_id`, `target_pack_name`, eşleme nedeni | Kelime paketleri |
 | `source_data/baselines/readings_101_678_source_baseline_v2.json` | JSON | Canonical 101–678 kaynak bütünlüğü | 578 | kayıt/cümle sayısı, canonical EN/TR proje SHA-256 | Derived metadata değişirken canonical kaynak değişikliğini yakalar |
@@ -43,20 +47,25 @@ etiketlenir; UI’da “Metinden Kısa Bölüm” başlığını alır.
 
 `source_data/reports/reading_translation_audit_v1.json`,
 `source_data/reports/reading_length_audit_v1.json`,
-`reading_101_300_language_polish_audit_v3.json` ve
-`reading_301_500_editorial_audit_v1.json` builder tarafından deterministik
-üretilen denetim kayıtlarıdır.
+`source_data/reports/reading_501_678_editorial_audit_v1.json` ve
+`source_data/reports/reading_quality_final_v1.json` builder tarafından
+deterministik üretilen denetim kayıtlarıdır.
 
-- TR kapsamı: 6.259 / 6.259 cümle (%100); translation repair: 0
-- 101–300: 108 retained repair cümlesi dil açısından denetlendi; yalnız 15 EN/TR
-  çift hafifçe düzeltildi.
-- 301–500: 200 kayıt denetlendi; 125 critical-short içinden 8’i quality-safe
-  biçimde genişletildi, 117’si `insufficient_source_for_safe_expansion`, 8’i
+- 678 reading ve 6.275 cümlede TR kapsamı %100’dür.
+- Curated 001–100 sabittir; quality overlay’ler yalnız 101–678 production
+  readinglerinde append-only olarak uygulanır.
+- 101–300: 119 production repair cümlesi yeniden okundu; bu turda 13 EN/TR
+  çift doğal dil açısından düzeltildi.
+- 301–500: 16 production repair cümlesi yeniden okundu; bu turda 6 EN/TR çift
+  düzeltildi.
+- 501–678: 178 kayıt audit edildi; 157 critical-short kaydın yalnız 8’i güvenle
+  genişletildi. 149 kayıt `insufficient_source_for_safe_expansion`, 4 kayıt
   `source_missing` olarak bırakıldı.
-- Critical short: 404 önce, 62 kontrollü repair, 342 kalan.
-- Curated 001–100 sabit kalır; quality overlay’ler yalnız 101–500 içindir.
-- Kalan critical-short kayıtlar otomatik metin uydurmamak için audit’te açıkça
-  işaretlenir; sonraki editoryal aşamada kaynakla birlikte ele alınmalıdır.
+- Finalde 322 critical-short ve 18 source-missing reading ayrı raporlanır.
+  Kısa kaynaklara filler eklemek yerine ayrıntılı audit dosyalarındaki manuel
+  öncelik listesi kullanılır.
+- Production overlay denetiminde forbidden template, exact duplicate, semantic
+  repetition, canonical sentence embedding ve eksik EN/TR sayısı 0’dır.
 
 ## Yerel Kaynak Arşivi
 

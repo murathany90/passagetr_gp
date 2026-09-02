@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import copy
 import hashlib
 import json
 from collections import Counter, defaultdict
@@ -175,15 +176,29 @@ def validate_source_checksums(manifest: dict[str, Any]) -> None:
         'translationRepairs': (
             SOURCE_DATA / 'quality' / 'reading_translation_repairs_v1.json'
         ),
-        'contentRepairs': SOURCE_DATA / 'quality' / 'reading_content_repairs_v1.json',
+        'contentRepairs': SOURCE_DATA / 'quality' / 'reading_content_repairs_v2.json',
         'contentRepairs101To300': (
-            SOURCE_DATA / 'quality' / 'reading_content_repairs_101_300_v3.json'
+            SOURCE_DATA / 'quality' / 'reading_content_repairs_101_300_v4.json'
         ),
         'contentRepairs301To500': (
-            SOURCE_DATA / 'quality' / 'reading_content_repairs_301_500_v1.json'
+            SOURCE_DATA / 'quality' / 'reading_content_repairs_301_500_v2.json'
+        ),
+        'contentRepairs501To678': (
+            SOURCE_DATA / 'quality' / 'reading_content_repairs_501_678_v1.json'
+        ),
+        'legacyQuestionBaseSource': (
+            SOURCE_DATA / builder.LEGACY_BASE_PRE_FINAL_POLISH_REPAIRS_RELATIVE_PATH
         ),
         'legacyEditorialRepairHistory': (
             SOURCE_DATA / builder.LEGACY_101_300_PRE_POLISH_REPAIRS_RELATIVE_PATH
+        ),
+        'legacy101To300FinalPolishHistory': (
+            SOURCE_DATA
+            / builder.LEGACY_101_300_PRE_FINAL_POLISH_REPAIRS_RELATIVE_PATH
+        ),
+        'legacy301To500FinalPolishHistory': (
+            SOURCE_DATA
+            / builder.LEGACY_301_500_PRE_FINAL_POLISH_REPAIRS_RELATIVE_PATH
         ),
         'canonicalSourceBaselineV2': SOURCE_DATA / builder.SOURCE_BASELINE_RELATIVE_PATH,
     }
@@ -253,15 +268,19 @@ def validate_quality_reports(
     }
 
 
-def validate_editorial_repair_audit(manifest: dict[str, Any]) -> None:
+def validate_legacy_editorial_repair_audit(manifest: dict[str, Any]) -> None:
     pre_polish_repairs = builder.load_content_repairs(
         SOURCE_DATA / builder.LEGACY_101_300_PRE_POLISH_REPAIRS_RELATIVE_PATH
     )
     polished_repairs = builder.load_content_repairs(
-        SOURCE_DATA / 'quality' / 'reading_content_repairs_101_300_v3.json'
+        SOURCE_DATA
+        / 'legacy'
+        / 'reading_content_repairs_101_300_v3_pre_final_polish_history.json'
     )
     range_301_500_repairs = builder.load_content_repairs(
-        SOURCE_DATA / 'quality' / 'reading_content_repairs_301_500_v1.json'
+        SOURCE_DATA
+        / 'legacy'
+        / 'reading_content_repairs_301_500_v1_pre_final_polish_history.json'
     )
     passages = {
         builder.source_number_for(passage): passage
@@ -286,10 +305,10 @@ def validate_editorial_repair_audit(manifest: dict[str, Any]) -> None:
     if actual_301_500 != expected_301_500:
         raise ValueError('301–500 editorial audit is invalid.')
     expected_quality = {
-        'repairs101To300V3': builder.production_repair_quality_audit(
+        'repairs101To300V4': builder.production_repair_quality_audit(
             polished_repairs, passages
         )['summary'],
-        'repairs301To500V1': builder.production_repair_quality_audit(
+        'repairs301To500V2': builder.production_repair_quality_audit(
             range_301_500_repairs, passages
         )['summary'],
     }
@@ -297,11 +316,175 @@ def validate_editorial_repair_audit(manifest: dict[str, Any]) -> None:
         raise ValueError('Production editorial quality metadata is invalid.')
 
 
+def validate_final_editorial_repair_audit(manifest: dict[str, Any]) -> None:
+    base_pre_final_polish_repairs = builder.load_content_repairs(
+        SOURCE_DATA / builder.LEGACY_BASE_PRE_FINAL_POLISH_REPAIRS_RELATIVE_PATH
+    )
+    pre_final_polish_101_300_repairs = builder.load_content_repairs(
+        SOURCE_DATA
+        / builder.LEGACY_101_300_PRE_FINAL_POLISH_REPAIRS_RELATIVE_PATH
+    )
+    pre_final_polish_301_500_repairs = builder.load_content_repairs(
+        SOURCE_DATA
+        / builder.LEGACY_301_500_PRE_FINAL_POLISH_REPAIRS_RELATIVE_PATH
+    )
+    base_repairs = builder.load_content_repairs(
+        SOURCE_DATA / 'quality' / 'reading_content_repairs_v2.json'
+    )
+    range_101_300_repairs = builder.load_content_repairs(
+        SOURCE_DATA / 'quality' / 'reading_content_repairs_101_300_v4.json'
+    )
+    range_301_500_repairs = builder.load_content_repairs(
+        SOURCE_DATA / 'quality' / 'reading_content_repairs_301_500_v2.json'
+    )
+    range_501_678_repairs = builder.load_content_repairs(
+        SOURCE_DATA / 'quality' / 'reading_content_repairs_501_678_v1.json'
+    )
+    passages = {
+        builder.source_number_for(passage): passage
+        for passage in canonical_passages().values()
+    }
+    base_language_audit = builder.language_polish_audit(
+        base_pre_final_polish_repairs, base_repairs, passages
+    )
+    expected_101_300_language = builder.language_polish_audit(
+        pre_final_polish_101_300_repairs, range_101_300_repairs, passages
+    )
+    expected_301_500_language = builder.language_polish_audit(
+        pre_final_polish_301_500_repairs, range_301_500_repairs, passages
+    )
+    expected_language_audit = {
+        'schemaVersion': 1,
+        'summary': builder.merge_language_polish_summaries([
+            base_language_audit,
+            expected_101_300_language,
+            expected_301_500_language,
+        ]),
+        'ranges': {
+            '101To300': builder.merge_language_polish_summaries([
+                base_language_audit,
+                expected_101_300_language,
+            ]),
+            '301To500': expected_301_500_language['summary'],
+        },
+        'components': {
+            'base102And122': base_language_audit,
+            '101To300V4': expected_101_300_language,
+            '301To500V2': expected_301_500_language,
+        },
+    }
+    if load(
+        SOURCE_DATA / 'reports' / 'reading_101_300_language_polish_audit_v4.json'
+    ) != expected_101_300_language:
+        raise ValueError('101–300 v4 language-polish audit is invalid.')
+    if load(
+        SOURCE_DATA / 'reports' / 'reading_301_500_language_polish_audit_v2.json'
+    ) != expected_301_500_language:
+        raise ValueError('301–500 v2 language-polish audit is invalid.')
+    if load(
+        SOURCE_DATA / 'reports' / 'reading_101_500_final_language_polish_audit_v1.json'
+    ) != expected_language_audit:
+        raise ValueError('101–500 final language-polish audit is invalid.')
+    if manifest.get('editorialRepairAudit') != expected_language_audit['summary']:
+        raise ValueError('Manifest editorial-repair audit is invalid.')
+
+    expected_301_500 = builder.reading_301_500_editorial_audit(
+        passages, range_301_500_repairs
+    )
+    if load(
+        SOURCE_DATA / 'reports' / 'reading_301_500_editorial_audit_v1.json'
+    ) != expected_301_500:
+        raise ValueError('301–500 editorial audit is invalid.')
+    expected_501_678 = builder.reading_501_678_editorial_audit(
+        passages, range_501_678_repairs
+    )
+    if load(
+        SOURCE_DATA / 'reports' / 'reading_501_678_editorial_audit_v1.json'
+    ) != expected_501_678:
+        raise ValueError('501–678 editorial audit is invalid.')
+
+    all_repairs = builder.load_content_repair_overlays([
+        SOURCE_DATA / 'quality' / filename
+        for filename in builder.CONTENT_REPAIR_FILENAMES
+    ])
+    all_quality = builder.production_repair_quality_audit(all_repairs, passages)
+    expected_quality = {
+        'repairs101To300V4': builder.production_repair_quality_audit(
+            base_repairs + range_101_300_repairs, passages
+        )['summary'],
+        'repairs301To500V2': builder.production_repair_quality_audit(
+            range_301_500_repairs, passages
+        )['summary'],
+        'repairs501To678V1': builder.production_repair_quality_audit(
+            range_501_678_repairs, passages
+        )['summary'],
+        'allProductionOverlays': all_quality['summary'],
+    }
+    if manifest.get('productionEditorialQuality') != expected_quality:
+        raise ValueError('Production editorial quality metadata is invalid.')
+
+    final_passages = copy.deepcopy(passages)
+    builder.apply_translation_repairs(
+        final_passages,
+        builder.load_translation_repairs(
+            SOURCE_DATA / 'quality' / 'reading_translation_repairs_v1.json'
+        ),
+    )
+    canonical_quality_bands = {
+        source_number: builder.reading_quality_band(
+            passage['level'],
+            len(passage['sentences']),
+            sum(
+                len(builder.english_tokens(sentence['englishText']))
+                for sentence in passage['sentences']
+            ),
+        )
+        for source_number, passage in final_passages.items()
+    }
+    builder.apply_content_repairs(final_passages, base_repairs)
+    curated = load_curated_package()
+    for source_number, record in curated.items():
+        final_passages[source_number]['sentences'] = [
+            {
+                'index': sentence['index'],
+                'englishText': sentence['en'],
+                'turkishText': sentence['tr'],
+            }
+            for sentence in record['sentences']
+        ]
+        canonical_quality_bands[source_number] = builder.reading_quality_band(
+            final_passages[source_number]['level'],
+            len(final_passages[source_number]['sentences']),
+            sum(
+                len(builder.english_tokens(sentence['englishText']))
+                for sentence in final_passages[source_number]['sentences']
+            ),
+        )
+    for repairs in (
+        range_101_300_repairs,
+        range_301_500_repairs,
+        range_501_678_repairs,
+    ):
+        builder.apply_content_repairs(final_passages, repairs)
+    expected_final_quality = builder.final_reading_quality_report(
+        final_passages,
+        canonical_quality_bands,
+        all_repairs,
+        all_quality,
+    )
+    if load(
+        SOURCE_DATA / 'reports' / 'reading_quality_final_v1.json'
+    ) != expected_final_quality:
+        raise ValueError('Final reading-quality report is invalid.')
+    if manifest.get('finalReadingQualityAudit') != expected_final_quality['summary']:
+        raise ValueError('Manifest final reading-quality audit is invalid.')
+
+
 def validate(content_dir: Path) -> dict[str, int]:
     manifest = load(content_dir / 'manifest.json')
     validate_source_checksums(manifest)
     validate_canonical_source_baseline()
-    validate_editorial_repair_audit(manifest)
+    validate_final_editorial_repair_audit(manifest)
     generated_question_backup_count = validate_pre_curated_generated_questions_backup()
     curated_package = load_curated_package()
     counts = manifest.get('counts', {})
@@ -339,6 +522,7 @@ def validate(content_dir: Path) -> dict[str, int]:
     non_curated_readings = 0
     report_records: list[dict[str, Any]] = []
     translation_missing: list[dict[str, Any]] = []
+    actual_question_passages: dict[int, dict[str, Any]] = {}
     for item in readings:
         relative_file = str(item['file'])
         payload = load(content_dir / relative_file)
@@ -384,6 +568,9 @@ def validate(content_dir: Path) -> dict[str, int]:
             raise ValueError(f'Invalid reading source number: {item.get("title")}') from error
         is_curated = source_number in CURATED_SOURCE_NUMBERS
         questions = enrichment['questions']
+        actual_question_passages[source_number] = {
+            'enrichment': {'questions': questions}
+        }
         if not isinstance(questions, list) or len(questions) > (CURATED_QUESTION_COUNT if is_curated else 3):
             raise ValueError(f'Invalid question collection: {item.get("title")}')
         if is_curated:
@@ -485,6 +672,38 @@ def validate(content_dir: Path) -> dict[str, int]:
         raise ValueError(f"Sentence count mismatch: expected {counts['sentences']}, got {sentence_count}")
     if (curated_readings, curated_sentences, curated_questions, non_curated_readings) != (100, 1500, 500, 578):
         raise ValueError('Curated/non-curated reading coverage is invalid.')
+    frozen_question_passages = {
+        builder.source_number_for(passage): passage
+        for passage in canonical_passages().values()
+    }
+    builder.apply_content_repairs(
+        frozen_question_passages,
+        builder.load_content_repairs(
+            SOURCE_DATA / builder.LEGACY_BASE_PRE_FINAL_POLISH_REPAIRS_RELATIVE_PATH
+        ),
+    )
+    builder.apply_content_repairs(
+        frozen_question_passages,
+        builder.load_content_repairs(
+            SOURCE_DATA / builder.LEGACY_101_300_PRE_POLISH_REPAIRS_RELATIVE_PATH
+        ),
+    )
+    expected_question_hash = builder.question_payload_hash(
+        frozen_question_passages, curated_package
+    )
+    actual_question_hash = builder.generated_question_payload_hash(
+        actual_question_passages
+    )
+    expected_question_integrity = {
+        'schemaVersion': 1,
+        'payloadSha256': expected_question_hash,
+        'curatedReadings': 100,
+        'derivedReadings': 578,
+    }
+    if actual_question_hash != expected_question_hash:
+        raise ValueError('Generated questions no longer match their frozen sources.')
+    if manifest.get('readingQuestionIntegrity') != expected_question_integrity:
+        raise ValueError('Question-integrity metadata is invalid.')
 
     expected_enrichment = {
         'schemaVersion': 1,

@@ -30,7 +30,7 @@ void main() {
     expect(repaired['qualityBand'], isNot('critical_short'));
 
     final editorialOverlay = _json(
-      'source_data/quality/reading_content_repairs_101_300_v3.json',
+      'source_data/quality/reading_content_repairs_101_300_v4.json',
     );
     final repairs = editorialOverlay['repairs']! as List<Object?>;
     final goodRepair = repairs.cast<Map<String, Object?>>().singleWhere(
@@ -49,14 +49,14 @@ void main() {
     expect(goodRecord['qualityBand'], isNot('critical_short'));
 
     final languageAudit = _json(
-      'source_data/reports/reading_101_300_language_polish_audit_v3.json',
+      'source_data/reports/reading_101_300_language_polish_audit_v4.json',
     );
     final languageSummary = languageAudit['summary']! as Map<String, Object?>;
     expect(languageSummary['retainedRepairSentencesAudited'], 108);
-    expect(languageSummary['sentencesRewritten'], greaterThan(0));
+    expect(languageSummary['sentencesRewritten'], 4);
 
     final rangeOverlay = _json(
-      'source_data/quality/reading_content_repairs_301_500_v1.json',
+      'source_data/quality/reading_content_repairs_301_500_v2.json',
     );
     final rangeRepairs = rangeOverlay['repairs']! as List<Object?>;
     expect(rangeRepairs, hasLength(8));
@@ -83,11 +83,42 @@ void main() {
     expect(rangeSummary['safeToExpand'], 8);
     expect(rangeSummary['sourceMissing'], 8);
 
+    final finalRangeOverlay = _json(
+      'source_data/quality/reading_content_repairs_501_678_v1.json',
+    );
+    final finalRangeRepairs = finalRangeOverlay['repairs']! as List<Object?>;
+    expect(finalRangeRepairs, hasLength(8));
+    final firstFinalRepair = finalRangeRepairs
+        .cast<Map<String, Object?>>()
+        .singleWhere((repair) => repair['sourceNumber'] == 501);
+    expect(firstFinalRepair['appendSentences'], hasLength(2));
+    final finalRangeAudit = _json(
+      'source_data/reports/reading_501_678_editorial_audit_v1.json',
+    );
+    final finalRangeSummary =
+        finalRangeAudit['summary']! as Map<String, Object?>;
+    expect(finalRangeSummary['total'], 178);
+    expect(finalRangeSummary['safeToExpand'], 8);
+    expect(finalRangeSummary['sourceMissing'], 4);
+
+    final finalQuality = _json(
+      'source_data/reports/reading_quality_final_v1.json',
+    );
+    final finalSummary = finalQuality['summary']! as Map<String, Object?>;
+    expect(finalSummary['totalReadings'], 678);
+    expect(finalSummary['totalSentences'], 6275);
+    expect(finalSummary['fullTrCoverage'], isTrue);
+
     final manifest = _json('assets/content/v1/manifest.json');
     final quality = Map<String, Object?>.from(
       manifest['productionEditorialQuality']! as Map,
     );
-    for (final key in <String>['repairs101To300V3', 'repairs301To500V1']) {
+    for (final key in <String>[
+      'repairs101To300V4',
+      'repairs301To500V2',
+      'repairs501To678V1',
+      'allProductionOverlays',
+    ]) {
       final summary = Map<String, Object?>.from(quality[key]! as Map);
       expect(summary['forbiddenTemplateOccurrences'], 0);
       expect(summary['exactDuplicateOccurrences'], 0);
@@ -95,6 +126,10 @@ void main() {
       expect(summary['canonicalSentenceEmbeddingOccurrences'], 0);
       expect(summary['missingBilingualOccurrences'], 0);
     }
+    final questionIntegrity =
+        Map<String, Object?>.from(manifest['readingQuestionIntegrity']! as Map);
+    expect(questionIntegrity['payloadSha256'], isA<String>());
+    expect((questionIntegrity['payloadSha256']! as String).length, 64);
   });
 
   test('source baseline v2 changes when canonical content changes in memory',
