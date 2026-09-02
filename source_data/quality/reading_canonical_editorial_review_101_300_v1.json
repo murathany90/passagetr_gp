@@ -1,0 +1,827 @@
+{
+  "schemaVersion": 1,
+  "reviewMethod": "manual_sentence_pair_review",
+  "scope": {
+    "sourceNumberStart": 101,
+    "sourceNumberEnd": 300,
+    "curated001To100": "immutable_and_excluded"
+  },
+  "readings": [
+    {
+      "sourceNumber": 101,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 102,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 103,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 104,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 105,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 106,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 107,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 108,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 109,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 110,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 111,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 112,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 113,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 114,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 115,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 116,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 117,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 118,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 119,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 120,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 121,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 122,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 123,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 124,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 125,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 126,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 127,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 128,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 129,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 130,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 131,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 132,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 133,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 134,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 135,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 136,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 137,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 138,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 139,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 140,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 141,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 142,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 143,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 144,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 145,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 146,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 147,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 148,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 149,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 150,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 151,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 152,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 153,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 154,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 155,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 156,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 157,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 158,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 159,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 160,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 161,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 162,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 163,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 164,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 165,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 166,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 167,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 168,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 169,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 170,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 171,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 172,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 173,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 174,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 175,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 176,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 177,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 178,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 179,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 180,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 181,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 182,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 183,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 184,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 185,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 186,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 187,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 188,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 189,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 190,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 191,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 192,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 193,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 194,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 195,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 196,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 197,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 198,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 199,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 200,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 201,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 202,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 203,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 204,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 205,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 206,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 207,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 208,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 209,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 210,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 211,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 212,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 213,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 214,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 215,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 216,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 217,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 218,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 219,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 220,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 221,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 222,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 223,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 224,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 225,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 226,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 227,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 228,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 229,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 230,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 231,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 232,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 233,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 234,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 235,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 236,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 237,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 238,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 239,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 240,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 241,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 242,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 243,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 244,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 245,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 246,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 247,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 248,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 249,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 250,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 251,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 252,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 253,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 254,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 255,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 256,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 257,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 258,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 259,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 260,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 261,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 262,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 263,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 264,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 265,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 266,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 267,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 268,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 269,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 270,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 271,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 272,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 273,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 274,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 275,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 276,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 277,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 278,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 279,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 280,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 281,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 282,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 283,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 284,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 285,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 286,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 287,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 288,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 289,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 290,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 291,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 292,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 293,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 294,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 295,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 296,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 297,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 298,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 299,
+      "reviewed": true
+    },
+    {
+      "sourceNumber": 300,
+      "reviewed": true
+    }
+  ],
+  "productionRepairReview": {
+    "reviewed": true,
+    "files": [
+      {
+        "path": "source_data/quality/reading_content_repairs_v2.json",
+        "sentencePairsReviewed": 11
+      },
+      {
+        "path": "source_data/quality/reading_content_repairs_101_300_v4.json",
+        "sentencePairsReviewed": 108
+      }
+    ],
+    "sentencePairsReviewed": 119,
+    "flowIssuesRemaining": 0,
+    "note": "All displayed 101?300 append sentence pairs were read with their surrounding canonical passage; two clear Turkish wording defects were corrected without adding sentences."
+  }
+}

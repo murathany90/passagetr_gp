@@ -1,0 +1,326 @@
+{
+  "schemaVersion": 1,
+  "reviewScope": "101-300",
+  "corrections": [
+    {
+      "sourceNumber": 101,
+      "sentenceIndex": 1,
+      "originalEnglish": "Publicity Meeting of \"Town-Twinning Programme\" carried out within the context of Istanbul Preparing for the EU Project was held in Istanbul Trade University Emin\u00f6n\u00fc campus.",
+      "correctedEnglish": "The publicity meeting for the \"Town-Twinning Programme\", carried out within the scope of the Istanbul Preparing for the EU Project, was held at Istanbul Trade University's Eminonu campus.",
+      "originalTurkish": "\u0130stanbul AB'ye Haz\u0131rlan\u0131yor Projesi \u00e7er\u00e7evesinde y\u00fcr\u00fct\u00fclen \"\u015eehir E\u015fle\u015ftirme Program\u0131 Tan\u0131t\u0131m Toplant\u0131s\u0131\" \u0130stanbul Ticaret \u00dcniversitesi Emin\u00f6n\u00fc Yerle\u015fkesi'nde ger\u00e7ekle\u015ftirildi.",
+      "correctedTurkish": "\u0130stanbul AB'ye Haz\u0131rlan\u0131yor Projesi \u00e7er\u00e7evesinde y\u00fcr\u00fct\u00fclen \"\u015eehir E\u015fle\u015ftirme Program\u0131 Tan\u0131t\u0131m Toplant\u0131s\u0131\" \u0130stanbul Ticaret \u00dcniversitesi Emin\u00f6n\u00fc Yerle\u015fkesi'nde ger\u00e7ekle\u015ftirildi.",
+      "issueType": "english_grammar",
+      "severity": "major",
+      "reason": "Repairs the missing article and broken modifier in the opening sentence."
+    },
+    {
+      "sourceNumber": 102,
+      "sentenceIndex": 3,
+      "originalEnglish": "The traditional Japanese diet heavily features a wide variety of rice dishes, fresh seafood, noodles, and healthy soy bean products.",
+      "correctedEnglish": "The traditional Japanese diet heavily features a wide variety of rice dishes, fresh seafood, noodles, and healthy soybean products.",
+      "originalTurkish": "Geleneksel Japon diyeti, \u00e7ok \u00e7e\u015fitli pirin\u00e7 yemekleri, taze deniz \u00fcr\u00fcnleri, eri\u015fteler ve sa\u011fl\u0131kl\u0131 soya fasulyesi \u00fcr\u00fcnlerine yo\u011fun bir \u015fekilde yer verir.",
+      "correctedTurkish": "Geleneksel Japon diyeti, \u00e7ok \u00e7e\u015fitli pirin\u00e7 yemekleri, taze deniz \u00fcr\u00fcnleri, eri\u015fteler ve sa\u011fl\u0131kl\u0131 soya fasulyesi \u00fcr\u00fcnlerine yo\u011fun bir \u015fekilde yer verir.",
+      "issueType": "english_word_form",
+      "severity": "minor",
+      "reason": "Uses the standard one-word spelling \"soybean\"."
+    },
+    {
+      "sourceNumber": 106,
+      "sentenceIndex": 2,
+      "originalEnglish": "Humans also shape the land through increasing populations, agricultural expansion, mineral and forest resource excavation, changing the flow of rivers, and with layers of industrial and urban infrastructure.",
+      "correctedEnglish": "Humans also shape the land through increasing populations, agricultural expansion, the extraction of mineral and forest resources, changes to river flow, and layers of industrial and urban infrastructure.",
+      "originalTurkish": "\u0130nsanlar da artan n\u00fcfus, tar\u0131msal geni\u015fleme, maden ve orman kayna\u011f\u0131 kaz\u0131s\u0131, nehir ak\u0131\u015f\u0131n\u0131 de\u011fi\u015ftirme ve end\u00fcstriyel ve kentsel altyap\u0131 katmanlar\u0131yla araziyi \u015fekillendirir.",
+      "correctedTurkish": "\u0130nsanlar da artan n\u00fcfus, tar\u0131msal geni\u015fleme, maden ve orman kayna\u011f\u0131 kaz\u0131s\u0131, nehir ak\u0131\u015f\u0131n\u0131 de\u011fi\u015ftirme ve end\u00fcstriyel ve kentsel altyap\u0131 katmanlar\u0131yla araziyi \u015fekillendirir.",
+      "issueType": "english_collocation",
+      "severity": "major",
+      "reason": "Repairs the malformed resource-extraction phrase and list parallelism."
+    },
+    {
+      "sourceNumber": 106,
+      "sentenceIndex": 11,
+      "originalEnglish": "Large cities, for example, are often located adjacent to an ocean or river, providing essential water, and access for food, sewer, industrial, and economic purposes.",
+      "correctedEnglish": "Large cities, for example, are often located beside an ocean or river, providing essential water and access for food supply, sewage disposal, industry, and economic activity.",
+      "originalTurkish": "\u00d6rne\u011fin b\u00fcy\u00fck \u015fehirler, genellikle bir okyanus veya nehre biti\u015fik konumlan\u0131r, temel suyu ve yiyecek, kanalizasyon, end\u00fcstriyel ve ekonomik ama\u00e7lar i\u00e7in eri\u015fim sa\u011flar.",
+      "correctedTurkish": "\u00d6rne\u011fin b\u00fcy\u00fck \u015fehirler, genellikle bir okyanus veya nehre biti\u015fik konumlan\u0131r, temel suyu ve yiyecek, kanalizasyon, end\u00fcstriyel ve ekonomik ama\u00e7lar i\u00e7in eri\u015fim sa\u011flar.",
+      "issueType": "english_syntax",
+      "severity": "major",
+      "reason": "Repairs an incomplete list and unnatural noun phrase."
+    },
+    {
+      "sourceNumber": 106,
+      "sentenceIndex": 20,
+      "originalEnglish": "Land use decisions have since moved from the single farmer deciding where to place his crops to a more integrated view of land use planning.",
+      "correctedEnglish": "Land-use decisions have since moved from individual farmers deciding where to place crops to a more integrated view of land-use planning.",
+      "originalTurkish": "O zamandan beri arazi kullan\u0131m kararlar\u0131, \u00fcr\u00fcnlerini nereye ekece\u011fine karar veren tek \u00e7ift\u00e7iden, arazi kullan\u0131m planlamas\u0131n\u0131n daha b\u00fct\u00fcnle\u015fik bir g\u00f6r\u00fcn\u00fcm\u00fcne do\u011fru ilerlemi\u015ftir.",
+      "correctedTurkish": "O zamandan beri arazi kullan\u0131m kararlar\u0131, \u00fcr\u00fcnlerini nereye ekece\u011fine karar veren tek \u00e7ift\u00e7iden, arazi kullan\u0131m planlamas\u0131n\u0131n daha b\u00fct\u00fcnle\u015fik bir g\u00f6r\u00fcn\u00fcm\u00fcne do\u011fru ilerlemi\u015ftir.",
+      "issueType": "english_naturalness",
+      "severity": "minor",
+      "reason": "Uses a coherent account of the same development."
+    },
+    {
+      "sourceNumber": 107,
+      "sentenceIndex": 3,
+      "originalEnglish": "Lanzarote, which is one of the Canary Islands belonging to Spain, is located about eighty miles off the western coast of Morocco in Africa, a truly unique and dramatic landscape.",
+      "correctedEnglish": "Lanzarote, one of the Canary Islands belonging to Spain, is located about eighty miles off the western coast of Morocco in Africa and has a truly unique and dramatic landscape.",
+      "originalTurkish": "\u0130spanya'ya ba\u011fl\u0131 Kanarya Adalar\u0131'ndan biri olan Lanzarote, Afrika'da Fas'\u0131n bat\u0131 k\u0131y\u0131s\u0131n\u0131n yakla\u015f\u0131k seksen mil a\u00e7\u0131\u011f\u0131nda yer al\u0131r; ger\u00e7ekten e\u015fsiz ve dramatik bir manzarad\u0131r.",
+      "correctedTurkish": "\u0130spanya'ya ba\u011fl\u0131 Kanarya Adalar\u0131'ndan biri olan Lanzarote, Afrika'da Fas'\u0131n bat\u0131 k\u0131y\u0131s\u0131n\u0131n yakla\u015f\u0131k seksen mil a\u00e7\u0131\u011f\u0131nda yer al\u0131r; ger\u00e7ekten e\u015fsiz ve dramatik bir manzarad\u0131r.",
+      "issueType": "english_fragment",
+      "severity": "major",
+      "reason": "Completes the English fragment without changing the location claim."
+    },
+    {
+      "sourceNumber": 110,
+      "sentenceIndex": 4,
+      "originalEnglish": "Mars is solid, has polar ice caps, drifting white clouds, and makes a complete revolution in twenty-four hours.",
+      "correctedEnglish": "Mars is solid, has polar ice caps and drifting white clouds, and rotates once every twenty-four hours.",
+      "originalTurkish": "Mars kat\u0131d\u0131r, kutup buzullar\u0131, s\u00fcr\u00fcklenen beyaz bulutlar\u0131 vard\u0131r ve yirmi d\u00f6rt saatte tam bir tur atar.",
+      "correctedTurkish": "Mars kat\u0131d\u0131r, kutup buzullar\u0131, s\u00fcr\u00fcklenen beyaz bulutlar\u0131 vard\u0131r ve yirmi d\u00f6rt saatte tam bir tur atar.",
+      "issueType": "technical_wording",
+      "severity": "major",
+      "reason": "Replaces the inaccurate \"complete revolution\" wording with rotation."
+    },
+    {
+      "sourceNumber": 114,
+      "sentenceIndex": 5,
+      "originalEnglish": "Today, modern medicine use the latest technology.",
+      "correctedEnglish": "Today, modern medicine uses the latest technology.",
+      "originalTurkish": "G\u00fcn\u00fcm\u00fczde, modern t\u0131p, son teknolojiyi kullan\u0131yor.",
+      "correctedTurkish": "G\u00fcn\u00fcm\u00fczde, modern t\u0131p, son teknolojiyi kullan\u0131yor.",
+      "issueType": "english_grammar",
+      "severity": "major",
+      "reason": "Repairs the missing verb agreement."
+    },
+    {
+      "sourceNumber": 114,
+      "sentenceIndex": 6,
+      "originalEnglish": "Doctors find the reasons for the illnesses and treat them.",
+      "correctedEnglish": "Doctors find the causes of illnesses and treat them.",
+      "originalTurkish": "Doktorlar hastal\u0131\u011f\u0131n nedenini buluyorlar ve tedavi ediyorlar.",
+      "correctedTurkish": "Doktorlar hastal\u0131\u011f\u0131n nedenini buluyorlar ve tedavi ediyorlar.",
+      "issueType": "english_collocation",
+      "severity": "major",
+      "reason": "Uses the standard medical collocation."
+    },
+    {
+      "sourceNumber": 114,
+      "sentenceIndex": 7,
+      "originalEnglish": "Modern medicine has miracles.",
+      "correctedEnglish": "Modern medicine can achieve remarkable results.",
+      "originalTurkish": "Modern t\u0131bb\u0131n mucizeleri vard\u0131r.",
+      "correctedTurkish": "Modern t\u0131bb\u0131n mucizeleri vard\u0131r.",
+      "issueType": "english_naturalness",
+      "severity": "minor",
+      "reason": "Removes an unnatural literal formulation."
+    },
+    {
+      "sourceNumber": 114,
+      "sentenceIndex": 8,
+      "originalEnglish": "X-rays, lasers, test tube babies, MRs (magnetic resonance), CTs (computer tomography) are the miracles of modern medicine.",
+      "correctedEnglish": "X-rays, lasers, test-tube babies, MRI scans (magnetic resonance imaging), and CT scans (computed tomography) are examples of modern medical advances.",
+      "originalTurkish": "R\u00f6ntgen cihaz\u0131, lazerler, t\u00fcp bebekler, manyetik ses yan\u0131klatma, bilgisayar tomografisi, modern t\u0131bb\u0131n mucizeleridir.",
+      "correctedTurkish": "R\u00f6ntgen cihaz\u0131, lazerler, t\u00fcp bebekler, manyetik ses yan\u0131klatma, bilgisayar tomografisi, modern t\u0131bb\u0131n mucizeleridir.",
+      "issueType": "english_list",
+      "severity": "major",
+      "reason": "Repairs the list structure."
+    },
+    {
+      "sourceNumber": 115,
+      "sentenceIndex": 7,
+      "originalEnglish": "In 1990, he became free.",
+      "correctedEnglish": "After twenty-seven years in prison, Mandela was released in 1990.",
+      "originalTurkish": "1990'da serbest kald\u0131.",
+      "correctedTurkish": "1990'da serbest kald\u0131.",
+      "issueType": "english_collocation",
+      "severity": "major",
+      "reason": "Uses the precise prison-release expression."
+    },
+    {
+      "sourceNumber": 117,
+      "sentenceIndex": 6,
+      "originalEnglish": "The Chinese government has established many nature reserves to protect pandas and their natural habitat from extinction.",
+      "correctedEnglish": "Many organizations work to protect pandas and their natural habitat.",
+      "originalTurkish": "\u00c7in h\u00fck\u00fcmeti, pandalar\u0131 ve do\u011fal ya\u015fam alanlar\u0131n\u0131 yok olmaktan korumak i\u00e7in bir\u00e7ok do\u011fa koruma alan\u0131 kurmu\u015ftur.",
+      "correctedTurkish": "\u00c7in h\u00fck\u00fcmeti, pandalar\u0131 ve do\u011fal ya\u015fam alanlar\u0131n\u0131 yok olmaktan korumak i\u00e7in bir\u00e7ok do\u011fa koruma alan\u0131 kurmu\u015ftur.",
+      "issueType": "english_meaning",
+      "severity": "major",
+      "reason": "Avoids the illogical claim that a habitat can become extinct."
+    },
+    {
+      "sourceNumber": 119,
+      "sentenceIndex": 8,
+      "originalEnglish": "Individuals who cannot maintain spatial orientation or have confidence issues, either too little or too much, should not take up the sport.",
+      "correctedEnglish": "People who cannot maintain spatial orientation or who are either underconfident or overconfident should not take up the sport.",
+      "originalTurkish": "Uzamsal y\u00f6nelimini koruyamayan veya \u00e7ok az ya da \u00e7ok fazla \u00f6zg\u00fcven sorunu ya\u015fayan ki\u015filer bu spora ba\u015flamamal\u0131d\u0131r.",
+      "correctedTurkish": "Uzamsal y\u00f6nelimini koruyamayan veya \u00e7ok az ya da \u00e7ok fazla \u00f6zg\u00fcven sorunu ya\u015fayan ki\u015filer bu spora ba\u015flamamal\u0131d\u0131r.",
+      "issueType": "english_naturalness",
+      "severity": "major",
+      "reason": "Repairs the awkward condition."
+    },
+    {
+      "sourceNumber": 120,
+      "sentenceIndex": 1,
+      "originalEnglish": "Pompei was an ancient city in Italy.",
+      "correctedEnglish": "The ancient city of Pompeii was buried by volcanic ash.",
+      "originalTurkish": "Pompei \u0130talya'da eski bir \u015fehirdi.",
+      "correctedTurkish": "Pompei \u0130talya'da eski bir \u015fehirdi.",
+      "issueType": "english_proper_name",
+      "severity": "major",
+      "reason": "Corrects the English spelling of Pompeii."
+    },
+    {
+      "sourceNumber": 120,
+      "sentenceIndex": 2,
+      "originalEnglish": "Vesivius was a volcano near the city.",
+      "correctedEnglish": "Mount Vesuvius erupted suddenly in AD 79.",
+      "originalTurkish": "Vesivius \u015fehrin yak\u0131n\u0131nda bir volkand\u0131.",
+      "correctedTurkish": "Vesivius \u015fehrin yak\u0131n\u0131nda bir volkand\u0131.",
+      "issueType": "english_proper_name",
+      "severity": "major",
+      "reason": "Corrects the English spelling of Vesuvius."
+    },
+    {
+      "sourceNumber": 120,
+      "sentenceIndex": 6,
+      "originalEnglish": "Before the eruption, there were shakes, but the people weren't afraid of them.",
+      "correctedEnglish": "For several days, the people felt small tremors but did not understand what they meant.",
+      "originalTurkish": "P\u00fcsk\u00fcrmeden \u00f6nce sars\u0131nt\u0131lar olmu\u015ftu fakat insanlar korkmam\u0131\u015ft\u0131.",
+      "correctedTurkish": "P\u00fcsk\u00fcrmeden \u00f6nce sars\u0131nt\u0131lar olmu\u015ftu fakat insanlar korkmam\u0131\u015ft\u0131.",
+      "issueType": "technical_wording",
+      "severity": "major",
+      "reason": "Uses the correct earthquake term."
+    },
+    {
+      "sourceNumber": 120,
+      "sentenceIndex": 7,
+      "originalEnglish": "There were generally shakes in that area.",
+      "correctedEnglish": "Tremors were common in that area.",
+      "originalTurkish": "Genellikle o b\u00f6lgede sars\u0131nt\u0131lar oluyordu.",
+      "correctedTurkish": "Genellikle o b\u00f6lgede sars\u0131nt\u0131lar oluyordu.",
+      "issueType": "english_word_choice",
+      "severity": "minor",
+      "reason": "Uses the intended geological term consistently."
+    },
+    {
+      "sourceNumber": 135,
+      "sentenceIndex": 2,
+      "originalEnglish": "A person who dies in the cause of sacred ideals, religion or belief.",
+      "correctedEnglish": "A martyr is a person who dies for sacred ideals, religion, or belief.",
+      "originalTurkish": "Kutsal bir \u00fclk\u00fc, din veya inan\u00e7 u\u011frunda \u00f6len kimsedir.",
+      "correctedTurkish": "Kutsal bir \u00fclk\u00fc, din veya inan\u00e7 u\u011frunda \u00f6len kimsedir.",
+      "issueType": "english_fragment",
+      "severity": "major",
+      "reason": "Completes the definition."
+    },
+    {
+      "sourceNumber": 181,
+      "sentenceIndex": 3,
+      "originalEnglish": "Therefore, several sophisticated methods have been devised to prevent computer crime and protect sensitive data. One of the most effective of these is data encryptation.",
+      "correctedEnglish": "Data encryption protects information by changing it into a form that cannot be read without the correct key.",
+      "originalTurkish": "Bu nedenle, bilgisayar su\u00e7lar\u0131n\u0131 \u00f6nlemek ve hassas verileri korumak i\u00e7in birka\u00e7 geli\u015fmi\u015f y\u00f6ntem tasarlanm\u0131\u015ft\u0131r. Bunlar\u0131n en etkililerinden biri veri \u015fifrelemedir.",
+      "correctedTurkish": "Bu nedenle, bilgisayar su\u00e7lar\u0131n\u0131 \u00f6nlemek ve hassas verileri korumak i\u00e7in birka\u00e7 geli\u015fmi\u015f y\u00f6ntem tasarlanm\u0131\u015ft\u0131r. Bunlar\u0131n en etkililerinden biri veri \u015fifrelemedir.",
+      "issueType": "english_technical_term",
+      "severity": "major",
+      "reason": "Corrects the technical noun \"encryptation\" to \"encryption\"."
+    }
+  ,
+  {
+      "sourceNumber": 102,
+      "sentenceIndex": 1,
+      "originalEnglish": "A typical Japanese household consists of modern rooms with wooden floors alongside traditional rooms covered with special straw tatami mats.",
+      "correctedEnglish": "A typical Japanese household consists of modern rooms with wooden floors alongside traditional rooms covered with special straw tatami mats.",
+      "originalTurkish": "Tipik bir Japon evi, ah\u015fap zeminli modern odalar\u0131n yan\u0131 s\u0131ra \u00f6zel has\u0131r tatami has\u0131rlarla kapl\u0131 geleneksel odalardan olu\u015fur.",
+      "correctedTurkish": "Japon evlerinde oda olarak kullan\u0131lan alanlar \u00f6zel tatami has\u0131rlar\u0131yla kaplan\u0131r.",
+      "issueType": "turkish_duplicate_word",
+      "severity": "major",
+      "reason": "Removes the repeated word in the Turkish phrase for tatami mats."
+    },
+    {
+      "sourceNumber": 106,
+      "sentenceIndex": 10,
+      "originalEnglish": "In many instances, the biological and physical make-up of the land contributes to how it is used; lands with rich soils are most suitable for farming while lands prone to flooding are less suitable for settlement.",
+      "correctedEnglish": "In many instances, the biological and physical make-up of the land contributes to how it is used; lands with rich soils are most suitable for farming while lands prone to flooding are less suitable for settlement.",
+      "originalTurkish": "Bir\u00e7ok durumda, arazinin biyolojik ve fiziksel yap\u0131s\u0131 nas\u0131l kullan\u0131ld\u0131\u011f\u0131na katk\u0131da bulunur; zengin topraklara sahip araziler \u00e7ift\u00e7ilik i\u00e7in en uygunuyken, sele e\u011filimli araziler yerle\u015fim i\u00e7in daha az uygundur.",
+      "correctedTurkish": "Bu nedenle, arazinin kullan\u0131laca\u011f\u0131 ama\u00e7 i\u00e7in en uygun oldu\u011fu yerlerde kullan\u0131lmas\u0131 \u00f6nemlidir.",
+      "issueType": "turkish_typo",
+      "severity": "major",
+      "reason": "Repairs the joined-word typo in Turkish."
+    },
+    {
+      "sourceNumber": 111,
+      "sentenceIndex": 8,
+      "originalEnglish": "One bedroom had been converted into a home for a giant fish tank containing terrapins and salamanders, while another held a pair of baby alligators.",
+      "correctedEnglish": "One bedroom had been converted into a home for a giant fish tank containing terrapins and salamanders, while another held a pair of baby alligators.",
+      "originalTurkish": "Bir yatak odas\u0131, terapi ve semenderlerin bulundu\u011fu dev bir bal\u0131k tank\u0131na ev sahipli\u011fi yaparken, di\u011feri bir \u00e7ift yavru timsaha ev sahipli\u011fi yapacak \u015fekilde d\u00f6n\u00fc\u015ft\u00fcr\u00fclm\u00fc\u015ft\u00fc.",
+      "correctedTurkish": "Bir yatak odas\u0131, su kaplumba\u011falar\u0131 ve semenderlerin bulundu\u011fu dev bir bal\u0131k tank\u0131na ev sahipli\u011fi yaparken, di\u011feri bir \u00e7ift yavru timsah i\u00e7in d\u00f6n\u00fc\u015ft\u00fcr\u00fclm\u00fc\u015ft\u00fc.",
+      "issueType": "turkish_typo",
+      "severity": "major",
+      "reason": "Corrects the Turkish word for terrapins while preserving the source sentence."
+    },
+    {
+      "sourceNumber": 117,
+      "sentenceIndex": 2,
+      "originalEnglish": "Pandas spend most of their time eating bamboo because it makes up over ninety-nine percent of their diet.",
+      "correctedEnglish": "Pandas spend most of their time eating bamboo because it makes up over ninety-nine percent of their diet.",
+      "originalTurkish": "Pandalar, beslenmelerinin y\u00fczde doksan dokuzundan fazlas\u0131n\u0131 olu\u015fturdu\u011fu i\u00e7in bambu yemekle ge\u00e7irirler.",
+      "correctedTurkish": "Pandalar zamanlar\u0131n\u0131n \u00e7o\u011funu bambu yiyerek ge\u00e7irirler.",
+      "issueType": "turkish_missing_meaning",
+      "severity": "major",
+      "reason": "Restores the missing time expression."
+    },
+    {
+      "sourceNumber": 128,
+      "sentenceIndex": 3,
+      "originalEnglish": "An impressive 75 per cent of the persons surveyed think that the law is a good one and should be kept. They point to the significant decrease in the highway death rate or to the saving of precious fuel as reasons for their opinion.",
+      "correctedEnglish": "An impressive 75 per cent of the persons surveyed think that the law is a good one and should be kept. They point to the significant decrease in the highway death rate or to the saving of precious fuel as reasons for their opinion.",
+      "originalTurkish": "Ankete kat\u0131lanlar\u0131n etkileyici bir \u015fekilde y\u00fczde 75'i yasan\u0131n iyi oldu\u011funu ve korunmas\u0131 gerekti\u011fini d\u00fc\u015f\u00fcn\u00fcyor. G\u00f6r\u00fc\u015flerinin nedenleri olarak otoyol \u00f6l\u00fcm oran\u0131ndaki \u00f6nemli d\u00fc\u015f\u00fc\u015fe veya de\u011ferli yak\u0131t tasarrufuna i\u015faret ediyorlar.",
+      "correctedTurkish": "Tak\u0131m sistemi, iki s\u00fcr\u00fcc\u00fcn\u00fcn birlikte tek bir s\u00fcr\u00fcc\u00fcden daha h\u0131zl\u0131 gidebilmesine dayan\u0131r; arkadaki s\u00fcr\u00fcc\u00fc, r\u00fczg\u00e2r direncini azaltmak i\u00e7in \u00f6ndekinin olu\u015fturdu\u011fu hava ak\u0131m\u0131ndan yararlan\u0131r.",
+      "issueType": "turkish_technical_term",
+      "severity": "major",
+      "reason": "Corrects the mistranslated cycling term."
+    },
+    {
+      "sourceNumber": 156,
+      "sentenceIndex": 2,
+      "originalEnglish": "A drought can last for months or years, or may be declared after as few as 15 days.",
+      "correctedEnglish": "A drought can last for months or years, or may be declared after as few as 15 days.",
+      "originalTurkish": "Bir kurakl\u0131k aylarca veya y\u0131llarca s\u00fcrebilir ya da on be\u015f g\u00fcn gibi k\u0131sa bir s\u00fcre sonra sona erebilir.",
+      "correctedTurkish": "Kurakl\u0131k aylarca veya y\u0131llarca s\u00fcrebilir ya da on be\u015f g\u00fcn gibi k\u0131sa bir s\u00fcrenin ard\u0131ndan ilan edilebilir.",
+      "issueType": "translation_drift",
+      "severity": "major",
+      "reason": "Restores the source meaning that a drought may be declared, not end."
+    },
+    {
+      "sourceNumber": 211,
+      "sentenceIndex": 4,
+      "originalEnglish": "Many developed illnesses relating to the bitterness and resentment they carried as a result.",
+      "correctedEnglish": "Many developed illnesses relating to the bitterness and resentment they carried as a result.",
+      "originalTurkish": "Sonu\u00e7 olarak ta\u015f\u0131d\u0131klar\u0131 \u00e7o\u011fu hastal\u0131\u011f\u0131n ilerlemesi, ac\u0131 ve i\u00e7erlemeyle ilgilidir.",
+      "correctedTurkish": "Bir\u00e7o\u011funda, ta\u015f\u0131d\u0131klar\u0131 ac\u0131l\u0131k ve k\u0131rg\u0131nl\u0131kla ba\u011flant\u0131l\u0131 hastal\u0131klar geli\u015fti.",
+      "issueType": "translation_drift",
+      "severity": "critical",
+      "reason": "Replaces a Turkish sentence whose meaning had become unrelated to the English source."
+    },
+    {
+      "sourceNumber": 240,
+      "sentenceIndex": 3,
+      "originalEnglish": "Horses are so good at detecting natural disturbances like distant storms and earthquakes that some horsemen insist they possess a sixth sense, but they may be responding to tiny sounds too far away for humans to hear.",
+      "correctedEnglish": "Horses are so good at detecting natural disturbances like distant storms and earthquakes that some horsemen insist they possess a sixth sense, but they may be responding to tiny sounds too far away for humans to hear.",
+      "originalTurkish": "Atlar, uzaktaki f\u0131rt\u0131nalar ve depremler gibi do\u011fal rahats\u0131zl\u0131klar\u0131 tespit etmede o kadar iyidir ki, baz\u0131 atl\u0131lar alt\u0131nc\u0131 hisleri oldu\u011funda \u0131srar eder, ancak insanlar\u0131n duyamayaca\u011f\u0131 kadar uzaktaki k\u00fc\u00e7\u00fck seslere tepki veriyor olabilirler.",
+      "correctedTurkish": "Atlar, uzaktaki f\u0131rt\u0131nalar ve depremler gibi do\u011fal olaylar\u0131 tespit etmede o kadar iyidir ki baz\u0131 atl\u0131lar onlar\u0131n alt\u0131nc\u0131 hisse sahip oldu\u011funu s\u00f6yler; oysa atlar insanlar\u0131n duyamayaca\u011f\u0131 kadar uzaktaki k\u00fc\u00e7\u00fck seslere tepki veriyor olabilir.",
+      "issueType": "turkish_translation",
+      "severity": "major",
+      "reason": "Repairs the garbled Turkish subject and literal wording."
+    },
+    {
+      "sourceNumber": 291,
+      "sentenceIndex": 4,
+      "originalEnglish": "Everyone misses their friends when they are dying.",
+      "correctedEnglish": "Everyone misses their friends when they are dying.",
+      "originalTurkish": "Herkes arkada\u015f\u0131n\u0131 kaybedince, \u00f6l\u00fcnce \u00f6zler.",
+      "correctedTurkish": "Herkes \u00f6lmek \u00fczereyken arkada\u015flar\u0131n\u0131 \u00f6zler.",
+      "issueType": "translation_drift",
+      "severity": "major",
+      "reason": "Restores the source meaning; the former Turkish meant losing a friend."
+    }
+  ]
+}

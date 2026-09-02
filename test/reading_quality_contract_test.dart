@@ -53,7 +53,7 @@ void main() {
     );
     final languageSummary = languageAudit['summary']! as Map<String, Object?>;
     expect(languageSummary['retainedRepairSentencesAudited'], 108);
-    expect(languageSummary['sentencesRewritten'], 4);
+    expect(languageSummary['sentencesRewritten'], 5);
 
     final rangeOverlay = _json(
       'source_data/quality/reading_content_repairs_301_500_v2.json',
@@ -171,7 +171,37 @@ assert builder.canonical_source_baseline_payload(passages)['canonicalContentSha2
     );
     final summary = canonicalAudit['summary']! as Map<String, Object?>;
     expect(summary['canonicalSentencesAudited'], 4624);
-    expect(summary['critical'], 5);
+    expect(summary['critical'], 6);
+
+    final manualOverlay = _json(
+      'source_data/quality/reading_canonical_language_corrections_101_300_v2.json',
+    );
+    final manualCorrections = manualOverlay['corrections']! as List<Object?>;
+    expect(manualCorrections, hasLength(29));
+    expect(
+      manualCorrections.cast<Map<String, Object?>>().map(
+            (correction) => correction['sourceNumber'] as int,
+          ),
+      everyElement(inInclusiveRange(101, 300)),
+    );
+
+    final manualReview = _json(
+      'source_data/reports/reading_canonical_editorial_review_101_300_v1.json',
+    );
+    final manualSummary = manualReview['summary']! as Map<String, Object?>;
+    expect(manualSummary['readingsReviewed'], 200);
+    expect(manualSummary['sentencePairsReviewed'], 1687);
+    expect(manualSummary['manualReviewRemaining'], 0);
+    expect(manualSummary['sourceMissingReadings'], <int>[118, 175, 196, 226, 244, 269]);
+
+    final reviewedReadings = manualReview['reviewedReadings']! as List<Object?>;
+    expect(reviewedReadings, hasLength(200));
+    expect(
+      reviewedReadings.cast<Map<String, Object?>>().every(
+            (record) => record['reviewed'] == true,
+          ),
+      isTrue,
+    );
 
     final index = _json('assets/content/v1/readings/index.json');
     final entry = (index['readings']! as List<Object?>)
@@ -183,6 +213,15 @@ assert builder.canonical_source_baseline_payload(passages)['canonicalContentSha2
         .singleWhere((item) => item['index'] == 6);
     expect(sentence['englishText'],
         contains('contributory copyright infringement'));
+
+    final marsEntry = (index['readings']! as List<Object?>)
+        .cast<Map<String, Object?>>()
+        .singleWhere((item) => item['sourceNumber'] == '110');
+    final mars = _json('assets/content/v1/${marsEntry['file']}');
+    final marsSentence = (mars['sentences']! as List<Object?>)
+        .cast<Map<String, Object?>>()
+        .singleWhere((item) => item['index'] == 4);
+    expect(marsSentence['englishText'], contains('rotates once every twenty-four hours'));
 
     final curatedReadings = jsonDecode(File(
       'source_data/curated/readings_001_100_curated_v2.json',

@@ -72,7 +72,14 @@ REPORTS_DIRECTORY = Path('reports')
 CANONICAL_LANGUAGE_CORRECTIONS_FILENAME = (
     'reading_canonical_language_corrections_v1.json'
 )
+CANONICAL_LANGUAGE_CORRECTION_FILENAMES = (
+    CANONICAL_LANGUAGE_CORRECTIONS_FILENAME,
+    'reading_canonical_language_corrections_101_300_v2.json',
+)
 CANONICAL_LANGUAGE_AUDIT_FILENAME = 'reading_canonical_language_audit_v1.json'
+CANONICAL_EDITORIAL_REVIEW_101_300_FILENAME = (
+    'reading_canonical_editorial_review_101_300_v1.json'
+)
 LANGUAGE_QUALITY_FINAL_FILENAME = 'reading_language_quality_final_v1.json'
 # The prior sentence-first audit remains published for historical comparison.
 HISTORICAL_CRITICAL_SHORT_COUNT = 322
@@ -975,6 +982,129 @@ def load_canonical_language_corrections(path: Path) -> dict[str, Any]:
     }
 
 
+def load_canonical_language_correction_overlays(
+    paths: list[Path],
+) -> dict[str, Any]:
+    """Merge independently versioned canonical correction overlays safely."""
+    corrections: list[dict[str, Any]] = []
+    seen: set[tuple[int, int]] = set()
+    for path in paths:
+        overlay = load_canonical_language_corrections(path)
+        for correction in overlay['corrections']:
+            key = (correction['sourceNumber'], correction['sentenceIndex'])
+            if key in seen:
+                raise ValueError(f'Duplicate canonical language correction across overlays: {key}')
+            seen.add(key)
+            corrections.append(correction)
+    return {'schemaVersion': 1, 'corrections': corrections}
+
+
+def load_manual_editorial_review_101_300(path: Path) -> dict[str, Any]:
+    """Load the human review ledger; it is not inferred from sentence counts."""
+    payload = load_json_object(path, 'manual editorial review ledger')
+    entries = payload.get('readings')
+    if payload.get('schemaVersion') != 1 or not isinstance(entries, list):
+        raise ValueError('Manual editorial review ledger has an invalid schema.')
+    reviewed: list[int] = []
+    seen: set[int] = set()
+    for entry in entries:
+        if not isinstance(entry, dict):
+            raise ValueError('Manual editorial review entry must be an object.')
+        source_number = entry.get('sourceNumber')
+        if (
+            not isinstance(source_number, int)
+            or not 101 <= source_number <= 300
+            or entry.get('reviewed') is not True
+            or source_number in seen
+        ):
+            raise ValueError('Manual editorial review entry is invalid.')
+        seen.add(source_number)
+        reviewed.append(source_number)
+    expected = set(range(101, 301))
+    if seen != expected:
+        raise ValueError('Manual editorial review ledger must cover every reading 101--300.')
+    repair_review = payload.get('productionRepairReview')
+    if not isinstance(repair_review, dict):
+        raise ValueError('Manual editorial review ledger lacks production repair review data.')
+    return {'schemaVersion': 1, 'reviewedSourceNumbers': sorted(reviewed),
+            'productionRepairReview': repair_review}
+
+
+def canonical_editorial_review_101_300_report(
+    passages: dict[int, dict[str, Any]],
+    corrections: list[dict[str, Any]],
+    ledger: dict[str, Any],
+) -> dict[str, Any]:
+    """Report only the sentences explicitly marked reviewed in the human ledger."""
+    reviewed_numbers = ledger['reviewedSourceNumbers']
+    reviewed_pairs = sum(
+        len(passages[source_number]['sentences']) for source_number in reviewed_numbers
+    )
+    in_scope = [
+        correction for correction in corrections
+        if 101 <= correction['sourceNumber'] <= 300
+    ]
+    changed_en = sum(
+        correction['originalEnglish'] != correction['correctedEnglish']
+        for correction in in_scope
+    )
+    changed_tr = sum(
+        correction['originalTurkish'] != correction['correctedTurkish']
+        for correction in in_scope
+    )
+    severity_counts = Counter(correction['severity'] for correction in in_scope)
+    def count_terms(*terms: str) -> int:
+        return sum(
+            any(term in correction['issueType'] for term in terms)
+            for correction in in_scope
+        )
+    source_missing = [
+        source_number for source_number in reviewed_numbers
+        if not passages[source_number]['sentences']
+    ]
+    repair_review = ledger['productionRepairReview']
+    return {
+        'schemaVersion': 1,
+        'scope': {'sourceNumberStart': 101, 'sourceNumberEnd': 300,
+                  'curated001To100': 'immutable_and_excluded'},
+        'summary': {
+            'readingsReviewed': len(reviewed_numbers),
+            'readingsWithCanonicalSentencePairs': len(reviewed_numbers) - len(source_missing),
+            'sourceMissingReadings': source_missing,
+            'sentencePairsReviewed': reviewed_pairs,
+            'cleanWithoutChange': reviewed_pairs - len(in_scope),
+            'corrected': len(in_scope),
+            'englishGrammar': count_terms('grammar', 'syntax', 'fragment', 'agreement'),
+            'englishNaturalness': count_terms('naturalness', 'collocation', 'word_choice'),
+            'englishOcr': count_terms('ocr', 'typo', 'encoding'),
+            'turkishTranslation': count_terms('translation', 'mapping', 'drift'),
+            'turkishNaturalness': count_terms('turkish_naturalness'),
+            'turkishOcr': count_terms('turkish_typo'),
+            'mappingDrift': count_terms('mapping', 'drift'),
+            'critical': severity_counts['critical'],
+            'major': severity_counts['major'],
+            'minor': severity_counts['minor'],
+            'style': severity_counts['style'],
+            'manualReviewRemaining': 0,
+            'productionRepairSentencePairsReviewed': repair_review.get('sentencePairsReviewed'),
+            'productionRepairFlowIssuesRemaining': repair_review.get('flowIssuesRemaining'),
+        },
+        'reviewedReadings': [
+            {
+                'sourceNumber': source_number,
+                'reviewed': True,
+                'sentencePairsReviewed': len(passages[source_number]['sentences']),
+                'status': ('source_missing' if source_number in source_missing else 'reviewed'),
+            }
+            for source_number in reviewed_numbers
+        ],
+        'corrections': sorted(in_scope, key=lambda item: (
+            item['sourceNumber'], item['sentenceIndex']
+        )),
+        'productionRepairReview': repair_review,
+    }
+
+
 def apply_canonical_language_corrections(
     passages: dict[int, dict[str, Any]],
     corrections: list[dict[str, Any]],
@@ -1819,8 +1949,12 @@ def build(
     translation_repairs_source = (
         source_dir / QUALITY_DIRECTORY / 'reading_translation_repairs_v1.json'
     )
-    canonical_language_corrections_source = (
-        source_dir / QUALITY_DIRECTORY / CANONICAL_LANGUAGE_CORRECTIONS_FILENAME
+    canonical_language_correction_sources = [
+        source_dir / QUALITY_DIRECTORY / filename
+        for filename in CANONICAL_LANGUAGE_CORRECTION_FILENAMES
+    ]
+    canonical_editorial_review_101_300_source = (
+        source_dir / QUALITY_DIRECTORY / CANONICAL_EDITORIAL_REVIEW_101_300_FILENAME
     )
     content_repair_sources = [
         source_dir / QUALITY_DIRECTORY / filename
@@ -1849,7 +1983,8 @@ def build(
         dictionary_source,
         pre_curated_generated_questions_backup_source,
         translation_repairs_source,
-        canonical_language_corrections_source,
+        *canonical_language_correction_sources,
+        canonical_editorial_review_101_300_source,
         *content_repair_sources,
         legacy_base_pre_final_polish_repairs_source,
         legacy_pre_polish_repairs_source,
@@ -1963,11 +2098,16 @@ def build(
     # Derived questions deliberately retain their existing canonical source.
     # Language corrections affect the displayed passage only, never questions.
     question_passages = copy.deepcopy(numbered_passages)
-    canonical_language_overlay = load_canonical_language_corrections(
-        canonical_language_corrections_source
+    canonical_language_overlay = load_canonical_language_correction_overlays(
+        canonical_language_correction_sources
     )
     canonical_language_audit = canonical_language_audit_report(
         numbered_passages, canonical_language_overlay['corrections']
+    )
+    canonical_editorial_review_101_300 = canonical_editorial_review_101_300_report(
+        numbered_passages,
+        canonical_language_overlay['corrections'],
+        load_manual_editorial_review_101_300(canonical_editorial_review_101_300_source),
     )
     canonical_quality_bands = {
         source_number: reading_quality_band(
@@ -2068,6 +2208,10 @@ def build(
     write_json(
         source_dir / REPORTS_DIRECTORY / CANONICAL_LANGUAGE_AUDIT_FILENAME,
         canonical_language_audit,
+    )
+    write_json(
+        source_dir / REPORTS_DIRECTORY / CANONICAL_EDITORIAL_REVIEW_101_300_FILENAME,
+        canonical_editorial_review_101_300,
     )
     apply_canonical_language_corrections(
         numbered_passages, canonical_language_overlay['corrections']
@@ -2294,6 +2438,7 @@ def build(
         'readingQualityAudit': quality_audit,
         'finalReadingQualityAudit': final_quality_report['summary'],
         'canonicalLanguageQualityAudit': canonical_language_audit['summary'],
+        'canonicalEditorialReview101To300': canonical_editorial_review_101_300['summary'],
         'readingLanguageQualityFinal': language_quality_final['summary'],
         'editorialRepairAudit': language_audit['summary'],
         'readingQuestionIntegrity': {
@@ -2317,7 +2462,13 @@ def build(
             ),
             'translationRepairs': source_hash(translation_repairs_source),
             'canonicalLanguageCorrections': source_hash(
-                canonical_language_corrections_source
+                canonical_language_correction_sources[0]
+            ),
+            'canonicalLanguageCorrections101To300V2': source_hash(
+                canonical_language_correction_sources[1]
+            ),
+            'canonicalEditorialReview101To300': source_hash(
+                canonical_editorial_review_101_300_source
             ),
             'contentRepairs': source_hash(content_repair_sources[0]),
             'contentRepairs101To300': source_hash(content_repair_sources[1]),

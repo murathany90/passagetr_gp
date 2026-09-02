@@ -179,6 +179,13 @@ def validate_source_checksums(manifest: dict[str, Any]) -> None:
         'canonicalLanguageCorrections': (
             SOURCE_DATA / 'quality' / builder.CANONICAL_LANGUAGE_CORRECTIONS_FILENAME
         ),
+        'canonicalLanguageCorrections101To300V2': (
+            SOURCE_DATA / 'quality'
+            / 'reading_canonical_language_corrections_101_300_v2.json'
+        ),
+        'canonicalEditorialReview101To300': (
+            SOURCE_DATA / 'quality' / builder.CANONICAL_EDITORIAL_REVIEW_101_300_FILENAME
+        ),
         'contentRepairs': SOURCE_DATA / 'quality' / 'reading_content_repairs_v2.json',
         'contentRepairs101To300': (
             SOURCE_DATA / 'quality' / 'reading_content_repairs_101_300_v4.json'
@@ -433,8 +440,19 @@ def validate_final_editorial_repair_audit(manifest: dict[str, Any]) -> None:
             SOURCE_DATA / 'quality' / 'reading_translation_repairs_v1.json'
         ),
     )
-    canonical_language_overlay = builder.load_canonical_language_corrections(
-        SOURCE_DATA / 'quality' / builder.CANONICAL_LANGUAGE_CORRECTIONS_FILENAME
+    canonical_language_overlay = builder.load_canonical_language_correction_overlays([
+        SOURCE_DATA / 'quality' / filename
+        for filename in builder.CANONICAL_LANGUAGE_CORRECTION_FILENAMES
+    ])
+    expected_canonical_editorial_review_101_300 = (
+        builder.canonical_editorial_review_101_300_report(
+            final_passages,
+            canonical_language_overlay['corrections'],
+            builder.load_manual_editorial_review_101_300(
+                SOURCE_DATA / 'quality'
+                / builder.CANONICAL_EDITORIAL_REVIEW_101_300_FILENAME
+            ),
+        )
     )
     expected_canonical_language_audit = builder.canonical_language_audit_report(
         final_passages, canonical_language_overlay['corrections']
@@ -445,6 +463,15 @@ def validate_final_editorial_repair_audit(manifest: dict[str, Any]) -> None:
         raise ValueError('Canonical language audit is invalid.')
     if manifest.get('canonicalLanguageQualityAudit') != expected_canonical_language_audit['summary']:
         raise ValueError('Canonical language audit metadata is invalid.')
+    if load(
+        SOURCE_DATA / 'reports' / builder.CANONICAL_EDITORIAL_REVIEW_101_300_FILENAME
+    ) != expected_canonical_editorial_review_101_300:
+        raise ValueError('101â€“300 canonical editorial review is invalid.')
+    if (
+        manifest.get('canonicalEditorialReview101To300')
+        != expected_canonical_editorial_review_101_300['summary']
+    ):
+        raise ValueError('101â€“300 canonical editorial review metadata is invalid.')
     canonical_quality_bands = {
         source_number: builder.reading_quality_band(
             passage['level'],
