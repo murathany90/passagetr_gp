@@ -37,6 +37,7 @@ DICTIONARY_SOURCE = SOURCE / 'canonical' / 'dictionary' / 'dictionary_tr_en.xlsx
 EXPECTED_WORDS = 7500
 EXPECTED_READINGS = 678
 EXPECTED_SENTENCES = 6275
+EXPECTED_WORD_TAGS = 66
 EXPECTED_DICTIONARY_ENTRIES = 121772
 EXPECTED_DICTIONARY_HEADWORDS = 121501
 WORD_FIELDS = {
@@ -137,6 +138,7 @@ def validate_words() -> dict[str, int]:
     if not rows or set(rows[0]) != WORD_FIELDS:
         fail('Canonical word CSV headers do not match the required contract.')
     headwords: set[str] = set()
+    canonical_tags: set[str] = set()
     invalid_tags = 0
     spreadsheet_errors = 0
     for row_number, row in enumerate(rows, start=2):
@@ -158,17 +160,24 @@ def validate_words() -> dict[str, int]:
         spreadsheet_errors += sum(
             len(builder.invalid_spreadsheet_tokens(value)) for value in row.values()
         )
+        canonical_tags.update(tags)
     if invalid_tags:
         fail(f'Invalid canonical word tags: {invalid_tags}')
     if spreadsheet_errors:
         fail(f'Spreadsheet error tokens in canonical word CSV: {spreadsheet_errors}')
     if len(headwords) != EXPECTED_WORDS:
         fail('Canonical word headwords are not unique.')
+    if len(canonical_tags) != EXPECTED_WORD_TAGS:
+        fail(
+            f'Canonical word taxonomy must contain {EXPECTED_WORD_TAGS} tags, '
+            f'got {len(canonical_tags)}.'
+        )
     return {
         'rows': len(rows),
         'uniqueHeadwords': len(headwords),
         'invalidTags': invalid_tags,
         'spreadsheetErrors': spreadsheet_errors,
+        'canonicalTags': len(canonical_tags),
     }
 
 

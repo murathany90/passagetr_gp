@@ -11,6 +11,7 @@ import 'package:passagetr_gp/features/readings/readings_page.dart';
 import 'package:passagetr_gp/features/dictionary/dictionary_page.dart';
 import 'package:passagetr_gp/features/tts/student_tts_engine.dart';
 import 'package:passagetr_gp/features/words/dictionary_detail_sheet.dart';
+import 'package:passagetr_gp/features/words/flashcards_page.dart';
 import 'package:passagetr_gp/features/words/words_page.dart';
 import 'package:passagetr_gp/models/content_models.dart';
 import 'package:passagetr_gp/repositories/local_progress_repository.dart';
@@ -27,6 +28,7 @@ void main() {
     pos: 'n.',
     exampleEn: 'Access is useful.',
     level: 'B1',
+    tags: <String>['technology_it'],
   );
   const secondWord = WordEntry(
     id: 'word-b',
@@ -36,6 +38,7 @@ void main() {
     pos: 'n.',
     exampleEn: 'The bridge is old.',
     level: 'B2',
+    tags: <String>['construction_infrastructure'],
   );
   const passage = ReadingPassage(
     id: 'reading-a',
@@ -119,10 +122,49 @@ void main() {
     await _pumpContent(tester);
 
     expect(find.text('2 sonuç'), findsOneWidget);
+    expect(find.text('Etiket'), findsOneWidget);
+    expect(find.text('Paket'), findsNothing);
+    await tester.tap(find.byKey(const ValueKey<String?>(null)));
+    await tester.pump();
+    await tester.tap(find.text('technology_it').last);
+    await tester.pump();
+    expect(find.text('1 sonuç'), findsOneWidget);
     await tester.enterText(find.byType(TextField), 'access');
     await tester.pump();
     expect(find.text('1 sonuç'), findsOneWidget);
     expect(find.text('erişim'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('word detail shows canonical tags instead of notes',
+      (tester) async {
+    await _setPhoneSize(tester);
+    await tester.pumpWidget(app(const WordsPage()));
+    await _pumpContent(tester);
+
+    await tester.ensureVisible(find.text('access').first);
+    await tester.tap(find.text('access').first);
+    await tester.pump();
+    expect(find.text('ETİKETLER'), findsOneWidget);
+    expect(find.text('technology_it'), findsOneWidget);
+    expect(find.text('Not'), findsNothing);
+  });
+
+  testWidgets('390px Flashcard uses level and tag filters without overflow',
+      (tester) async {
+    await _setPhoneSize(tester);
+    await tester.pumpWidget(app(const FlashcardsPage()));
+    await _pumpContent(tester);
+
+    expect(find.textContaining('1 / 2'), findsOneWidget);
+    expect(find.text('Seviye'), findsOneWidget);
+    expect(find.text('Etiket'), findsOneWidget);
+    await tester
+        .tap(find.byKey(const ValueKey<String?>('flashcard-level-null')));
+    await tester.pump();
+    await tester.tap(find.text('B1').last);
+    await tester.pump();
+    expect(find.textContaining('1 / 1'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -357,7 +399,7 @@ class _MemoryProgress extends LocalProgressRepository {
   Future<void> saveReadingFilters({String? level, String? category}) async {}
 
   @override
-  Future<void> saveWordFilters({String? packId, String? level}) async {}
+  Future<void> saveWordFilters({String? tag, String? level}) async {}
 }
 
 class _MissingAssetBundle extends CachingAssetBundle {

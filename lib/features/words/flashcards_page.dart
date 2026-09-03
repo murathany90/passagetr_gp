@@ -10,10 +10,10 @@ import '../../core/local_progress.dart';
 import '../../models/content_models.dart';
 import '../common/page_parts.dart';
 import 'word_detail_sheet.dart';
+import 'word_filtering.dart';
 
 class FlashcardsPage extends ConsumerStatefulWidget {
-  const FlashcardsPage({super.key, this.packId});
-  final String? packId;
+  const FlashcardsPage({super.key});
   @override
   ConsumerState<FlashcardsPage> createState() => _FlashcardsPageState();
 }
@@ -24,6 +24,8 @@ class _FlashcardsPageState extends ConsumerState<FlashcardsPage> {
   int _known = 0;
   int _review = 0;
   bool _showMeaning = false;
+  String? _level;
+  String? _tag;
 
   @override
   void initState() {
@@ -49,10 +51,18 @@ class _FlashcardsPageState extends ConsumerState<FlashcardsPage> {
           message: error.toString(),
           onRetry: () => ref.invalidate(wordsProvider)),
       data: (allWords) {
-        final words = _selectCards(allWords, widget.packId);
+        final levels = canonicalWordLevels(allWords);
+        final tags = canonicalWordTags(allWords);
+        final validLevel = levels.contains(_level) ? _level : null;
+        final validTag = tags.contains(_tag) ? _tag : null;
+        final words = _selectCards(
+          allWords,
+          level: validLevel,
+          tag: validTag,
+        );
         if (words.isEmpty) {
           return const DataLoadErrorPage(
-              message: 'DATA_LOAD_ERROR: Bu paket için kelime bulunamadı.');
+              message: 'DATA_LOAD_ERROR: Bu filtreler için kelime bulunamadı.');
         }
         return PageFrame(
           title: 'Flashcard',
@@ -65,6 +75,43 @@ class _FlashcardsPageState extends ConsumerState<FlashcardsPage> {
                 label: const Text('Kelimelere dön'))
           ],
           child: Column(children: <Widget>[
+            DropdownButtonFormField<String?>(
+              key: ValueKey<String?>('flashcard-level-$validLevel'),
+              initialValue: validLevel,
+              isExpanded: true,
+              decoration: const InputDecoration(labelText: 'Seviye'),
+              items: <DropdownMenuItem<String?>>[
+                const DropdownMenuItem(
+                  value: null,
+                  child: Text('Tüm seviyeler'),
+                ),
+                ...levels.map(
+                  (level) => DropdownMenuItem(
+                    value: level,
+                    child: Text(level),
+                  ),
+                ),
+              ],
+              onChanged: _setLevel,
+            ),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<String?>(
+              key: ValueKey<String?>('flashcard-tag-$validTag'),
+              initialValue: validTag,
+              isExpanded: true,
+              decoration: const InputDecoration(labelText: 'Etiket'),
+              items: <DropdownMenuItem<String?>>[
+                const DropdownMenuItem(
+                  value: null,
+                  child: Text('Tüm etiketler'),
+                ),
+                ...tags.map(
+                  (tag) => DropdownMenuItem(value: tag, child: Text(tag)),
+                ),
+              ],
+              onChanged: _setTag,
+            ),
+            const SizedBox(height: 18),
             LinearProgressIndicator(
                 value: (_index + 1) / words.length,
                 minHeight: 7,
@@ -126,6 +173,22 @@ class _FlashcardsPageState extends ConsumerState<FlashcardsPage> {
           duration: const Duration(milliseconds: 220), curve: Curves.easeOut);
     }
   }
+
+  void _setLevel(String? value) => _applyFilters(level: value, tag: _tag);
+
+  void _setTag(String? value) => _applyFilters(level: _level, tag: value);
+
+  void _applyFilters({required String? level, required String? tag}) {
+    setState(() {
+      _level = level;
+      _tag = tag;
+      _index = 0;
+      _showMeaning = false;
+    });
+    if (_controller.hasClients) {
+      _controller.jumpToPage(0);
+    }
+  }
 }
 
 class _FlashcardActions extends StatelessWidget {
@@ -181,9 +244,13 @@ class _FlashcardActions extends StatelessWidget {
       );
 }
 
-List<WordEntry> _selectCards(List<WordEntry> words, String? packId) {
+List<WordEntry> _selectCards(
+  List<WordEntry> words, {
+  String? level,
+  String? tag,
+}) {
   final scoped = words
-      .where((word) => packId == null || word.packId == packId)
+      .where((word) => matchesWordFilters(word, level: level, tag: tag))
       .toList(growable: false);
   final shuffled = List<WordEntry>.of(scoped);
   shuffled.shuffle(math.Random(73));

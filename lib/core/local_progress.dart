@@ -35,16 +35,16 @@ class LocalProgressController extends StateNotifier<LocalProgressSnapshot> {
     }
   }
 
-  void setWordFilters({String? packId, String? level}) {
+  void setWordFilters({String? tag, String? level}) {
     _changedBeforeRestore = true;
     state = state.copyWith(
       isLoaded: true,
-      wordPackId: packId,
-      clearWordPackId: packId == null,
+      wordTag: tag,
+      clearWordTag: tag == null,
       wordLevel: level,
       clearWordLevel: level == null,
     );
-    unawaited(_repository.saveWordFilters(packId: packId, level: level));
+    unawaited(_repository.saveWordFilters(tag: tag, level: level));
   }
 
   void setReadingFilters({String? level, String? category}) {

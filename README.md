@@ -25,7 +25,7 @@ kullanıcı girişi, auth ve runtime database içermez.
 | `source_data/curated/readings_001_100_curated_v2.json` | JSON | 001–100 curated özet/metadata/comprehension soruları | 100 | `source_number`, `summary_en`, `summary_tr`, `questions` | Curated soru ve özet kaynağı; EN/TR body override değildir |
 
 Kelime için tek authoritative kaynak ilk CSV’dir ve kayıt sayısı 7.500’dür.
-Önceki 5.314 kelimelik CSV kaldırılmıştır; production’da kullanılmaz.
+Önceki word CSV kaldırılmıştır; production’da kullanılmaz.
 
 Reading body yalnız `reading_passages.csv` + `reading_sentences.csv` ile
 üretilir. Eski JSON correction/repair/overlay katmanları üretim akışında yoktur;

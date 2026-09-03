@@ -11,6 +11,7 @@ import '../../models/content_models.dart';
 import '../common/page_parts.dart';
 import '../tts/student_tts_icon_button.dart';
 import 'word_detail_sheet.dart';
+import 'word_filtering.dart';
 
 class WordsPage extends ConsumerStatefulWidget {
   const WordsPage({super.key});
@@ -21,7 +22,7 @@ class WordsPage extends ConsumerStatefulWidget {
 class _WordsPageState extends ConsumerState<WordsPage> {
   static const _pageSize = 72;
   String _query = '';
-  String? _packId;
+  String? _tag;
   String? _level;
   int _page = 0;
   bool _filtersRestored = false;
@@ -61,14 +62,13 @@ class _WordsPageState extends ConsumerState<WordsPage> {
   @override
   Widget build(BuildContext context) {
     final words = ref.watch(wordsProvider);
-    final packs = ref.watch(contentPacksProvider);
     final progress = ref.watch(localProgressProvider);
     if (!_filtersRestored && progress.isLoaded) {
       _filtersRestored = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
           setState(() {
-            _packId = progress.wordPackId;
+            _tag = progress.wordTag;
             _level = progress.wordLevel;
           });
         }
@@ -83,24 +83,14 @@ class _WordsPageState extends ConsumerState<WordsPage> {
           message: error.toString(),
           onRetry: () => ref.invalidate(wordsProvider)),
       data: (items) {
-        final availablePacks = packs.valueOrNull ?? const <ContentPack>[];
-        final validPackId =
-            availablePacks.any((pack) => pack.id == _packId) ? _packId : null;
-        final levels = items
-            .map((word) => word.level)
-            .whereType<String>()
-            .where((level) => level.isNotEmpty)
-            .toSet()
-            .toList()
-          ..sort();
+        final tags = canonicalWordTags(items);
+        final validTag = tags.contains(_tag) ? _tag : null;
+        final levels = canonicalWordLevels(items);
         final validLevel = levels.contains(_level) ? _level : null;
         final filtered = items.where((word) {
-          final matchesPack = validPackId == null || word.packId == validPackId;
-          final matchesLevel = validLevel == null || word.level == validLevel;
           final text =
               '${word.enWord} ${word.trMeaning} ${word.pos}'.toLowerCase();
-          return matchesPack &&
-              matchesLevel &&
+          return matchesWordFilters(word, level: validLevel, tag: validTag) &&
               text.contains(_query.toLowerCase());
         }).toList(growable: false);
         final ordered = orderForPresentation<WordEntry>(
@@ -128,13 +118,11 @@ class _WordsPageState extends ConsumerState<WordsPage> {
               '${items.length} gerçek kelimeyi ara, kartlarla çalış veya mini test çöz.',
           actions: <Widget>[
             OutlinedButton.icon(
-                onPressed: () => context.go(
-                    '/words/mini-test${validPackId == null ? '' : '?packId=$validPackId'}'),
+                onPressed: () => context.go('/words/mini-test'),
                 icon: const Icon(Icons.quiz_outlined),
                 label: const Text('Mini test')),
             FilledButton.icon(
-                onPressed: () => context.go(
-                    '/words/flashcards${validPackId == null ? '' : '?packId=$validPackId'}'),
+                onPressed: () => context.go('/words/flashcards'),
                 icon: const Icon(Icons.style_rounded),
                 label: const Text('Flashcard')),
           ],
@@ -158,17 +146,17 @@ class _WordsPageState extends ConsumerState<WordsPage> {
                           _page = 0;
                         })),
                 const SizedBox(height: 14),
-                _PackFilter(
-                    packs: availablePacks,
-                    selected: validPackId,
+                _TagFilter(
+                    tags: tags,
+                    selected: validTag,
                     onChanged: (value) {
                       setState(() {
-                        _packId = value;
+                        _tag = value;
                         _page = 0;
                       });
                       ref
                           .read(localProgressProvider.notifier)
-                          .setWordFilters(packId: value, level: _level);
+                          .setWordFilters(tag: value, level: _level);
                     }),
                 const SizedBox(height: 14),
                 DropdownButtonFormField<String?>(
@@ -195,7 +183,7 @@ class _WordsPageState extends ConsumerState<WordsPage> {
                     });
                     ref
                         .read(localProgressProvider.notifier)
-                        .setWordFilters(packId: _packId, level: value);
+                        .setWordFilters(tag: _tag, level: value);
                   },
                 ),
                 const SizedBox(height: 12),
@@ -235,11 +223,11 @@ class _WordsPageState extends ConsumerState<WordsPage> {
                     child: Text('${filtered.length} sonuç',
                         style: Theme.of(context).textTheme.titleMedium),
                   ),
-                  if (validPackId != null || validLevel != null)
+                  if (validTag != null || validLevel != null)
                     TextButton.icon(
                       onPressed: () {
                         setState(() {
-                          _packId = null;
+                          _tag = null;
                           _level = null;
                           _page = 0;
                         });
@@ -302,10 +290,10 @@ class _Pager extends StatelessWidget {
       ]);
 }
 
-class _PackFilter extends StatelessWidget {
-  const _PackFilter(
-      {required this.packs, required this.selected, required this.onChanged});
-  final List<ContentPack> packs;
+class _TagFilter extends StatelessWidget {
+  const _TagFilter(
+      {required this.tags, required this.selected, required this.onChanged});
+  final List<String> tags;
   final String? selected;
   final ValueChanged<String?> onChanged;
   @override
@@ -313,13 +301,12 @@ class _PackFilter extends StatelessWidget {
         key: ValueKey<String?>(selected),
         initialValue: selected,
         isExpanded: true,
-        decoration: const InputDecoration(labelText: 'Paket'),
+        decoration: const InputDecoration(labelText: 'Etiket'),
         items: <DropdownMenuItem<String?>>[
-          const DropdownMenuItem(value: null, child: Text('Tüm paketler')),
-          ...packs.where((pack) => pack.wordCount > 0).map((pack) =>
-              DropdownMenuItem(
-                  value: pack.id,
-                  child: Text('${pack.name} · ${pack.wordCount}'))),
+          const DropdownMenuItem(value: null, child: Text('Tüm etiketler')),
+          ...tags.map(
+            (tag) => DropdownMenuItem(value: tag, child: Text(tag)),
+          ),
         ],
         onChanged: onChanged,
       );

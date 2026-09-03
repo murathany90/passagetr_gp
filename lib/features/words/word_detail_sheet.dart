@@ -91,8 +91,8 @@ class WordDetailSheet extends ConsumerWidget {
                 _DetailBlock(label: 'Eş anlamlılar', value: word.synonymsRaw!),
               if (_notBlank(word.antonymsRaw))
                 _DetailBlock(label: 'Zıt anlamlılar', value: word.antonymsRaw!),
-              if (_notBlank(word.notes))
-                _DetailBlock(label: 'Not', value: word.notes!),
+              if (word.tags.isNotEmpty)
+                _DetailBlock(label: 'ETİKETLER', value: word.tags.join(' · ')),
               Align(
                 alignment: Alignment.centerLeft,
                 child: OutlinedButton.icon(

@@ -30,8 +30,7 @@ final _routerProvider = Provider<GoRouter>((ref) => GoRouter(
             ),
             GoRoute(
               path: '/words/flashcards',
-              builder: (context, state) =>
-                  FlashcardsPage(packId: state.uri.queryParameters['packId']),
+              builder: (context, state) => const FlashcardsPage(),
             ),
             GoRoute(
               path: '/words/mini-test',

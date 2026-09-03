@@ -6,7 +6,7 @@ class LocalProgressSnapshot {
     this.favoriteWordIds = const <String>{},
     this.knownWordIds = const <String>{},
     this.completedReadingIds = const <String>{},
-    this.wordPackId,
+    this.wordTag,
     this.wordLevel,
     this.readingLevel,
     this.readingCategory,
@@ -18,7 +18,7 @@ class LocalProgressSnapshot {
   final Set<String> favoriteWordIds;
   final Set<String> knownWordIds;
   final Set<String> completedReadingIds;
-  final String? wordPackId;
+  final String? wordTag;
   final String? wordLevel;
   final String? readingLevel;
   final String? readingCategory;
@@ -28,8 +28,8 @@ class LocalProgressSnapshot {
     Set<String>? favoriteWordIds,
     Set<String>? knownWordIds,
     Set<String>? completedReadingIds,
-    String? wordPackId,
-    bool clearWordPackId = false,
+    String? wordTag,
+    bool clearWordTag = false,
     String? wordLevel,
     bool clearWordLevel = false,
     String? readingLevel,
@@ -42,7 +42,7 @@ class LocalProgressSnapshot {
         favoriteWordIds: favoriteWordIds ?? this.favoriteWordIds,
         knownWordIds: knownWordIds ?? this.knownWordIds,
         completedReadingIds: completedReadingIds ?? this.completedReadingIds,
-        wordPackId: clearWordPackId ? null : wordPackId ?? this.wordPackId,
+        wordTag: clearWordTag ? null : wordTag ?? this.wordTag,
         wordLevel: clearWordLevel ? null : wordLevel ?? this.wordLevel,
         readingLevel:
             clearReadingLevel ? null : readingLevel ?? this.readingLevel,
@@ -56,7 +56,7 @@ class LocalProgressRepository {
   static const _favoritesKey = 'passagetr.favoriteWordIds.v1';
   static const _knownKey = 'passagetr.knownWordIds.v1';
   static const _completedReadingsKey = 'passagetr.completedReadingIds.v1';
-  static const _wordPackKey = 'passagetr.wordPackId.v1';
+  static const _wordTagKey = 'passagetr.wordTag.v1';
   static const _wordLevelKey = 'passagetr.wordLevel.v1';
   static const _readingLevelKey = 'passagetr.readingLevel.v1';
   static const _readingCategoryKey = 'passagetr.readingCategory.v1';
@@ -70,7 +70,7 @@ class LocalProgressRepository {
       favoriteWordIds: _readSet(preferences, _favoritesKey),
       knownWordIds: _readSet(preferences, _knownKey),
       completedReadingIds: _readSet(preferences, _completedReadingsKey),
-      wordPackId: preferences.getString(_wordPackKey),
+      wordTag: preferences.getString(_wordTagKey),
       wordLevel: preferences.getString(_wordLevelKey),
       readingLevel: preferences.getString(_readingLevelKey),
       readingCategory: preferences.getString(_readingCategoryKey),
@@ -85,9 +85,9 @@ class LocalProgressRepository {
   Future<void> saveCompletedReadingIds(Set<String> ids) =>
       _saveSet(_completedReadingsKey, ids);
 
-  Future<void> saveWordFilters({String? packId, String? level}) async {
+  Future<void> saveWordFilters({String? tag, String? level}) async {
     final preferences = await _preferences();
-    await _saveOptional(preferences, _wordPackKey, packId);
+    await _saveOptional(preferences, _wordTagKey, tag);
     await _saveOptional(preferences, _wordLevelKey, level);
   }
 
