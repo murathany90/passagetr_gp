@@ -41,9 +41,8 @@ void main() {
     expect(detail.sentences.first.englishText, isNotEmpty);
   });
 
-  test('word search and pack filtering use real records', () async {
+  test('word search and canonical tag filtering use real records', () async {
     final words = await repository.loadWords();
-    final packs = await repository.loadPacks();
     final target = words.firstWhere(
       (word) => words.where((item) => item.enWord == word.enWord).length == 1,
     );
@@ -52,13 +51,14 @@ void main() {
             .toLowerCase()
             .contains(target.enWord.toLowerCase()))
         .toList(growable: false);
-    final selectedPack = packs.firstWhere((pack) => pack.wordCount > 0);
-    final packResults = words
-        .where((word) => word.packId == selectedPack.id)
+    final selectedTag = words.first.tags.first;
+    final tagResults = words
+        .where((word) => word.tags.contains(selectedTag))
         .toList(growable: false);
 
     expect(searchResults, isNotEmpty);
-    expect(packResults, hasLength(selectedPack.wordCount));
+    expect(selectedTag, contains('&'));
+    expect(tagResults, isNotEmpty);
   });
 
   test('missing assets surface DATA_LOAD_ERROR without sample fallback',

@@ -47,6 +47,9 @@ POS_ALIASES = {
 }
 POS_ORDER = ('prep.', 'phr. v.', 'v.', 'n.', 'adj.', 'adv.', 'NP', 'conj.', 'det.', 'modal')
 WORD_TOKEN = re.compile(r"[A-Za-z]+(?:['-][A-Za-z]+)*")
+CANONICAL_WORD_TAG = re.compile(
+    r'[a-z0-9]+(?: [a-z0-9]+)*(?: & [a-z0-9]+(?: [a-z0-9]+)*)*'
+)
 TITLE_PATTERN = re.compile(
     r'^\s*(?:(?P<number>\d+)\s*[-.)]\s*)?(?P<english>.*?)(?:\s*\((?P<turkish>[^()]*)\))?\s*$'
 )
@@ -166,6 +169,11 @@ def nullable(value: str | None) -> str | None:
 
 def parse_tag_list(value: str | None) -> list[str]:
     return [item for item in (clean(part) for part in (value or '').split(';')) if item]
+
+
+def is_canonical_word_tag(value: str) -> bool:
+    """Return whether a word tag uses the public canonical taxonomy form."""
+    return CANONICAL_WORD_TAG.fullmatch(value) is not None
 
 
 def curated_text(record: dict[str, Any], field: str) -> str:
@@ -594,7 +602,7 @@ def build(
             raise ValueError(f'Duplicate canonical headword: {english!r}')
         seen_headwords.add(normalized_headword)
         tags = parse_tag_list(row['tags_raw'])
-        if not tags or any(not re.fullmatch(r'[a-z0-9][a-z0-9_-]*', tag) for tag in tags):
+        if not tags or any(not is_canonical_word_tag(tag) for tag in tags):
             raise ValueError(f'Invalid canonical word tag at row {row_number}.')
         pos = canonical_pos(row['pos'])
         identifier = word_id(english, pos)

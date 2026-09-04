@@ -17,7 +17,7 @@ kullanıcı girişi, auth ve runtime database içermez.
 
 | Path | Format | İçerik | Kayıt | Ana alanlar | Kullanım |
 | --- | --- | --- | ---: | --- | --- |
-| `source_data/canonical/words/passagetr_yds_words_canonical_7500_FINAL.csv` | CSV | Tek kelime kaynağı | 7.500 | `en_word`, `tr_meaning`, `pos`, EN/TR örnek, synonym/antonym, `level`, `tags_raw`, `notes` | Kelime, flashcard, mini-test ve focus-word adayları |
+| `source_data/canonical/words/passagetr_yds_words_canonical_7500_FINAL.csv` | CSV | Tek kelime kaynağı | 7.500 | `en_word`, `tr_meaning`, `pos`, EN/TR örnek, synonym/antonym, `level`, `tags_raw` (`technology & it` biçiminde), `notes` | Kelime, flashcard, mini-test, eşleştirme ve focus-word adayları |
 | `source_data/canonical/readings/reading_passages.csv` | CSV | Passage metadata ve gösterim başlıkları | 678 | `pack_name`, `title`, `level`, `tags_raw`, `Category`, `display_title_en`, `display_title_tr` | Reading index, filtre ve başlıklar |
 | `source_data/canonical/readings/reading_sentences.csv` | CSV | Tek authoritative reading body | 6.275 | `passage_title`, `idx`, `sentence_en`, `sentence_tr` | Uygulamadaki bütün EN/TR reading cümleleri |
 | `source_data/canonical/readings/reading_questions_v1.json` | JSON | Korunan 101–678 vocabulary-practice soru snapshot’ı | 578 reading | `sourceNumber`, `readingId`, `questions` | Soru içeriği; reading body override değildir |
@@ -44,6 +44,7 @@ ignore edilir ve Pages build’ine dahil edilmez.
 ## Rotalar
 
 - `#/words`
+- `#/words/matching`
 - `#/readings`
 - `#/dictionary`
 

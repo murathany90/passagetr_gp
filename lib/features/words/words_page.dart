@@ -67,10 +67,17 @@ class _WordsPageState extends ConsumerState<WordsPage> {
       _filtersRestored = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
+          final restoredTag = migrateLegacyWordTag(progress.wordTag);
           setState(() {
-            _tag = progress.wordTag;
+            _tag = restoredTag;
             _level = progress.wordLevel;
           });
+          if (restoredTag != progress.wordTag) {
+            ref.read(localProgressProvider.notifier).setWordFilters(
+                  tag: restoredTag,
+                  level: progress.wordLevel,
+                );
+          }
         }
       });
     }
@@ -115,8 +122,12 @@ class _WordsPageState extends ConsumerState<WordsPage> {
         return PageFrame(
           title: 'Kelimeler',
           subtitle:
-              '${items.length} gerçek kelimeyi ara, kartlarla çalış veya mini test çöz.',
+              '${items.length} gerçek kelimeyi ara, kartlarla çalış, test çöz veya eşleştir.',
           actions: <Widget>[
+            OutlinedButton.icon(
+                onPressed: () => context.go('/words/matching'),
+                icon: const Icon(Icons.compare_arrows_rounded),
+                label: const Text('Eşleştirme')),
             OutlinedButton.icon(
                 onPressed: () => context.go('/words/mini-test'),
                 icon: const Icon(Icons.quiz_outlined),

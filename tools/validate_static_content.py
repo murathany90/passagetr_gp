@@ -155,7 +155,7 @@ def validate_words() -> dict[str, int]:
         except ValueError as error:
             raise ValueError(f'Invalid canonical POS at CSV row {row_number}.') from error
         tags = builder.parse_tag_list(row['tags_raw'])
-        if not tags or any(not re.fullmatch(r'[a-z0-9][a-z0-9_-]*', tag) for tag in tags):
+        if not tags or any(not builder.is_canonical_word_tag(tag) for tag in tags):
             invalid_tags += 1
         spreadsheet_errors += sum(
             len(builder.invalid_spreadsheet_tokens(value)) for value in row.values()
@@ -262,6 +262,17 @@ def validate_generated_content(
         fail('Generated word headwords are not unique.')
     if any(builder.has_invalid_spreadsheet_token(str(value)) for word in generated_words for value in word.values()):
         fail('Generated word JSON contains a spreadsheet error token.')
+    generated_tags = {
+        tag
+        for word in generated_words
+        for tag in word.get('tags', [])
+        if isinstance(tag, str)
+    }
+    if (
+        len(generated_tags) != EXPECTED_WORD_TAGS
+        or any(not builder.is_canonical_word_tag(tag) for tag in generated_tags)
+    ):
+        fail('Generated word JSON does not preserve the canonical tag taxonomy.')
 
     curated = builder.load_curated_readings(CURATED_SOURCE)
     derived = builder.load_derived_questions(QUESTIONS_SOURCE)
@@ -304,6 +315,7 @@ def validate_generated_content(
         'generatedWords': len(generated_words),
         'generatedReadings': len(indexed_numbers),
         'generatedSentences': total_sentences,
+        'generatedWordTags': len(generated_tags),
         'productionSentenceOverlays': 0,
     }
 

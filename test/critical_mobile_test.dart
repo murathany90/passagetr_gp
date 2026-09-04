@@ -12,6 +12,8 @@ import 'package:passagetr_gp/features/dictionary/dictionary_page.dart';
 import 'package:passagetr_gp/features/tts/student_tts_engine.dart';
 import 'package:passagetr_gp/features/words/dictionary_detail_sheet.dart';
 import 'package:passagetr_gp/features/words/flashcards_page.dart';
+import 'package:passagetr_gp/features/words/matching_page.dart';
+import 'package:passagetr_gp/features/words/mini_test_page.dart';
 import 'package:passagetr_gp/features/words/words_page.dart';
 import 'package:passagetr_gp/models/content_models.dart';
 import 'package:passagetr_gp/repositories/local_progress_repository.dart';
@@ -28,7 +30,7 @@ void main() {
     pos: 'n.',
     exampleEn: 'Access is useful.',
     level: 'B1',
-    tags: <String>['technology_it'],
+    tags: <String>['technology & it'],
   );
   const secondWord = WordEntry(
     id: 'word-b',
@@ -38,7 +40,7 @@ void main() {
     pos: 'n.',
     exampleEn: 'The bridge is old.',
     level: 'B2',
-    tags: <String>['construction_infrastructure'],
+    tags: <String>['construction & infrastructure'],
   );
   const passage = ReadingPassage(
     id: 'reading-a',
@@ -126,7 +128,7 @@ void main() {
     expect(find.text('Paket'), findsNothing);
     await tester.tap(find.byKey(const ValueKey<String?>(null)));
     await tester.pump();
-    await tester.tap(find.text('technology_it').last);
+    await tester.tap(find.text('technology & it').last);
     await tester.pump();
     expect(find.text('1 sonuç'), findsOneWidget);
     await tester.enterText(find.byType(TextField), 'access');
@@ -146,7 +148,7 @@ void main() {
     await tester.tap(find.text('access').first);
     await tester.pump();
     expect(find.text('ETİKETLER'), findsOneWidget);
-    expect(find.text('technology_it'), findsOneWidget);
+    expect(find.text('technology & it'), findsOneWidget);
     expect(find.text('Not'), findsNothing);
   });
 
@@ -165,6 +167,67 @@ void main() {
     await tester.tap(find.text('B1').last);
     await tester.pump();
     expect(find.textContaining('1 / 1'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey<String?>('flashcard-tag-null')));
+    await tester.pump();
+    await tester.tap(find.text('technology & it').last);
+    await tester.pump();
+    expect(find.textContaining('1 / 1'), findsOneWidget);
+    await tester.tap(
+      find.byKey(const ValueKey<String>('flashcard-show-details')),
+    );
+    await tester.pump();
+    expect(find.text('Ayrıntıyı gizle'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey<String?>('flashcard-level-B1')));
+    await tester.pump();
+    await tester.tap(find.text('B2').last);
+    await tester.pump();
+    expect(find.text('Filtreleri temizle'), findsOneWidget);
+    expect(find.byKey(const ValueKey<String>('flashcard-clear-filters')),
+        findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('mini test and matching use the same canonical filters',
+      (tester) async {
+    await _setPhoneSize(tester);
+    await tester.pumpWidget(app(const MiniTestPage()));
+    await _pumpContent(tester);
+
+    expect(find.text('Seviye'), findsOneWidget);
+    expect(find.text('Etiket'), findsOneWidget);
+    expect(find.text('Soru sayısı'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey<String?>('mini-test-tag-null')));
+    await tester.pump();
+    await tester.tap(find.text('technology & it').last);
+    await tester.pump();
+    expect(find.textContaining('1 uygun kelime bulundu'), findsOneWidget);
+    await tester
+        .tap(find.byKey(const ValueKey<String?>('mini-test-level-null')));
+    await tester.pump();
+    await tester.tap(find.text('B2').last);
+    await tester.pump();
+    expect(find.byKey(const ValueKey<String>('mini-test-clear-filters')),
+        findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    await tester.pumpWidget(app(const MatchingPage()));
+    await _pumpContent(tester);
+    expect(find.text('Çalışma sayısı'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey<String?>('matching-tag-null')));
+    await tester.pump();
+    await tester.tap(find.text('technology & it').last);
+    await tester.pump();
+    expect(
+      find.textContaining('1 benzersiz anlamlı eşleştirme hazırlandı'),
+      findsOneWidget,
+    );
+    await tester
+        .tap(find.byKey(const ValueKey<String?>('matching-level-null')));
+    await tester.pump();
+    await tester.tap(find.text('B2').last);
+    await tester.pump();
+    expect(find.byKey(const ValueKey<String>('matching-clear-filters')),
+        findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 

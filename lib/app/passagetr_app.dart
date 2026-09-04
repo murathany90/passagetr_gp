@@ -9,6 +9,7 @@ import '../features/home/landing_page.dart';
 import '../features/readings/reading_detail_page.dart';
 import '../features/readings/readings_page.dart';
 import '../features/words/flashcards_page.dart';
+import '../features/words/matching_page.dart';
 import '../features/words/mini_test_page.dart';
 import '../features/words/words_page.dart';
 
@@ -34,8 +35,11 @@ final _routerProvider = Provider<GoRouter>((ref) => GoRouter(
             ),
             GoRoute(
               path: '/words/mini-test',
-              builder: (context, state) =>
-                  MiniTestPage(packId: state.uri.queryParameters['packId']),
+              builder: (context, state) => const MiniTestPage(),
+            ),
+            GoRoute(
+              path: '/words/matching',
+              builder: (context, state) => const MatchingPage(),
             ),
             GoRoute(
                 path: '/readings',

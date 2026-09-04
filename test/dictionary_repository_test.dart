@@ -31,7 +31,7 @@ void main() {
     expect(dictionaryLoads, contains(endsWith('/dictionary/index.json')));
   });
 
-  test('main 5,314-word content wins before dictionary lookup', () async {
+  test('main canonical word content wins before dictionary lookup', () async {
     final content = StaticContentRepository(bundle: _FileAssetBundle());
     final dictionary = StaticDictionaryRepository(bundle: _FileAssetBundle());
     final target = (await content.loadWords()).first;

@@ -18,7 +18,10 @@ assert not old_source.exists()
 rows = builder.read_csv(new_source)
 assert len(rows) == 7500
 assert len({builder.normalized(row['en_word']) for row in rows}) == 7500
-assert len({tag for row in rows for tag in builder.parse_tag_list(row['tags_raw'])}) == 66
+tags = {tag for row in rows for tag in builder.parse_tag_list(row['tags_raw'])}
+assert len(tags) == 66
+assert all(builder.is_canonical_word_tag(tag) and '_' not in tag for tag in tags)
+assert 'technology & it' in tags
 assert all(not builder.has_invalid_spreadsheet_token(value) for row in rows for value in row.values())
 ''';
     final result = await Process.run(
