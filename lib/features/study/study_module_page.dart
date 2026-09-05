@@ -77,6 +77,11 @@ class _StudyModulePageState extends ConsumerState<StudyModulePage> {
           title: 'Modül ${module.module.number}',
           subtitle: '${module.module.mainTopic} · ${module.module.subtopic}',
           actions: <Widget>[
+            OutlinedButton.icon(
+              onPressed: () => _confirmReset(module.module.id),
+              icon: const Icon(Icons.restart_alt_rounded),
+              label: const Text('İlerlemeyi sıfırla'),
+            ),
             TextButton.icon(
               onPressed: () => _setSection(_StudySection.words),
               icon: const Icon(Icons.restart_alt_rounded),
@@ -86,16 +91,19 @@ class _StudyModulePageState extends ConsumerState<StudyModulePage> {
           child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                SurfaceCard(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: <Widget>[
-                        Text(module.module.grammarFocus,
-                            style: Theme.of(context).textTheme.titleMedium),
-                        const SizedBox(height: 5),
-                        Text(module.module.levelProfile),
-                      ]),
+                SizedBox(
+                  width: double.infinity,
+                  child: SurfaceCard(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          Text(module.module.grammarFocus,
+                              style: Theme.of(context).textTheme.titleMedium),
+                          const SizedBox(height: 5),
+                          Text(module.module.levelProfile),
+                        ]),
+                  ),
                 ),
                 const SizedBox(height: 14),
                 SingleChildScrollView(
@@ -146,6 +154,33 @@ class _StudyModulePageState extends ConsumerState<StudyModulePage> {
         );
       },
     );
+  }
+
+  Future<void> _confirmReset(String moduleId) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Modül ilerlemesi silinsin mi?'),
+        content: const Text(
+          'Yalnız bu modülün bölüm ilerlemesi, Reading/Test cevapları, '
+          'skoru ve son bölüm bilgisi silinir. Favorileriniz ve diğer '
+          'modüller etkilenmez.',
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Vazgeç'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('İlerlemeyi sıfırla'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    ref.read(localProgressProvider.notifier).resetStudyModuleProgress(moduleId);
+    setState(() => _section = _StudySection.words);
   }
 }
 
@@ -200,7 +235,10 @@ class _StudyWords extends StatelessWidget {
           const SizedBox(height: 10),
           ...words.map((word) => Padding(
                 padding: const EdgeInsets.only(bottom: 12),
-                child: _StudyWordCard(word: word),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: _StudyWordCard(word: word),
+                ),
               )),
         ],
       );
@@ -258,80 +296,86 @@ class _StudyWordCardState extends ConsumerState<_StudyWordCard> {
     for (final item in word.items) {
       grouped.putIfAbsent(item.type, () => <StudyWordItem>[]).add(item);
     }
-    return SurfaceCard(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Expanded(
-                      child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: <Widget>[
-                        TextButton(
-                          style: TextButton.styleFrom(
-                            padding: EdgeInsets.zero,
-                            minimumSize: const Size(0, 36),
-                            alignment: Alignment.centerLeft,
-                          ),
-                          onPressed: () => _openCanonicalWord(canonicalWord),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
+    return SizedBox(
+      width: double.infinity,
+      child: SurfaceCard(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Expanded(
+                        child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: <Widget>[
-                              Flexible(
-                                child: Text(
-                                  '${word.order}. ${word.headword}',
-                                  overflow: TextOverflow.ellipsis,
-                                  style: Theme.of(context).textTheme.titleLarge,
+                          TextButton(
+                            style: TextButton.styleFrom(
+                              padding: EdgeInsets.zero,
+                              minimumSize: const Size(0, 36),
+                              alignment: Alignment.centerLeft,
+                            ),
+                            onPressed: () => _openCanonicalWord(canonicalWord),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: <Widget>[
+                                Flexible(
+                                  child: Text(
+                                    '${word.order}. ${word.headword}',
+                                    overflow: TextOverflow.ellipsis,
+                                    style:
+                                        Theme.of(context).textTheme.titleLarge,
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(width: 4),
-                              const Icon(Icons.open_in_new_rounded, size: 16),
-                            ],
+                                const SizedBox(width: 4),
+                                const Icon(Icons.open_in_new_rounded, size: 16),
+                              ],
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text('${word.meaningTr} · ${word.pos} · ${word.level}'),
-                      ])),
-                  StudentTtsIconButton(
-                    tooltip: 'Kelimeyi dinle',
-                    isSpeaking: speaking,
-                    isInitializing:
-                        tts.isInitializing && tts.activeWordId == word.id,
-                    isUnavailable: tts.isUnavailable,
-                    onPlay: () => ref
-                        .read(studentTtsControllerProvider.notifier)
-                        .playDictionaryEntry(
-                            entryId: word.id, text: word.headword),
-                    onStop: () =>
-                        ref.read(studentTtsControllerProvider.notifier).stop(),
-                  ),
-                ]),
-            const SizedBox(height: 10),
-            Text(word.contextMeaning),
-            const SizedBox(height: 10),
-            OutlinedButton.icon(
-              onPressed: () => setState(() => _details = !_details),
-              icon: Icon(_details
-                  ? Icons.expand_less_rounded
-                  : Icons.expand_more_rounded),
-              label: Text(_details ? 'Ayrıntıyı gizle' : 'Ayrıntı göster'),
-            ),
-            if (_details) ...<Widget>[
-              const SizedBox(height: 14),
-              _DetailBlock(label: 'YDS notu', text: word.ydsNote),
-              _DetailBlock(
-                  label: 'Örnek',
-                  text: word.exampleEn,
-                  secondary: word.exampleTr),
-              ...grouped.entries.map((entry) => _WordItemsBlock(
-                    label: _wordItemLabel(entry.key),
-                    items: entry.value,
-                  )),
-            ],
-          ]),
+                          const SizedBox(height: 4),
+                          Text(
+                              '${word.meaningTr} · ${word.pos} · ${word.level}'),
+                        ])),
+                    StudentTtsIconButton(
+                      tooltip: 'Kelimeyi dinle',
+                      isSpeaking: speaking,
+                      isInitializing:
+                          tts.isInitializing && tts.activeWordId == word.id,
+                      isUnavailable: tts.isUnavailable,
+                      onPlay: () => ref
+                          .read(studentTtsControllerProvider.notifier)
+                          .playDictionaryEntry(
+                              entryId: word.id, text: word.headword),
+                      onStop: () => ref
+                          .read(studentTtsControllerProvider.notifier)
+                          .stop(),
+                    ),
+                  ]),
+              const SizedBox(height: 10),
+              Text(word.contextMeaning),
+              const SizedBox(height: 10),
+              OutlinedButton.icon(
+                onPressed: () => setState(() => _details = !_details),
+                icon: Icon(_details
+                    ? Icons.expand_less_rounded
+                    : Icons.expand_more_rounded),
+                label: Text(_details ? 'Ayrıntıyı gizle' : 'Ayrıntı göster'),
+              ),
+              if (_details) ...<Widget>[
+                const SizedBox(height: 14),
+                _DetailBlock(label: 'YDS notu', text: word.ydsNote),
+                _DetailBlock(
+                    label: 'Örnek',
+                    text: word.exampleEn,
+                    secondary: word.exampleTr),
+                ...grouped.entries.map((entry) => _WordItemsBlock(
+                      label: _wordItemLabel(entry.key),
+                      items: entry.value,
+                    )),
+              ],
+            ]),
+      ),
     );
   }
 }
@@ -406,68 +450,117 @@ class _StudySentencesState extends State<_StudySentences> {
         final showAnalysis = _analysis.contains(sentence.order);
         return Padding(
           padding: const EdgeInsets.only(bottom: 12),
-          child: SurfaceCard(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Text('${sentence.order}. ${sentence.english}',
-                      style: Theme.of(context).textTheme.titleMedium),
-                  const SizedBox(height: 8),
-                  Wrap(spacing: 8, runSpacing: 6, children: <Widget>[
-                    Chip(
-                      visualDensity: VisualDensity.compact,
-                      label: Text(sentence.level),
-                    ),
-                    TextButton.icon(
-                      style: TextButton.styleFrom(
-                        minimumSize: const Size(0, 36),
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      ),
-                      onPressed: () => setState(() => showTr
+          child: SizedBox(
+            width: double.infinity,
+            child: SurfaceCard(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text('${sentence.order}. ${sentence.english}',
+                        style: Theme.of(context).textTheme.titleMedium),
+                    const SizedBox(height: 8),
+                    _StudySentenceActions(
+                      level: sentence.level,
+                      showTranslation: showTr,
+                      showAnalysis: showAnalysis,
+                      onToggleTranslation: () => setState(() => showTr
                           ? _translations.remove(sentence.order)
                           : _translations.add(sentence.order)),
-                      icon: const Icon(Icons.translate_rounded),
-                      label:
-                          Text(showTr ? 'Çeviriyi gizle' : 'Çeviriyi göster'),
-                    ),
-                    TextButton.icon(
-                      style: TextButton.styleFrom(
-                        minimumSize: const Size(0, 36),
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      ),
-                      onPressed: () => setState(() => showAnalysis
+                      onToggleAnalysis: () => setState(() => showAnalysis
                           ? _analysis.remove(sentence.order)
                           : _analysis.add(sentence.order)),
-                      icon: const Icon(Icons.account_tree_outlined),
-                      label:
-                          Text(showAnalysis ? 'Analizi gizle' : 'Analizi aç'),
                     ),
+                    if (showTr) ...<Widget>[
+                      const SizedBox(height: 8),
+                      Text(sentence.turkish)
+                    ],
+                    if (showAnalysis) ...<Widget>[
+                      const SizedBox(height: 10),
+                      ...sentence.analysis.entries.map((entry) => Padding(
+                            padding: const EdgeInsets.only(bottom: 7),
+                            child: _AnalysisTile(
+                              label: entry.key,
+                              text: entry.value,
+                            ),
+                          )),
+                    ],
                   ]),
-                  if (showTr) ...<Widget>[
-                    const SizedBox(height: 8),
-                    Text(sentence.turkish)
-                  ],
-                  if (showAnalysis) ...<Widget>[
-                    const SizedBox(height: 10),
-                    ...sentence.analysis.entries.map((entry) => Padding(
-                          padding: const EdgeInsets.only(bottom: 7),
-                          child: _AnalysisTile(
-                            label: entry.key,
-                            text: entry.value,
-                          ),
-                        )),
-                  ],
-                ]),
+            ),
           ),
         );
       }).toList(growable: false));
 }
 
+class _StudySentenceActions extends StatelessWidget {
+  const _StudySentenceActions({
+    required this.level,
+    required this.showTranslation,
+    required this.showAnalysis,
+    required this.onToggleTranslation,
+    required this.onToggleAnalysis,
+  });
+
+  final String level;
+  final bool showTranslation;
+  final bool showAnalysis;
+  final VoidCallback onToggleTranslation;
+  final VoidCallback onToggleAnalysis;
+
+  @override
+  Widget build(BuildContext context) => Wrap(
+        spacing: 8,
+        runSpacing: 6,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: <Widget>[
+          SizedBox(
+            width: 50,
+            child: Chip(
+              visualDensity: VisualDensity.compact,
+              label: Center(child: Text(level)),
+            ),
+          ),
+          SizedBox(
+            width: 146,
+            child: TextButton.icon(
+              style: TextButton.styleFrom(
+                alignment: Alignment.centerLeft,
+                minimumSize: const Size.fromHeight(36),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              onPressed: onToggleTranslation,
+              icon: const Icon(Icons.translate_rounded),
+              label: Text(
+                showTranslation ? 'Çeviriyi gizle' : 'Çeviriyi göster',
+              ),
+            ),
+          ),
+          SizedBox(
+            width: 126,
+            child: TextButton.icon(
+              style: TextButton.styleFrom(
+                alignment: Alignment.centerLeft,
+                minimumSize: const Size.fromHeight(36),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              onPressed: onToggleAnalysis,
+              icon: const Icon(Icons.account_tree_outlined),
+              label: Text(showAnalysis ? 'Analizi gizle' : 'Analizi aç'),
+            ),
+          ),
+        ],
+      );
+}
+
 class _AnalysisTile extends StatelessWidget {
-  const _AnalysisTile({required this.label, required this.text});
+  const _AnalysisTile({
+    required this.label,
+    required this.text,
+    this.asReadableList = false,
+  });
   final String label;
   final String text;
+  final bool asReadableList;
 
   @override
   Widget build(BuildContext context) {
@@ -485,8 +578,50 @@ class _AnalysisTile extends StatelessWidget {
           children: <Widget>[
             Text(label, style: Theme.of(context).textTheme.labelLarge),
             const SizedBox(height: 4),
-            Text(text),
+            asReadableList ? _ReadableAnalysisText(text: text) : Text(text),
           ]),
+    );
+  }
+}
+
+class _ReadableAnalysisText extends StatelessWidget {
+  const _ReadableAnalysisText({required this.text});
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final withNumberedLines = text.replaceAllMapped(
+      RegExp(r'\s+(?=\d+\.\s)'),
+      (_) => '\n',
+    );
+    final parts =
+        (text.contains('|') ? text.split('|') : withNumberedLines.split('\n'))
+            .map((item) => item.trim())
+            .where(
+              (item) => item.isNotEmpty && !RegExp(r'^[-—–]+$').hasMatch(item),
+            )
+            .toList(growable: false);
+    if (parts.length < 2) return Text(text);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: parts
+          .map(
+            (item) => Padding(
+              padding: const EdgeInsets.only(bottom: 5),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  const Padding(
+                    padding: EdgeInsets.only(top: 1),
+                    child: Text('•'),
+                  ),
+                  const SizedBox(width: 7),
+                  Expanded(child: Text(item)),
+                ],
+              ),
+            ),
+          )
+          .toList(growable: false),
     );
   }
 }
@@ -511,22 +646,28 @@ class _StudyReadingState extends State<_StudyReading> {
   @override
   Widget build(BuildContext context) =>
       Column(crossAxisAlignment: CrossAxisAlignment.start, children: <Widget>[
-        SurfaceCard(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(
-                    widget.reading.title.isEmpty
-                        ? widget.fallbackTitle
-                        : widget.reading.title,
-                    style: Theme.of(context).textTheme.titleLarge),
-                const SizedBox(height: 14),
-                _HighlightedReading(
-                  text: widget.reading.textEn,
-                  words: widget.targetWords,
-                ),
-              ]),
+        SizedBox(
+          width: double.infinity,
+          child: SurfaceCard(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text(
+                      widget.reading.title.isEmpty
+                          ? widget.fallbackTitle
+                          : widget.reading.title,
+                      style: Theme.of(context).textTheme.titleLarge),
+                  const SizedBox(height: 14),
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 900),
+                    child: _HighlightedReading(
+                      text: widget.reading.textEn,
+                      words: widget.targetWords,
+                    ),
+                  ),
+                ]),
+          ),
         ),
         const SizedBox(height: 12),
         OutlinedButton.icon(
@@ -571,7 +712,12 @@ class _ReadingAnalysis extends StatelessWidget {
             children: items
                 .map((item) => SizedBox(
                       width: width,
-                      child: _AnalysisTile(label: item.$1, text: item.$2),
+                      child: _AnalysisTile(
+                        label: item.$1,
+                        text: item.$2,
+                        asReadableList:
+                            item.$1 == 'Akış' || item.$1 == 'Bağlaçlar',
+                      ),
                     ))
                 .toList(growable: false),
           );
@@ -579,36 +725,96 @@ class _ReadingAnalysis extends StatelessWidget {
       );
 }
 
-class _HighlightedReading extends StatelessWidget {
+class _HighlightedReading extends ConsumerWidget {
   const _HighlightedReading({required this.text, required this.words});
   final String text;
   final List<StudyWord> words;
+
+  Future<void> _openCanonicalWord(
+    BuildContext context,
+    WidgetRef ref,
+    StudyWord studyWord,
+  ) async {
+    final loadedWords = ref.read(wordsProvider).valueOrNull;
+    WordEntry? canonicalWord;
+    if (loadedWords != null) {
+      for (final word in loadedWords) {
+        if (word.enWord.toLowerCase() == studyWord.wordRef.toLowerCase()) {
+          canonicalWord = word;
+          break;
+        }
+      }
+    }
+    canonicalWord ??=
+        (await ref.read(wordLookupServiceProvider).find(studyWord.wordRef))
+            .word;
+    if (!context.mounted) return;
+    if (canonicalWord == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Kelime detayı yüklenemedi.')),
+      );
+      return;
+    }
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => WordDetailSheet(word: canonicalWord!),
+    );
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final tokens = AppThemeTokens.of(context);
+    final orderedWords = List<StudyWord>.of(words)
+      ..sort((a, b) => b.headword.length.compareTo(a.headword.length));
     final expressions =
-        words.map((word) => RegExp.escape(word.headword)).join('|');
-    if (expressions.isEmpty) return SelectableText(text);
+        orderedWords.map((word) => RegExp.escape(word.headword)).join('|');
+    if (expressions.isEmpty) return Text(text);
     final matches =
         RegExp('\\b($expressions)\\b', caseSensitive: false).allMatches(text);
-    final spans = <TextSpan>[];
+    final spans = <InlineSpan>[];
     var cursor = 0;
     for (final match in matches) {
       if (match.start > cursor) {
         spans.add(TextSpan(text: text.substring(cursor, match.start)));
       }
-      spans.add(TextSpan(
-        text: text.substring(match.start, match.end),
-        style: TextStyle(
-          color: tokens.accent,
-          fontWeight: FontWeight.w700,
-          backgroundColor: tokens.accent.withValues(alpha: .08),
-        ),
-      ));
+      final targetText = text.substring(match.start, match.end);
+      StudyWord? target;
+      for (final word in orderedWords) {
+        if (word.headword.toLowerCase() == targetText.toLowerCase()) {
+          target = word;
+          break;
+        }
+      }
+      if (target == null) {
+        spans.add(TextSpan(text: targetText));
+      } else {
+        spans.add(WidgetSpan(
+          alignment: PlaceholderAlignment.baseline,
+          baseline: TextBaseline.alphabetic,
+          child: Semantics(
+            button: true,
+            label: '${target.headword} kelime detayı',
+            child: GestureDetector(
+              onTap: () => _openCanonicalWord(context, ref, target!),
+              child: Text(
+                targetText,
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      color: tokens.accent,
+                      fontWeight: FontWeight.w700,
+                      backgroundColor: tokens.accent.withValues(alpha: .08),
+                      decoration: TextDecoration.underline,
+                      decorationColor: tokens.accent.withValues(alpha: .45),
+                    ),
+              ),
+            ),
+          ),
+        ));
+      }
       cursor = match.end;
     }
     if (cursor < text.length) spans.add(TextSpan(text: text.substring(cursor)));
-    return SelectableText.rich(TextSpan(
+    return Text.rich(TextSpan(
       style: Theme.of(context).textTheme.bodyLarge,
       children: spans,
     ));
@@ -647,38 +853,46 @@ class _StudyTranslationsState extends State<_StudyTranslations> {
             final revealed = _revealed.contains(key);
             return Padding(
               padding: const EdgeInsets.only(bottom: 12),
-              child: SurfaceCard(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      Text('${item.order}. ${item.source}',
-                          style: Theme.of(context).textTheme.titleMedium),
-                      const SizedBox(height: 8),
-                      OutlinedButton.icon(
-                        onPressed: () => setState(() => revealed
-                            ? _revealed.remove(key)
-                            : _revealed.add(key)),
-                        icon: Icon(revealed
-                            ? Icons.visibility_off_outlined
-                            : Icons.visibility_outlined),
-                        label:
-                            Text(revealed ? 'Cevabı gizle' : 'Cevabı göster'),
-                      ),
-                      if (revealed) ...<Widget>[
-                        const SizedBox(height: 10),
-                        _DetailBlock(
-                            label: 'Önerilen çeviri', text: item.answer),
-                        _DetailBlock(
-                            label: 'Alternatif', text: item.alternative),
-                        _DetailBlock(label: 'İskelet', text: item.skeleton),
-                        _DetailBlock(
-                            label: 'Anahtar kelimeler', text: item.keyWords),
-                        _DetailBlock(
-                            label: 'Gramer notu', text: item.grammarNote),
-                        _DetailBlock(label: 'Çeviri mantığı', text: item.logic),
-                      ],
-                    ]),
+              child: SizedBox(
+                width: double.infinity,
+                child: SurfaceCard(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        Text('${item.order}. ${item.source}',
+                            style: Theme.of(context).textTheme.titleMedium),
+                        const SizedBox(height: 8),
+                        OutlinedButton.icon(
+                          style: OutlinedButton.styleFrom(
+                            alignment: Alignment.centerLeft,
+                            minimumSize: const Size.fromHeight(40),
+                          ),
+                          onPressed: () => setState(() => revealed
+                              ? _revealed.remove(key)
+                              : _revealed.add(key)),
+                          icon: Icon(revealed
+                              ? Icons.visibility_off_outlined
+                              : Icons.visibility_outlined),
+                          label:
+                              Text(revealed ? 'Cevabı gizle' : 'Cevabı göster'),
+                        ),
+                        if (revealed) ...<Widget>[
+                          const SizedBox(height: 10),
+                          _DetailBlock(
+                              label: 'Önerilen çeviri', text: item.answer),
+                          _DetailBlock(
+                              label: 'Alternatif', text: item.alternative),
+                          _DetailBlock(label: 'İskelet', text: item.skeleton),
+                          _DetailBlock(
+                              label: 'Anahtar kelimeler', text: item.keyWords),
+                          _DetailBlock(
+                              label: 'Gramer notu', text: item.grammarNote),
+                          _DetailBlock(
+                              label: 'Çeviri mantığı', text: item.logic),
+                        ],
+                      ]),
+                ),
               ),
             );
           }),
@@ -703,7 +917,7 @@ class _StudyStructures extends StatelessWidget {
       children: groups.entries
           .map(
             (entry) => Padding(
-              padding: const EdgeInsets.only(bottom: 18),
+              padding: const EdgeInsets.only(bottom: 14),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
@@ -776,6 +990,10 @@ class _StudyStructureCardState extends State<_StudyStructureCard> {
           if (hasDetails) ...<Widget>[
             const SizedBox(height: 8),
             TextButton.icon(
+              style: TextButton.styleFrom(
+                alignment: Alignment.centerLeft,
+                minimumSize: const Size.fromHeight(40),
+              ),
               onPressed: () =>
                   setState(() => _detailsVisible = !_detailsVisible),
               icon: Icon(_detailsVisible
@@ -992,7 +1210,7 @@ class _StudyReview extends StatelessWidget {
       children: grouped.entries
           .map(
             (entry) => Padding(
-              padding: const EdgeInsets.only(bottom: 18),
+              padding: const EdgeInsets.only(bottom: 14),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
@@ -1068,6 +1286,10 @@ class _StudyReviewCardState extends State<_StudyReviewCard> {
           if (isRecall && answer.isNotEmpty) ...<Widget>[
             const SizedBox(height: 10),
             OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(
+                alignment: Alignment.centerLeft,
+                minimumSize: const Size.fromHeight(40),
+              ),
               onPressed: () => setState(() => _answerVisible = !_answerVisible),
               icon: Icon(_answerVisible
                   ? Icons.visibility_off_outlined

@@ -75,6 +75,44 @@ void main() {
     }
   });
 
+  test('resetting one Study module preserves other module progress', () {
+    final controller = LocalProgressController(_MemoryProgress());
+    addTearDown(controller.dispose);
+    controller.toggleFavoriteWord('word-keep');
+    controller.setStudyLocation(moduleId: 'study-0001', section: 'test');
+    controller.markStudySectionCompleted(
+      moduleId: 'study-0001',
+      section: 'reading',
+      sectionCount: 1,
+    );
+    controller.markStudySectionCompleted(
+      moduleId: 'study-0002',
+      section: 'reading',
+      sectionCount: 1,
+    );
+    controller.answerStudyQuestion(
+      questionId: 'study-0001-yq01',
+      answer: 'A',
+      isCorrect: true,
+    );
+    controller.answerStudyQuestion(
+      questionId: 'study-0002-yq01',
+      answer: 'B',
+      isCorrect: false,
+    );
+
+    controller.resetStudyModuleProgress('study-0001');
+
+    expect(controller.state.favoriteWordIds, contains('word-keep'));
+    expect(controller.state.completedStudyModuleIds, {'study-0002'});
+    expect(controller.state.completedStudySectionKeys, {'study-0002:reading'});
+    expect(controller.state.studyQuestionAnswers, {'study-0002-yq01': 'B'});
+    expect(
+        controller.state.studyQuestionCorrectness, {'study-0002-yq01': false});
+    expect(controller.state.studyLastModuleId, isNull);
+    expect(controller.state.studyLastSection, isNull);
+  });
+
   testWidgets('Study home opens at a 390 px viewport without overflow',
       (tester) async {
     await tester.binding.setSurfaceSize(const Size(390, 844));
@@ -113,6 +151,11 @@ class _MemoryProgress extends LocalProgressRepository {
 
   @override
   Future<LocalProgressSnapshot> load() async => _state;
+
+  @override
+  Future<void> saveFavoriteWordIds(Set<String> ids) async {
+    _state = _state.copyWith(favoriteWordIds: ids);
+  }
 
   @override
   Future<void> saveStudyLocation({String? moduleId, String? section}) async {

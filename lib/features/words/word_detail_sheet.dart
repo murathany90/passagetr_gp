@@ -95,6 +95,17 @@ class WordDetailSheet extends ConsumerWidget {
                 _DetailBlock(label: 'ETİKETLER', value: word.tags.join(' · ')),
               Wrap(spacing: 8, runSpacing: 8, children: <Widget>[
                 OutlinedButton.icon(
+                  onPressed: () => ref
+                      .read(localProgressProvider.notifier)
+                      .toggleFavoriteWord(word.id),
+                  icon: Icon(favorite
+                      ? Icons.favorite_rounded
+                      : Icons.favorite_border_rounded),
+                  label: Text(
+                    favorite ? 'Favorilerden çıkar' : 'Favoriye ekle',
+                  ),
+                ),
+                OutlinedButton.icon(
                   onPressed: () {
                     Navigator.of(context).pop();
                     context.go(

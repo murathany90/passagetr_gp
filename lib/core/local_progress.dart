@@ -141,4 +141,41 @@ class LocalProgressController extends StateNotifier<LocalProgressSnapshot> {
     unawaited(_repository.saveCompletedStudySectionKeys(sections));
     unawaited(_repository.saveCompletedStudyModuleIds(modules));
   }
+
+  /// Clears only the progress data that belongs to [moduleId].
+  ///
+  /// Study question ids are generated with their module id as the prefix, so
+  /// this also removes the module's Reading and Test answers and scores while
+  /// leaving the learner's favourites and every other module untouched.
+  void resetStudyModuleProgress(String moduleId) {
+    _changedBeforeRestore = true;
+    final sectionPrefix = '$moduleId:';
+    final questionPrefix = '$moduleId-';
+    final sections = Set<String>.of(state.completedStudySectionKeys)
+      ..removeWhere((key) => key.startsWith(sectionPrefix));
+    final modules = Set<String>.of(state.completedStudyModuleIds)
+      ..remove(moduleId);
+    final answers = Map<String, String>.of(state.studyQuestionAnswers)
+      ..removeWhere((questionId, _) => questionId.startsWith(questionPrefix));
+    final correctness = Map<String, bool>.of(state.studyQuestionCorrectness)
+      ..removeWhere((questionId, _) => questionId.startsWith(questionPrefix));
+    final isCurrentModule = state.studyLastModuleId == moduleId;
+
+    state = state.copyWith(
+      isLoaded: true,
+      completedStudySectionKeys: Set<String>.unmodifiable(sections),
+      completedStudyModuleIds: Set<String>.unmodifiable(modules),
+      studyQuestionAnswers: Map<String, String>.unmodifiable(answers),
+      studyQuestionCorrectness: Map<String, bool>.unmodifiable(correctness),
+      clearStudyLastModuleId: isCurrentModule,
+      clearStudyLastSection: isCurrentModule,
+    );
+    unawaited(_repository.saveCompletedStudySectionKeys(sections));
+    unawaited(_repository.saveCompletedStudyModuleIds(modules));
+    unawaited(_repository.saveStudyQuestionAnswers(answers));
+    unawaited(_repository.saveStudyQuestionCorrectness(correctness));
+    if (isCurrentModule) {
+      unawaited(_repository.saveStudyLocation());
+    }
+  }
 }

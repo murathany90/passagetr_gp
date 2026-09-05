@@ -18,7 +18,8 @@ abstract final class AppTheme {
       glassBackground: dark ? const Color(0x991E293B) : const Color(0xCCFFFFFF),
       glassBorder: dark ? const Color(0x3364748B) : const Color(0x33E3E8F1),
       primaryText: dark ? const Color(0xFFF8FAFC) : const Color(0xFF18243D),
-      secondaryText: dark ? const Color(0xFF94A3B8) : const Color(0xFF5A6D8B),
+      // Keep supporting copy comfortably readable on light card surfaces.
+      secondaryText: dark ? const Color(0xFF94A3B8) : const Color(0xFF465A78),
       accent: dark ? const Color(0xFF72A3FF) : const Color(0xFF1B2D63),
       accentSoft: dark ? const Color(0xFF24314B) : const Color(0xFFDCE4F4),
       accentGradient: LinearGradient(
