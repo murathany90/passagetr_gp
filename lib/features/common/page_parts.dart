@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/app_breakpoints.dart';
 import '../../core/app_theme_tokens.dart';
+import '../../core/theme_mode_controller.dart';
 
 enum PassagetrDestination { home, words, readings, study, dictionary }
 
-class PassagetrShell extends StatelessWidget {
+class PassagetrShell extends ConsumerWidget {
   const PassagetrShell(
       {super.key, required this.location, required this.child});
 
@@ -14,7 +16,7 @@ class PassagetrShell extends StatelessWidget {
   final Widget child;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final destination = location.startsWith('/words')
         ? PassagetrDestination.words
         : location.startsWith('/readings')
@@ -73,6 +75,8 @@ class PassagetrShell extends StatelessWidget {
                       label: 'Sözlük'),
                 ],
               ),
+        floatingActionButton: wide ? null : const _ThemeToggle(compact: true),
+        floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       );
     });
   }
@@ -268,7 +272,37 @@ class _DesktopRail extends StatelessWidget {
             label: 'Sözlük',
             selected: destination == PassagetrDestination.dictionary,
             onTap: () => context.go('/dictionary')),
+        const Spacer(),
+        const _ThemeToggle(),
+        const SizedBox(height: 24),
       ]),
+    );
+  }
+}
+
+class _ThemeToggle extends ConsumerWidget {
+  const _ThemeToggle({this.compact = false});
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final mode = ref.watch(themeModeProvider);
+    final dark = mode == ThemeMode.dark;
+    final tooltip = dark ? 'Açık moda geç' : 'Koyu moda geç';
+    final icon = dark ? Icons.light_mode_rounded : Icons.dark_mode_rounded;
+    if (compact) {
+      return FloatingActionButton.small(
+        tooltip: tooltip,
+        onPressed: () => ref.read(themeModeProvider.notifier).toggle(),
+        child: Icon(icon),
+      );
+    }
+    return Tooltip(
+      message: tooltip,
+      child: IconButton.filledTonal(
+        onPressed: () => ref.read(themeModeProvider.notifier).toggle(),
+        icon: Icon(icon),
+      ),
     );
   }
 }

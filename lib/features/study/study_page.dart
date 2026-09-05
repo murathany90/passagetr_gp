@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/content_providers.dart';
 import '../../core/local_progress.dart';
 import '../../models/study_models.dart';
+import '../../repositories/local_progress_repository.dart';
 import '../common/page_parts.dart';
 
 class StudyPage extends ConsumerStatefulWidget {
@@ -103,10 +104,25 @@ class _StudyPageState extends ConsumerState<StudyPage> {
               if (shown.isEmpty)
                 const SurfaceCard(
                     child: Text('Bu filtrelerle eşleşen modül yok.')),
-              ...shown.map((module) => Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: _StudyModuleCard(module: module),
-                  )),
+              if (shown.isNotEmpty)
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final twoColumns = constraints.maxWidth >= 720;
+                    final width = twoColumns
+                        ? (constraints.maxWidth - 14) / 2
+                        : constraints.maxWidth;
+                    return Wrap(
+                      spacing: 14,
+                      runSpacing: 14,
+                      children: shown
+                          .map((module) => SizedBox(
+                                width: width,
+                                child: _StudyModuleCard(module: module),
+                              ))
+                          .toList(growable: false),
+                    );
+                  },
+                ),
             ],
           ),
         );
@@ -159,7 +175,15 @@ class _StudyStats extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final progress = ref.watch(localProgressProvider);
     final last = modules.where((item) => item.id == progress.studyLastModuleId);
-    final completed = progress.completedStudyModuleIds.length;
+    final completed = modules
+        .where((module) => studySectionProgress(progress, module.id) == 7)
+        .length;
+    final answered = progress.studyQuestionCorrectness.length;
+    final correct = progress.studyQuestionCorrectness.values
+        .where((isCorrect) => isCorrect)
+        .length;
+    final successRate =
+        answered == 0 ? '—' : '${(correct * 100 / answered).round()}%';
     return SurfaceCard(
       padding: const EdgeInsets.all(16),
       child: Wrap(
@@ -171,9 +195,7 @@ class _StudyStats extends ConsumerWidget {
               value: last.isEmpty ? '—' : 'Modül ${last.first.number}'),
           _Stat(label: 'Tamamlanan', value: '$completed / ${modules.length}'),
           _Stat(label: 'Son bölüm', value: progress.studyLastSection ?? '—'),
-          _Stat(
-              label: 'Test yanıtı',
-              value: '${progress.studyQuestionAnswers.length}'),
+          _Stat(label: 'Test başarı', value: successRate),
         ],
       ),
     );
@@ -205,10 +227,10 @@ class _StudyModuleCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final progress = ref.watch(localProgressProvider);
-    final completed = progress.completedStudyModuleIds.contains(module.id);
-    final continuing = progress.studyLastModuleId == module.id;
+    final finished = studySectionProgress(progress, module.id);
+    final completed = finished == 7;
+    final continuing = finished > 0 && !completed;
     final total = 7;
-    final finished = completed ? total : (continuing ? 1 : 0);
     return SurfaceCard(
       onTap: () => context.go('/study/module/${module.id}'),
       child: Column(
@@ -229,10 +251,14 @@ class _StudyModuleCard extends ConsumerWidget {
             Text(module.mainTopic,
                 style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 4),
-            Text(module.subtopic),
+            Text(module.subtopic, maxLines: 2, overflow: TextOverflow.ellipsis),
+            const SizedBox(height: 10),
+            Text('Gramer', style: Theme.of(context).textTheme.labelLarge),
+            const SizedBox(height: 3),
+            Text(module.grammarFocus,
+                maxLines: 2, overflow: TextOverflow.ellipsis),
             const SizedBox(height: 10),
             Wrap(spacing: 8, runSpacing: 8, children: <Widget>[
-              _Meta(label: module.grammarFocus),
               _Meta(label: module.levelProfile),
               _Meta(label: '${module.counts.words} Kelime'),
               _Meta(label: '${module.counts.sentences} Cümle'),
@@ -259,6 +285,15 @@ class _StudyModuleCard extends ConsumerWidget {
           ]),
     );
   }
+}
+
+int studySectionProgress(LocalProgressSnapshot progress, String moduleId) {
+  if (progress.completedStudyModuleIds.contains(moduleId)) return 7;
+  return progress.completedStudySectionKeys
+      .where((key) => key.startsWith('$moduleId:'))
+      .length
+      .clamp(0, 7)
+      .toInt();
 }
 
 class _Meta extends StatelessWidget {

@@ -93,18 +93,26 @@ class WordDetailSheet extends ConsumerWidget {
                 _DetailBlock(label: 'Zıt anlamlılar', value: word.antonymsRaw!),
               if (word.tags.isNotEmpty)
                 _DetailBlock(label: 'ETİKETLER', value: word.tags.join(' · ')),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: OutlinedButton.icon(
+              Wrap(spacing: 8, runSpacing: 8, children: <Widget>[
+                OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    context.go(
+                        '/words?q=${Uri.encodeQueryComponent(word.enWord)}');
+                  },
+                  icon: const Icon(Icons.style_outlined),
+                  label: const Text('Kelime sayfasında aç'),
+                ),
+                OutlinedButton.icon(
                   onPressed: () {
                     Navigator.of(context).pop();
                     context.go(
                         '/dictionary?q=${Uri.encodeQueryComponent(word.enWord)}');
                   },
                   icon: const Icon(Icons.translate_outlined),
-                  label: const Text('Sözlükte daha fazla anlam'),
+                  label: const Text('Sözlükte aç'),
                 ),
-              ),
+              ]),
               if (tts.errorMessage != null)
                 Padding(
                     padding: const EdgeInsets.only(top: 8),

@@ -24,10 +24,17 @@ void main() {
     expect(validate.exitCode, 0, reason: validate.stderr.toString());
   });
 
-  test('study repository loads all Module 01 sections', () async {
+  test('study repository loads all generated Study modules', () async {
     final modules = await repository.loadModules();
     final detail = await repository.loadModule('study-0001');
-    expect(modules, hasLength(1));
+    expect(modules, hasLength(12));
+    expect(
+      modules.map((item) => item.id),
+      equals(<String>[
+        for (var number = 1; number <= 12; number++)
+          'study-${number.toString().padLeft(4, '0')}',
+      ]),
+    );
     expect(detail.words, hasLength(15));
     expect(detail.sentences, hasLength(5));
     expect(detail.reading.questions, hasLength(5));
@@ -35,6 +42,12 @@ void main() {
     expect(detail.translations.trEn, hasLength(7));
     expect(detail.testQuestions, hasLength(10));
     expect(detail.review, hasLength(29));
+    for (final module in modules) {
+      final routeDetail = await repository.loadModule(module.id);
+      expect(routeDetail.module.id, module.id);
+      expect(routeDetail.words, hasLength(15));
+      expect(routeDetail.reading.questions, hasLength(5));
+    }
   });
 
   testWidgets('Study home opens at a 390 px viewport without overflow',
@@ -87,6 +100,17 @@ class _MemoryProgress extends LocalProgressRepository {
   @override
   Future<void> saveStudyQuestionAnswers(Map<String, String> answers) async {
     _state = _state.copyWith(studyQuestionAnswers: answers);
+  }
+
+  @override
+  Future<void> saveStudyQuestionCorrectness(
+      Map<String, bool> correctness) async {
+    _state = _state.copyWith(studyQuestionCorrectness: correctness);
+  }
+
+  @override
+  Future<void> saveCompletedStudySectionKeys(Set<String> keys) async {
+    _state = _state.copyWith(completedStudySectionKeys: keys);
   }
 
   @override

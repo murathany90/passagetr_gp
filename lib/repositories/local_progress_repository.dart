@@ -13,9 +13,11 @@ class LocalProgressSnapshot {
     this.readingLevel,
     this.readingCategory,
     this.completedStudyModuleIds = const <String>{},
+    this.completedStudySectionKeys = const <String>{},
     this.studyLastModuleId,
     this.studyLastSection,
     this.studyQuestionAnswers = const <String, String>{},
+    this.studyQuestionCorrectness = const <String, bool>{},
   });
 
   const LocalProgressSnapshot.empty() : this(isLoaded: false);
@@ -29,9 +31,11 @@ class LocalProgressSnapshot {
   final String? readingLevel;
   final String? readingCategory;
   final Set<String> completedStudyModuleIds;
+  final Set<String> completedStudySectionKeys;
   final String? studyLastModuleId;
   final String? studyLastSection;
   final Map<String, String> studyQuestionAnswers;
+  final Map<String, bool> studyQuestionCorrectness;
 
   LocalProgressSnapshot copyWith({
     bool? isLoaded,
@@ -47,11 +51,13 @@ class LocalProgressSnapshot {
     String? readingCategory,
     bool clearReadingCategory = false,
     Set<String>? completedStudyModuleIds,
+    Set<String>? completedStudySectionKeys,
     String? studyLastModuleId,
     bool clearStudyLastModuleId = false,
     String? studyLastSection,
     bool clearStudyLastSection = false,
     Map<String, String>? studyQuestionAnswers,
+    Map<String, bool>? studyQuestionCorrectness,
   }) =>
       LocalProgressSnapshot(
         isLoaded: isLoaded ?? this.isLoaded,
@@ -67,6 +73,8 @@ class LocalProgressSnapshot {
             : readingCategory ?? this.readingCategory,
         completedStudyModuleIds:
             completedStudyModuleIds ?? this.completedStudyModuleIds,
+        completedStudySectionKeys:
+            completedStudySectionKeys ?? this.completedStudySectionKeys,
         studyLastModuleId: clearStudyLastModuleId
             ? null
             : studyLastModuleId ?? this.studyLastModuleId,
@@ -74,6 +82,8 @@ class LocalProgressSnapshot {
             ? null
             : studyLastSection ?? this.studyLastSection,
         studyQuestionAnswers: studyQuestionAnswers ?? this.studyQuestionAnswers,
+        studyQuestionCorrectness:
+            studyQuestionCorrectness ?? this.studyQuestionCorrectness,
       );
 }
 
@@ -87,9 +97,13 @@ class LocalProgressRepository {
   static const _readingCategoryKey = 'passagetr.readingCategory.v1';
   static const _completedStudyModulesKey =
       'passagetr.completedStudyModuleIds.v1';
+  static const _completedStudySectionsKey =
+      'passagetr.completedStudySectionKeys.v1';
   static const _studyLastModuleKey = 'passagetr.studyLastModuleId.v1';
   static const _studyLastSectionKey = 'passagetr.studyLastSection.v1';
   static const _studyQuestionAnswersKey = 'passagetr.studyQuestionAnswers.v1';
+  static const _studyQuestionCorrectnessKey =
+      'passagetr.studyQuestionCorrectness.v1';
 
   Future<SharedPreferences>? _preferencesFuture;
 
@@ -105,9 +119,13 @@ class LocalProgressRepository {
       readingLevel: preferences.getString(_readingLevelKey),
       readingCategory: preferences.getString(_readingCategoryKey),
       completedStudyModuleIds: _readSet(preferences, _completedStudyModulesKey),
+      completedStudySectionKeys:
+          _readSet(preferences, _completedStudySectionsKey),
       studyLastModuleId: preferences.getString(_studyLastModuleKey),
       studyLastSection: preferences.getString(_studyLastSectionKey),
       studyQuestionAnswers: _readMap(preferences, _studyQuestionAnswersKey),
+      studyQuestionCorrectness:
+          _readBoolMap(preferences, _studyQuestionCorrectnessKey),
     );
   }
 
@@ -134,6 +152,9 @@ class LocalProgressRepository {
   Future<void> saveCompletedStudyModuleIds(Set<String> ids) =>
       _saveSet(_completedStudyModulesKey, ids);
 
+  Future<void> saveCompletedStudySectionKeys(Set<String> keys) =>
+      _saveSet(_completedStudySectionsKey, keys);
+
   Future<void> saveStudyLocation({String? moduleId, String? section}) async {
     final preferences = await _preferences();
     await _saveOptional(preferences, _studyLastModuleKey, moduleId);
@@ -143,6 +164,15 @@ class LocalProgressRepository {
   Future<void> saveStudyQuestionAnswers(Map<String, String> answers) async {
     final preferences = await _preferences();
     await preferences.setString(_studyQuestionAnswersKey, jsonEncode(answers));
+  }
+
+  Future<void> saveStudyQuestionCorrectness(
+      Map<String, bool> correctness) async {
+    final preferences = await _preferences();
+    await preferences.setString(
+      _studyQuestionCorrectnessKey,
+      jsonEncode(correctness),
+    );
   }
 
   Future<SharedPreferences> _preferences() =>
@@ -163,6 +193,20 @@ class LocalProgressRepository {
       ));
     } catch (_) {
       return const <String, String>{};
+    }
+  }
+
+  Map<String, bool> _readBoolMap(SharedPreferences preferences, String key) {
+    final raw = preferences.getString(key);
+    if (raw == null || raw.isEmpty) return const <String, bool>{};
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is! Map) return const <String, bool>{};
+      return Map<String, bool>.unmodifiable(decoded.map(
+        (key, value) => MapEntry(key.toString(), value == true),
+      ));
+    } catch (_) {
+      return const <String, bool>{};
     }
   }
 

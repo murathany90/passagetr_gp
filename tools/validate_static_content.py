@@ -33,7 +33,7 @@ SENTENCES_SOURCE = SOURCE / 'canonical' / 'readings' / 'reading_sentences.csv'
 QUESTIONS_SOURCE = SOURCE / 'canonical' / 'readings' / builder.DERIVED_QUESTIONS_FILENAME
 CURATED_SOURCE = SOURCE / builder.DEFAULT_CURATED_READINGS_RELATIVE_PATH
 DICTIONARY_SOURCE = SOURCE / 'canonical' / 'dictionary' / 'dictionary_tr_en.xlsx'
-STUDY_SOURCE = SOURCE / 'canonical' / 'study' / 'PASSAGETR_YDS_Study_Canonical.xlsx'
+STUDY_SOURCE = SOURCE / 'canonical' / 'study' / 'PASSAGETR_YDS_Study_Canonical_v1_Module_01-12.xlsx'
 
 EXPECTED_WORDS = 7500
 EXPECTED_READINGS = 678

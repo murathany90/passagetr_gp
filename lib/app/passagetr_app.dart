@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../core/app_theme.dart';
+import '../core/theme_mode_controller.dart';
 import '../features/common/page_parts.dart';
 import '../features/dictionary/dictionary_page.dart';
 import '../features/home/landing_page.dart';
@@ -25,7 +26,11 @@ final _routerProvider = Provider<GoRouter>((ref) => GoRouter(
             GoRoute(
                 path: '/', builder: (context, state) => const LandingPage()),
             GoRoute(
-                path: '/words', builder: (context, state) => const WordsPage()),
+              path: '/words',
+              builder: (context, state) => WordsPage(
+                initialQuery: state.uri.queryParameters['q'],
+              ),
+            ),
             GoRoute(
               path: '/dictionary',
               builder: (context, state) => DictionaryPage(
@@ -80,7 +85,7 @@ class PassagetrApp extends ConsumerWidget {
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light(),
         darkTheme: AppTheme.dark(),
-        themeMode: ThemeMode.system,
+        themeMode: ref.watch(themeModeProvider),
         routerConfig: ref.watch(_routerProvider),
       );
 }

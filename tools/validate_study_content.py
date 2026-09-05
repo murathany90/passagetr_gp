@@ -35,7 +35,8 @@ def main() -> int:
     if manifest != expected_manifest:
         raise ValueError('Study manifest does not match canonical workbook.')
     generated_ids = {module['module_id'] for module in manifest.get('modules', [])}
-    if generated_ids != set(expected_payloads):
+    expected_ids = {f'study-{number:04d}' for number in range(1, 13)}
+    if generated_ids != set(expected_payloads) or generated_ids != expected_ids:
         raise ValueError('Generated study module IDs are incomplete.')
     for module_id, expected in expected_payloads.items():
         actual = load_json(OUTPUT / 'modules' / study.module_filename(module_id))
@@ -45,7 +46,8 @@ def main() -> int:
         'canonicalExcelParse': 'PASS',
         'studyValidator': 'PASS',
         'modules': len(expected_payloads),
-        'module01': expected_manifest['validation']['moduleChecks'][0],
+        'moduleIds': sorted(generated_ids),
+        'moduleChecks': expected_manifest['validation']['moduleChecks'],
     }, ensure_ascii=False))
     return 0
 

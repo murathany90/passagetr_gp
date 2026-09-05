@@ -4,9 +4,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/content_providers.dart';
 import '../../core/local_progress.dart';
 import '../../core/app_theme_tokens.dart';
+import '../../models/content_models.dart';
 import '../../models/study_models.dart';
 import '../common/page_parts.dart';
 import '../tts/student_tts_icon_button.dart';
+import '../words/word_detail_sheet.dart';
 
 class StudyModulePage extends ConsumerStatefulWidget {
   const StudyModulePage({super.key, required this.moduleId});
@@ -65,50 +67,84 @@ class _StudyModulePageState extends ConsumerState<StudyModulePage> {
         onRetry: () =>
             ref.invalidate(studyModuleDetailProvider(widget.moduleId)),
       ),
-      data: (module) => PageFrame(
-        title: 'Modül ${module.module.number}',
-        subtitle: '${module.module.mainTopic} · ${module.module.subtopic}',
-        actions: <Widget>[
-          TextButton.icon(
-            onPressed: () => _setSection(_StudySection.words),
-            icon: const Icon(Icons.restart_alt_rounded),
-            label: const Text('Başa dön'),
-          ),
-        ],
-        child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              SurfaceCard(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      Text(module.module.grammarFocus,
-                          style: Theme.of(context).textTheme.titleMedium),
-                      const SizedBox(height: 5),
-                      Text(module.module.levelProfile),
-                    ]),
-              ),
-              const SizedBox(height: 14),
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: _sections
-                      .map((item) => Padding(
-                            padding: const EdgeInsets.only(right: 8),
-                            child: ChoiceChip(
-                              label: Text(item.label),
-                              selected: item == _section,
-                              onSelected: (_) => _setSection(item),
-                            ),
-                          ))
-                      .toList(growable: false),
+      data: (module) {
+        final tokens = AppThemeTokens.of(context);
+        final progress = ref.watch(localProgressProvider);
+        final sectionDone = progress.completedStudySectionKeys.contains(
+          '${module.module.id}:${_section.storageValue}',
+        );
+        return PageFrame(
+          title: 'Modül ${module.module.number}',
+          subtitle: '${module.module.mainTopic} · ${module.module.subtopic}',
+          actions: <Widget>[
+            TextButton.icon(
+              onPressed: () => _setSection(_StudySection.words),
+              icon: const Icon(Icons.restart_alt_rounded),
+              label: const Text('Başa dön'),
+            ),
+          ],
+          child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                SurfaceCard(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        Text(module.module.grammarFocus,
+                            style: Theme.of(context).textTheme.titleMedium),
+                        const SizedBox(height: 5),
+                        Text(module.module.levelProfile),
+                      ]),
                 ),
-              ),
-              const SizedBox(height: 16),
-              _section.build(module),
-            ]),
-      ),
+                const SizedBox(height: 14),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: _sections
+                        .map((item) => Padding(
+                              padding: const EdgeInsets.only(right: 8),
+                              child: ChoiceChip(
+                                label: Text(item.label),
+                                selected: item == _section,
+                                selectedColor: tokens.accent,
+                                labelStyle: TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                  color: item == _section
+                                      ? Colors.white
+                                      : tokens.primaryText,
+                                ),
+                                onSelected: (_) => _setSection(item),
+                              ),
+                            ))
+                        .toList(growable: false),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: OutlinedButton.icon(
+                    onPressed: sectionDone
+                        ? null
+                        : () => ref
+                            .read(localProgressProvider.notifier)
+                            .markStudySectionCompleted(
+                              moduleId: module.module.id,
+                              section: _section.storageValue,
+                              sectionCount: _sections.length,
+                            ),
+                    icon: Icon(sectionDone
+                        ? Icons.check_circle_rounded
+                        : Icons.task_alt_rounded),
+                    label: Text(
+                        sectionDone ? 'Bölüm tamamlandı' : 'Bölümü tamamla'),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                _section.build(module),
+              ]),
+        );
+      },
     );
   }
 }
@@ -185,6 +221,17 @@ class _StudyWordCardState extends ConsumerState<_StudyWordCard> {
   Widget build(BuildContext context) {
     final word = widget.word;
     final tts = ref.watch(studentTtsControllerProvider);
+    final canonicalWords = ref.watch(wordsProvider).maybeWhen(
+          data: (items) => items,
+          orElse: () => const <WordEntry>[],
+        );
+    WordEntry? canonicalWord;
+    for (final item in canonicalWords) {
+      if (item.enWord.toLowerCase() == word.wordRef.toLowerCase()) {
+        canonicalWord = item;
+        break;
+      }
+    }
     final speaking = tts.isSpeaking && tts.activeWordId == word.id;
     final grouped = <String, List<StudyWordItem>>{};
     for (final item in word.items) {
@@ -202,8 +249,26 @@ class _StudyWordCardState extends ConsumerState<_StudyWordCard> {
                       child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: <Widget>[
-                        Text('${word.order}. ${word.headword}',
-                            style: Theme.of(context).textTheme.titleLarge),
+                        if (canonicalWord == null)
+                          Text('${word.order}. ${word.headword}',
+                              style: Theme.of(context).textTheme.titleLarge)
+                        else
+                          TextButton(
+                            style: TextButton.styleFrom(
+                              padding: EdgeInsets.zero,
+                              minimumSize: Size.zero,
+                              alignment: Alignment.centerLeft,
+                            ),
+                            onPressed: () => showModalBottomSheet<void>(
+                              context: context,
+                              isScrollControlled: true,
+                              builder: (_) => WordDetailSheet(
+                                word: canonicalWord!,
+                              ),
+                            ),
+                            child: Text('${word.order}. ${word.headword}',
+                                style: Theme.of(context).textTheme.titleLarge),
+                          ),
                         const SizedBox(height: 4),
                         Text('${word.meaningTr} · ${word.pos} · ${word.level}'),
                       ])),
@@ -353,8 +418,10 @@ class _StudySentencesState extends State<_StudySentences> {
                     const SizedBox(height: 10),
                     ...sentence.analysis.entries.map((entry) => Padding(
                           padding: const EdgeInsets.only(bottom: 7),
-                          child:
-                              _DetailBlock(label: entry.key, text: entry.value),
+                          child: _AnalysisTile(
+                            label: entry.key,
+                            text: entry.value,
+                          ),
                         )),
                   ],
                 ]),
@@ -363,7 +430,34 @@ class _StudySentencesState extends State<_StudySentences> {
       }).toList(growable: false));
 }
 
-class _StudyReading extends StatelessWidget {
+class _AnalysisTile extends StatelessWidget {
+  const _AnalysisTile({required this.label, required this.text});
+  final String label;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = AppThemeTokens.of(context);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: tokens.surfaceMuted,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: tokens.surfaceBorder),
+      ),
+      child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Text(label, style: Theme.of(context).textTheme.labelLarge),
+            const SizedBox(height: 4),
+            Text(text),
+          ]),
+    );
+  }
+}
+
+class _StudyReading extends StatefulWidget {
   const _StudyReading({
     required this.reading,
     required this.fallbackTitle,
@@ -374,42 +468,80 @@ class _StudyReading extends StatelessWidget {
   final List<StudyWord> targetWords;
 
   @override
+  State<_StudyReading> createState() => _StudyReadingState();
+}
+
+class _StudyReadingState extends State<_StudyReading> {
+  bool _analysisVisible = false;
+
+  @override
   Widget build(BuildContext context) =>
       Column(crossAxisAlignment: CrossAxisAlignment.start, children: <Widget>[
         SurfaceCard(
           child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                Text(reading.title.isEmpty ? fallbackTitle : reading.title,
+                Text(
+                    widget.reading.title.isEmpty
+                        ? widget.fallbackTitle
+                        : widget.reading.title,
                     style: Theme.of(context).textTheme.titleLarge),
                 const SizedBox(height: 14),
-                _HighlightedReading(text: reading.textEn, words: targetWords),
+                _HighlightedReading(
+                  text: widget.reading.textEn,
+                  words: widget.targetWords,
+                ),
               ]),
         ),
         const SizedBox(height: 12),
-        SurfaceCard(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                _DetailBlock(label: 'Ana fikir', text: reading.mainIdeaTr),
-                _DetailBlock(label: 'Akış', text: reading.flowAnalysis),
-                _DetailBlock(
-                    label: 'Önemli kelimeler', text: reading.importantWords),
-                _DetailBlock(label: 'Bağlaçlar', text: reading.connectorMap),
-                _DetailBlock(
-                    label: 'Referanslar', text: reading.referenceAnalysis),
-              ]),
+        OutlinedButton.icon(
+          onPressed: () => setState(() => _analysisVisible = !_analysisVisible),
+          icon: Icon(_analysisVisible
+              ? Icons.expand_less_rounded
+              : Icons.analytics_outlined),
+          label: Text(_analysisVisible ? 'Analizi gizle' : 'Metni analiz et'),
         ),
+        if (_analysisVisible) ...<Widget>[
+          const SizedBox(height: 10),
+          _ReadingAnalysis(reading: widget.reading),
+        ],
         const SizedBox(height: 16),
         Text('Reading soruları',
             style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 8),
-        ...reading.questions.map((question) => Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: _QuestionCard(question: question),
-            )),
+        _QuestionPager(questions: widget.reading.questions),
       ]);
+}
+
+class _ReadingAnalysis extends StatelessWidget {
+  const _ReadingAnalysis({required this.reading});
+  final StudyReading reading;
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+        builder: (context, constraints) {
+          final wide = constraints.maxWidth >= 720;
+          final width =
+              wide ? (constraints.maxWidth - 10) / 2 : constraints.maxWidth;
+          final items = <(String, String)>[
+            ('Ana fikir', reading.mainIdeaTr),
+            ('Akış', reading.flowAnalysis),
+            ('Önemli kelimeler', reading.importantWords),
+            ('Bağlaçlar', reading.connectorMap),
+            ('Referanslar', reading.referenceAnalysis),
+          ].where((item) => item.$2.isNotEmpty).toList(growable: false);
+          return Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: items
+                .map((item) => SizedBox(
+                      width: width,
+                      child: _AnalysisTile(label: item.$1, text: item.$2),
+                    ))
+                .toList(growable: false),
+          );
+        },
+      );
 }
 
 class _HighlightedReading extends StatelessWidget {
@@ -522,6 +654,7 @@ class _StudyTranslationsState extends State<_StudyTranslations> {
 class _StudyStructures extends StatelessWidget {
   const _StudyStructures({required this.structures});
   final List<StudyStructure> structures;
+
   @override
   Widget build(BuildContext context) {
     final groups = <String, List<StudyStructure>>{};
@@ -531,45 +664,99 @@ class _StudyStructures extends StatelessWidget {
           .add(structure);
     }
     return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: groups.entries
-            .map((entry) => Padding(
-                  padding: const EdgeInsets.only(bottom: 14),
-                  child: SurfaceCard(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: <Widget>[
-                          Text(_structureLabel(entry.key),
-                              style: Theme.of(context).textTheme.titleMedium),
-                          const SizedBox(height: 8),
-                          ...entry.value.map((item) => Padding(
-                                padding: const EdgeInsets.only(bottom: 12),
-                                child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: <Widget>[
-                                      Text(item.expression,
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .titleSmall),
-                                      if (item.meaningTr.isNotEmpty)
-                                        Text(item.meaningTr),
-                                      if (item.pattern.isNotEmpty)
-                                        Text(item.pattern),
-                                      if (item.example.isNotEmpty)
-                                        Text(item.example),
-                                      if (item.confusionNote.isNotEmpty)
-                                        Text(item.confusionNote),
-                                      if (item.relatedWords.isNotEmpty)
-                                        Text(item.relatedWords),
-                                      if (item.note.isNotEmpty) Text(item.note),
-                                    ]),
-                              )),
-                        ]),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: groups.entries
+          .map(
+            (entry) => Padding(
+              padding: const EdgeInsets.only(bottom: 18),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text(
+                    _structureLabel(entry.key),
+                    style: Theme.of(context).textTheme.titleMedium,
                   ),
-                ))
-            .toList(growable: false));
+                  const SizedBox(height: 8),
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final width = constraints.maxWidth >= 720
+                          ? (constraints.maxWidth - 10) / 2
+                          : constraints.maxWidth;
+                      return Wrap(
+                        spacing: 10,
+                        runSpacing: 10,
+                        children: entry.value
+                            .map(
+                              (item) => SizedBox(
+                                width: width,
+                                child: _StudyStructureCard(item: item),
+                              ),
+                            )
+                            .toList(growable: false),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+          )
+          .toList(growable: false),
+    );
+  }
+}
+
+class _StudyStructureCard extends StatefulWidget {
+  const _StudyStructureCard({required this.item});
+  final StudyStructure item;
+
+  @override
+  State<_StudyStructureCard> createState() => _StudyStructureCardState();
+}
+
+class _StudyStructureCardState extends State<_StudyStructureCard> {
+  bool _detailsVisible = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final item = widget.item;
+    final hasDetails = <String>[
+      item.confusionNote,
+      item.relatedWords,
+      item.note,
+    ].any((value) => value.isNotEmpty);
+    return SurfaceCard(
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text(item.expression, style: Theme.of(context).textTheme.titleSmall),
+          if (item.meaningTr.isNotEmpty) ...<Widget>[
+            const SizedBox(height: 5),
+            Text(item.meaningTr),
+          ],
+          if (item.pattern.isNotEmpty)
+            _DetailBlock(label: 'Pattern', text: item.pattern),
+          if (item.example.isNotEmpty)
+            _DetailBlock(label: 'Örnek', text: item.example),
+          if (hasDetails) ...<Widget>[
+            const SizedBox(height: 8),
+            TextButton.icon(
+              onPressed: () =>
+                  setState(() => _detailsVisible = !_detailsVisible),
+              icon: Icon(_detailsVisible
+                  ? Icons.expand_less_rounded
+                  : Icons.expand_more_rounded),
+              label: Text(_detailsVisible ? 'Detayı gizle' : 'Detayı göster'),
+            ),
+          ],
+          if (_detailsVisible) ...<Widget>[
+            _DetailBlock(label: 'Dikkat', text: item.confusionNote),
+            _DetailBlock(label: 'İlişkili kelimeler', text: item.relatedWords),
+            _DetailBlock(label: 'Not', text: item.note),
+          ],
+        ],
+      ),
+    );
   }
 }
 
@@ -577,41 +764,109 @@ class _StudyTest extends ConsumerWidget {
   const _StudyTest({required this.moduleId, required this.questions});
   final String moduleId;
   final List<StudyQuestion> questions;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final answers = ref.watch(localProgressProvider).studyQuestionAnswers;
+    final progress = ref.watch(localProgressProvider);
+    final answers = progress.studyQuestionAnswers;
     final answered =
         questions.where((item) => answers.containsKey(item.id)).length;
     final correct = questions
-        .where((item) => answers[item.id] == item.correctOption)
+        .where((item) => progress.studyQuestionCorrectness[item.id] == true)
         .length;
-    final complete = answered == questions.length;
+    final complete = questions.isNotEmpty && answered == questions.length;
+    final percentage =
+        questions.isEmpty ? 0 : (correct * 100 / questions.length).round();
     return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          SurfaceCard(
-            padding: const EdgeInsets.all(16),
-            child: Text(complete
-                ? 'Sonuç: $correct / ${questions.length}'
-                : '$answered / ${questions.length} cevaplandı'),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        SurfaceCard(
+          padding: const EdgeInsets.all(16),
+          child: Text(
+            complete
+                ? 'Sonuç: $correct / ${questions.length} · %$percentage'
+                : '$answered / ${questions.length} cevaplandı',
           ),
-          const SizedBox(height: 12),
-          ...questions.map((question) => Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: _QuestionCard(
-                  question: question,
-                  onAnswered: () {
-                    final state = ref.read(localProgressProvider);
-                    if (questions.every((item) =>
-                        state.studyQuestionAnswers.containsKey(item.id))) {
-                      ref
-                          .read(localProgressProvider.notifier)
-                          .markStudyModuleCompleted(moduleId);
-                    }
-                  },
-                ),
-              )),
-        ]);
+        ),
+        const SizedBox(height: 12),
+        _QuestionPager(
+          questions: questions,
+          onAllAnswered: () => ref
+              .read(localProgressProvider.notifier)
+              .markStudySectionCompleted(
+                moduleId: moduleId,
+                section: _StudySection.test.storageValue,
+                sectionCount: _StudyModulePageState._sections.length,
+              ),
+        ),
+      ],
+    );
+  }
+}
+
+class _QuestionPager extends ConsumerStatefulWidget {
+  const _QuestionPager({required this.questions, this.onAllAnswered});
+  final List<StudyQuestion> questions;
+  final VoidCallback? onAllAnswered;
+
+  @override
+  ConsumerState<_QuestionPager> createState() => _QuestionPagerState();
+}
+
+class _QuestionPagerState extends ConsumerState<_QuestionPager> {
+  int _index = 0;
+  bool _completionReported = false;
+
+  void _reportCompletionIfNeeded() {
+    if (_completionReported || widget.questions.isEmpty) return;
+    final answers = ref.read(localProgressProvider).studyQuestionAnswers;
+    if (widget.questions.every(answers.containsKey)) {
+      _completionReported = true;
+      widget.onAllAnswered?.call();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.questions.isEmpty) return const SizedBox.shrink();
+    final answers = ref.watch(localProgressProvider).studyQuestionAnswers;
+    final answered = widget.questions.where(answers.containsKey).length;
+    final safeIndex = _index.clamp(0, widget.questions.length - 1);
+    final question = widget.questions[safeIndex];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Text('$answered / ${widget.questions.length} cevaplandı'),
+        const SizedBox(height: 8),
+        Text(
+          '${safeIndex + 1} / ${widget.questions.length}',
+          style: Theme.of(context).textTheme.labelLarge,
+        ),
+        const SizedBox(height: 8),
+        _QuestionCard(
+            question: question, onAnswered: _reportCompletionIfNeeded),
+        const SizedBox(height: 4),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: <Widget>[
+            TextButton.icon(
+              onPressed: safeIndex == 0
+                  ? null
+                  : () => setState(() => _index = safeIndex - 1),
+              icon: const Icon(Icons.arrow_back_rounded),
+              label: const Text('Önceki'),
+            ),
+            TextButton.icon(
+              onPressed: safeIndex == widget.questions.length - 1
+                  ? null
+                  : () => setState(() => _index = safeIndex + 1),
+              icon: const Icon(Icons.arrow_forward_rounded),
+              label: const Text('Sonraki'),
+            ),
+          ],
+        ),
+      ],
+    );
   }
 }
 
@@ -658,6 +913,7 @@ class _QuestionCard extends ConsumerWidget {
                                 .answerStudyQuestion(
                                   questionId: question.id,
                                   answer: option.letter,
+                                  isCorrect: option.isCorrect,
                                 );
                             onAnswered?.call();
                           },
@@ -689,6 +945,7 @@ class _QuestionCard extends ConsumerWidget {
 class _StudyReview extends StatelessWidget {
   const _StudyReview({required this.items});
   final List<StudyReviewItem> items;
+
   @override
   Widget build(BuildContext context) {
     final grouped = <String, List<StudyReviewItem>>{};
@@ -696,40 +953,108 @@ class _StudyReview extends StatelessWidget {
       grouped.putIfAbsent(item.type, () => <StudyReviewItem>[]).add(item);
     }
     return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: grouped.entries
-            .map((entry) => Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: SurfaceCard(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: <Widget>[
-                          Text(_reviewLabel(entry.key),
-                              style: Theme.of(context).textTheme.titleMedium),
-                          const SizedBox(height: 8),
-                          ...entry.value.map((item) => Padding(
-                                padding: const EdgeInsets.only(bottom: 10),
-                                child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: <Widget>[
-                                      if (item.promptEn.isNotEmpty)
-                                        Text(item.promptEn),
-                                      if (item.promptTr.isNotEmpty)
-                                        Text(item.promptTr),
-                                      if (item.answerEn.isNotEmpty ||
-                                          item.answerTr.isNotEmpty)
-                                        Text([item.answerEn, item.answerTr]
-                                            .where((value) => value.isNotEmpty)
-                                            .join(' — ')),
-                                      if (item.note.isNotEmpty) Text(item.note),
-                                    ]),
-                              )),
-                        ]),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: grouped.entries
+          .map(
+            (entry) => Padding(
+              padding: const EdgeInsets.only(bottom: 18),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text(
+                    _reviewLabel(entry.key),
+                    style: Theme.of(context).textTheme.titleMedium,
                   ),
-                ))
-            .toList(growable: false));
+                  const SizedBox(height: 8),
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final width = constraints.maxWidth >= 720
+                          ? (constraints.maxWidth - 10) / 2
+                          : constraints.maxWidth;
+                      return Wrap(
+                        spacing: 10,
+                        runSpacing: 10,
+                        children: entry.value
+                            .map(
+                              (item) => SizedBox(
+                                width: width,
+                                child: _StudyReviewCard(item: item),
+                              ),
+                            )
+                            .toList(growable: false),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+          )
+          .toList(growable: false),
+    );
+  }
+}
+
+class _StudyReviewCard extends StatefulWidget {
+  const _StudyReviewCard({required this.item});
+  final StudyReviewItem item;
+
+  @override
+  State<_StudyReviewCard> createState() => _StudyReviewCardState();
+}
+
+class _StudyReviewCardState extends State<_StudyReviewCard> {
+  bool _answerVisible = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final item = widget.item;
+    final isRecall =
+        item.type == 'active_recall_en' || item.type == 'active_recall_tr';
+    final prompt = <String>[item.promptEn, item.promptTr]
+        .where((value) => value.isNotEmpty)
+        .join('\n');
+    final answer = <String>[item.answerEn, item.answerTr]
+        .where((value) => value.isNotEmpty)
+        .join('\n');
+    final usefulNote =
+        item.note.contains('Kaynak cevapta gösterilmiyor') ? '' : item.note;
+    return SurfaceCard(
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          if (prompt.isNotEmpty)
+            Text(prompt, style: Theme.of(context).textTheme.titleSmall),
+          if (!isRecall && answer.isNotEmpty) ...<Widget>[
+            const SizedBox(height: 7),
+            Text(answer),
+          ],
+          if (!isRecall && usefulNote.isNotEmpty)
+            _DetailBlock(label: 'Not', text: usefulNote),
+          if (isRecall && answer.isNotEmpty) ...<Widget>[
+            const SizedBox(height: 10),
+            OutlinedButton.icon(
+              onPressed: () => setState(() => _answerVisible = !_answerVisible),
+              icon: Icon(_answerVisible
+                  ? Icons.visibility_off_outlined
+                  : Icons.visibility_outlined),
+              label: Text(_answerVisible ? 'Cevabı gizle' : 'Cevabı göster'),
+            ),
+            if (_answerVisible) ...<Widget>[
+              const SizedBox(height: 8),
+              Text(answer),
+            ],
+          ],
+          if (isRecall && answer.isEmpty) ...<Widget>[
+            const SizedBox(height: 8),
+            Text(
+              'Kendin hatırla',
+              style: TextStyle(color: AppThemeTokens.of(context).secondaryText),
+            ),
+          ],
+        ],
+      ),
+    );
   }
 }
 

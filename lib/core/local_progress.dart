@@ -100,26 +100,45 @@ class LocalProgressController extends StateNotifier<LocalProgressSnapshot> {
     ));
   }
 
-  void answerStudyQuestion(
-      {required String questionId, required String answer}) {
+  void answerStudyQuestion({
+    required String questionId,
+    required String answer,
+    required bool isCorrect,
+  }) {
     _changedBeforeRestore = true;
     final answers = Map<String, String>.of(state.studyQuestionAnswers)
       ..[questionId] = answer;
+    final correctness = Map<String, bool>.of(state.studyQuestionCorrectness)
+      ..[questionId] = isCorrect;
     state = state.copyWith(
       isLoaded: true,
       studyQuestionAnswers: Map<String, String>.unmodifiable(answers),
+      studyQuestionCorrectness: Map<String, bool>.unmodifiable(correctness),
     );
     unawaited(_repository.saveStudyQuestionAnswers(answers));
+    unawaited(_repository.saveStudyQuestionCorrectness(correctness));
   }
 
-  void markStudyModuleCompleted(String moduleId) {
-    if (state.completedStudyModuleIds.contains(moduleId)) return;
+  void markStudySectionCompleted({
+    required String moduleId,
+    required String section,
+    required int sectionCount,
+  }) {
     _changedBeforeRestore = true;
-    final ids = Set<String>.of(state.completedStudyModuleIds)..add(moduleId);
+    final key = '$moduleId:$section';
+    final sections = Set<String>.of(state.completedStudySectionKeys)..add(key);
+    final moduleSections =
+        sections.where((item) => item.startsWith('$moduleId:')).length;
+    final modules = Set<String>.of(state.completedStudyModuleIds);
+    if (moduleSections >= sectionCount) {
+      modules.add(moduleId);
+    }
     state = state.copyWith(
       isLoaded: true,
-      completedStudyModuleIds: Set<String>.unmodifiable(ids),
+      completedStudySectionKeys: Set<String>.unmodifiable(sections),
+      completedStudyModuleIds: Set<String>.unmodifiable(modules),
     );
-    unawaited(_repository.saveCompletedStudyModuleIds(ids));
+    unawaited(_repository.saveCompletedStudySectionKeys(sections));
+    unawaited(_repository.saveCompletedStudyModuleIds(modules));
   }
 }

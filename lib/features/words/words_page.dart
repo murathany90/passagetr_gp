@@ -14,7 +14,8 @@ import 'word_detail_sheet.dart';
 import 'word_filtering.dart';
 
 class WordsPage extends ConsumerStatefulWidget {
-  const WordsPage({super.key});
+  const WordsPage({super.key, this.initialQuery});
+  final String? initialQuery;
   @override
   ConsumerState<WordsPage> createState() => _WordsPageState();
 }
@@ -33,7 +34,8 @@ class _WordsPageState extends ConsumerState<WordsPage> {
   @override
   void initState() {
     super.initState();
-    _searchController = TextEditingController();
+    _query = widget.initialQuery ?? '';
+    _searchController = TextEditingController(text: _query);
     _shuffleSeed = createPresentationSeed();
   }
 

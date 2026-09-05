@@ -22,7 +22,7 @@ import build_static_content as content  # noqa: E402
 
 
 SOURCE_RELATIVE_PATH = Path(
-    'source_data/canonical/study/PASSAGETR_YDS_Study_Canonical.xlsx'
+    'source_data/canonical/study/PASSAGETR_YDS_Study_Canonical_v1_Module_01-12.xlsx'
 )
 DEFAULT_OUTPUT = ROOT / 'assets' / 'content' / 'study'
 # The supplied workbook includes three valid study headwords that are not
@@ -31,7 +31,37 @@ DEFAULT_OUTPUT = ROOT / 'assets' / 'content' / 'study'
 WORD_REF_ALIASES = {
     'threshold': 'boundary',
     'intermittent': 'episodic',
-    'inevitably': 'necessarily',
+    'inevitably': 'inevitable',
+    'robustness': 'robust',
+    'unavoidably': 'inevitable',
+    'intuitive': 'instinctive',
+    'rigorously': 'rigorous',
+    'disparity': 'discrepancy',
+    'oscillate': 'fluctuate',
+    'paramount': 'supreme',
+    'vividly': 'distinctly',
+    'adequately': 'adequate',
+    'remnant': 'remain',
+    'lucrative': 'profitable',
+    'procure': 'acquisition',
+    'perish': 'expire',
+    'predominantly': 'dominant',
+    'scrupulously': 'meticulously',
+    'stagnate': 'stagnant',
+    'remuneration': 'compensation',
+    'adversely': 'adverse',
+    'levy': 'impose',
+    'rationale': 'rational',
+    'automation': 'automatic',
+    'streamline': 'facilitate',
+    'mobility': 'mobilize',
+    'outpace': 'surpass',
+    'surveillance': 'monitor',
+    'vigilant': 'vigilance',
+    'connectivity': 'interconnectivity',
+    'barrier': 'obstacle',
+    'bridge': 'reconcile',
+    'prioritize': 'priority',
 }
 SHEET_HEADERS = {
     '01_Modules': (
@@ -82,6 +112,10 @@ SHEET_HEADERS = {
         'review_id', 'module_id', 'item_type', 'order_no', 'prompt_en',
         'prompt_tr', 'answer_en', 'answer_tr', 'note',
     ),
+}
+OPTIONAL_TRAILING_FIELDS = {
+    '03_Word_Items': ('usage_note',),
+    '04_Sentences': ('translation_strategy',),
 }
 
 
@@ -193,7 +227,11 @@ def _records(path: Path, sheet_name: str) -> list[dict[str, str]]:
         raise ValueError(f'Canonical study sheet is empty: {sheet_name}')
     expected = SHEET_HEADERS[sheet_name]
     headers = tuple(clean(value) for value in rows[0])
-    if headers != expected:
+    missing = expected[len(headers):]
+    if (
+        headers != expected[:len(headers)]
+        or missing not in ((), OPTIONAL_TRAILING_FIELDS.get(sheet_name, ()))
+    ):
         raise ValueError(
             f'Unexpected headers in {sheet_name}: expected {expected}, got {headers}'
         )
@@ -202,7 +240,10 @@ def _records(path: Path, sheet_name: str) -> list[dict[str, str]]:
         padded = row + [''] * (len(headers) - len(row))
         if len(padded) != len(headers):
             raise ValueError(f'Too many values at {sheet_name} row {row_number}')
-        record = {header: clean(padded[index]) for index, header in enumerate(headers)}
+        record = {
+            header: clean(padded[index]) if index < len(headers) else ''
+            for index, header in enumerate(expected)
+        }
         if any(record.values()):
             records.append(record)
     return records
@@ -264,6 +305,13 @@ def _is_correct(value: str) -> bool:
     return normalized(value) in {'1', 'true', 'yes'}
 
 
+def has_word_item_content(record: dict[str, str]) -> bool:
+    return any(
+        clean(record.get(field))
+        for field in ('value_en', 'value_tr', 'usage_note')
+    )
+
+
 def validate_workbook(workbook: dict[str, list[dict[str, str]]]) -> dict[str, Any]:
     modules = workbook['01_Modules']
     words = workbook['02_Words']
@@ -283,7 +331,19 @@ def validate_workbook(workbook: dict[str, list[dict[str, str]]]) -> dict[str, An
         _require(record, SHEET_HEADERS['01_Modules'], f"01_Modules/{record.get('module_id')}")
     for name, records, required in (
         ('02_Words', words, SHEET_HEADERS['02_Words']),
-        ('04_Sentences', sentences, SHEET_HEADERS['04_Sentences']),
+        (
+            '04_Sentences',
+            sentences,
+            tuple(
+                field for field in SHEET_HEADERS['04_Sentences']
+                if field not in {
+                    'object_complement',
+                    'connector',
+                    'reference_words',
+                    'translation_strategy',
+                }
+            ),
+        ),
         (
             '06_Questions',
             questions,
@@ -318,8 +378,6 @@ def validate_workbook(workbook: dict[str, list[dict[str, str]]]) -> dict[str, An
             ('item_id', 'module_id', 'word_id', 'item_type', 'item_order'),
             f"03_Word_Items/{record.get('item_id')}",
         )
-        if not any(clean(record.get(field)) for field in ('value_en', 'value_tr', 'usage_note')):
-            raise ValueError(f"Word item lacks content: {record['item_id']}")
     for record in structures:
         _require(
             record,
@@ -332,7 +390,10 @@ def validate_workbook(workbook: dict[str, list[dict[str, str]]]) -> dict[str, An
             ('review_id', 'module_id', 'item_type', 'order_no'),
             f"10_Review/{record.get('review_id')}",
         )
-        if not any(clean(record.get(field)) for field in ('prompt_en', 'prompt_tr', 'answer_en', 'answer_tr')):
+        if not any(
+            clean(record.get(field))
+            for field in ('prompt_en', 'prompt_tr', 'answer_en', 'answer_tr', 'note')
+        ):
             raise ValueError(f"Review record lacks prompt/answer: {record['review_id']}")
 
     all_module_records = {
@@ -352,6 +413,8 @@ def validate_workbook(workbook: dict[str, list[dict[str, str]]]) -> dict[str, An
     question_by_id = {record['question_id']: record for record in questions}
     _unique(questions, 'question_id', '06_Questions')
     for record in word_items:
+        if not has_word_item_content(record):
+            continue
         word = word_by_id.get(record['word_id'])
         if word is None or word['module_id'] != record['module_id']:
             raise ValueError(f"Orphan word item: {record['item_id']}")
@@ -445,7 +508,7 @@ def build_payloads(
         ])
         word_items_by_word: dict[str, list[dict[str, str]]] = defaultdict(list)
         for item in workbook['03_Word_Items']:
-            if item['module_id'] == module_id:
+            if item['module_id'] == module_id and has_word_item_content(item):
                 word_items_by_word[item['word_id']].append(item)
         words = [
             {
