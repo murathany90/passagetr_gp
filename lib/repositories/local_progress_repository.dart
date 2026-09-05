@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:shared_preferences/shared_preferences.dart';
 
 class LocalProgressSnapshot {
@@ -10,6 +12,10 @@ class LocalProgressSnapshot {
     this.wordLevel,
     this.readingLevel,
     this.readingCategory,
+    this.completedStudyModuleIds = const <String>{},
+    this.studyLastModuleId,
+    this.studyLastSection,
+    this.studyQuestionAnswers = const <String, String>{},
   });
 
   const LocalProgressSnapshot.empty() : this(isLoaded: false);
@@ -22,6 +28,10 @@ class LocalProgressSnapshot {
   final String? wordLevel;
   final String? readingLevel;
   final String? readingCategory;
+  final Set<String> completedStudyModuleIds;
+  final String? studyLastModuleId;
+  final String? studyLastSection;
+  final Map<String, String> studyQuestionAnswers;
 
   LocalProgressSnapshot copyWith({
     bool? isLoaded,
@@ -36,6 +46,12 @@ class LocalProgressSnapshot {
     bool clearReadingLevel = false,
     String? readingCategory,
     bool clearReadingCategory = false,
+    Set<String>? completedStudyModuleIds,
+    String? studyLastModuleId,
+    bool clearStudyLastModuleId = false,
+    String? studyLastSection,
+    bool clearStudyLastSection = false,
+    Map<String, String>? studyQuestionAnswers,
   }) =>
       LocalProgressSnapshot(
         isLoaded: isLoaded ?? this.isLoaded,
@@ -49,6 +65,15 @@ class LocalProgressSnapshot {
         readingCategory: clearReadingCategory
             ? null
             : readingCategory ?? this.readingCategory,
+        completedStudyModuleIds:
+            completedStudyModuleIds ?? this.completedStudyModuleIds,
+        studyLastModuleId: clearStudyLastModuleId
+            ? null
+            : studyLastModuleId ?? this.studyLastModuleId,
+        studyLastSection: clearStudyLastSection
+            ? null
+            : studyLastSection ?? this.studyLastSection,
+        studyQuestionAnswers: studyQuestionAnswers ?? this.studyQuestionAnswers,
       );
 }
 
@@ -60,6 +85,11 @@ class LocalProgressRepository {
   static const _wordLevelKey = 'passagetr.wordLevel.v1';
   static const _readingLevelKey = 'passagetr.readingLevel.v1';
   static const _readingCategoryKey = 'passagetr.readingCategory.v1';
+  static const _completedStudyModulesKey =
+      'passagetr.completedStudyModuleIds.v1';
+  static const _studyLastModuleKey = 'passagetr.studyLastModuleId.v1';
+  static const _studyLastSectionKey = 'passagetr.studyLastSection.v1';
+  static const _studyQuestionAnswersKey = 'passagetr.studyQuestionAnswers.v1';
 
   Future<SharedPreferences>? _preferencesFuture;
 
@@ -74,6 +104,10 @@ class LocalProgressRepository {
       wordLevel: preferences.getString(_wordLevelKey),
       readingLevel: preferences.getString(_readingLevelKey),
       readingCategory: preferences.getString(_readingCategoryKey),
+      completedStudyModuleIds: _readSet(preferences, _completedStudyModulesKey),
+      studyLastModuleId: preferences.getString(_studyLastModuleKey),
+      studyLastSection: preferences.getString(_studyLastSectionKey),
+      studyQuestionAnswers: _readMap(preferences, _studyQuestionAnswersKey),
     );
   }
 
@@ -97,12 +131,40 @@ class LocalProgressRepository {
     await _saveOptional(preferences, _readingCategoryKey, category);
   }
 
+  Future<void> saveCompletedStudyModuleIds(Set<String> ids) =>
+      _saveSet(_completedStudyModulesKey, ids);
+
+  Future<void> saveStudyLocation({String? moduleId, String? section}) async {
+    final preferences = await _preferences();
+    await _saveOptional(preferences, _studyLastModuleKey, moduleId);
+    await _saveOptional(preferences, _studyLastSectionKey, section);
+  }
+
+  Future<void> saveStudyQuestionAnswers(Map<String, String> answers) async {
+    final preferences = await _preferences();
+    await preferences.setString(_studyQuestionAnswersKey, jsonEncode(answers));
+  }
+
   Future<SharedPreferences> _preferences() =>
       _preferencesFuture ??= SharedPreferences.getInstance();
 
   Set<String> _readSet(SharedPreferences preferences, String key) =>
       Set<String>.unmodifiable(
           preferences.getStringList(key) ?? const <String>[]);
+
+  Map<String, String> _readMap(SharedPreferences preferences, String key) {
+    final raw = preferences.getString(key);
+    if (raw == null || raw.isEmpty) return const <String, String>{};
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is! Map) return const <String, String>{};
+      return Map<String, String>.unmodifiable(decoded.map(
+        (key, value) => MapEntry(key.toString(), value.toString()),
+      ));
+    } catch (_) {
+      return const <String, String>{};
+    }
+  }
 
   Future<void> _saveSet(String key, Set<String> ids) async {
     final preferences = await _preferences();

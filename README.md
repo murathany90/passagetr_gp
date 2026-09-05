@@ -1,6 +1,6 @@
 # PASSAGETR GP
 
-PASSAGETR GP; Kelime, Okuma ve Sözlük modüllerini sunan tamamen public bir
+PASSAGETR GP; Kelime, Okuma, Çalışma ve Sözlük modüllerini sunan tamamen public bir
 Flutter Web uygulamasıdır. GitHub Pages üzerinde çalışır; backend, API,
 kullanıcı girişi, auth ve runtime database içermez.
 
@@ -22,6 +22,7 @@ kullanıcı girişi, auth ve runtime database içermez.
 | `source_data/canonical/readings/reading_sentences.csv` | CSV | Tek authoritative reading body | 6.275 | `passage_title`, `idx`, `sentence_en`, `sentence_tr` | Uygulamadaki bütün EN/TR reading cümleleri |
 | `source_data/canonical/readings/reading_questions_v1.json` | JSON | Korunan 101–678 vocabulary-practice soru snapshot’ı | 578 reading | `sourceNumber`, `readingId`, `questions` | Soru içeriği; reading body override değildir |
 | `source_data/canonical/dictionary/dictionary_tr_en.xlsx` | XLSX | Geniş EN→TR sözlük | 121.783 kaynak satırı | `en_word`, `pos`, `tr_meaning_clean` | Lazy shard sözlük indeksi |
+| `source_data/canonical/study/PASSAGETR_YDS_Study_Canonical.xlsx` | XLSX | Çalışma modüllerinin tek canonical kaynağı | Modül 1 | 10 ilişkili worksheet; modül, hedef kelime, cümle, reading, soru, çeviri, yapı ve review alanları | Yalnız `tools/build_study_content.py` tarafından static JSON'a dönüştürülür |
 | `source_data/curated/readings_001_100_curated_v2.json` | JSON | 001–100 curated özet/metadata/comprehension soruları | 100 | `source_number`, `summary_en`, `summary_tr`, `questions` | Curated soru ve özet kaynağı; EN/TR body override değildir |
 
 Kelime için tek authoritative kaynak ilk CSV’dir ve kayıt sayısı 7.500’dür.
@@ -38,6 +39,13 @@ canonical kaynaklardan üretir. `tools/validate_static_content.py`; 7.500
 benzersiz kelimeyi, 678 reading/6.275 EN-TR cümleyi, tek-kaynak body eşitliğini,
 soru kaynaklarını ve eski kelime-kaynak referansının kalmadığını doğrular.
 
+`assets/content/study` de Git’te tutulmaz. `tools/build_study_content.py`,
+canonical Excel'i çalışma manifesti ve modül JSON'larına dönüştürür;
+`tools/validate_study_content.py` worksheet şemasını, ilişki bütünlüğünü,
+15 hedef kelime/15 lexical family, 5 cümle, reading soruları, EN→TR/TR→EN
+çeviriler, test ve review sözleşmesini doğrular. Flutter Web runtime Excel
+okumaz; yalnız bundled JSON yükler.
+
 `_local_source_archive/` varsa yalnız yerel inceleme arşividir, Git tarafından
 ignore edilir ve Pages build’ine dahil edilmez.
 
@@ -47,6 +55,8 @@ ignore edilir ve Pages build’ine dahil edilmez.
 - `#/words/matching`
 - `#/words/find-word`
 - `#/readings`
+- `#/study`
+- `#/study/module/:moduleId`
 - `#/dictionary`
 
 Hash routing, GitHub Pages’te server rewrite gerektirmez.
@@ -56,7 +66,9 @@ Hash routing, GitHub Pages’te server rewrite gerektirmez.
 ```powershell
 flutter pub get
 python tools/build_static_content.py
+python tools/build_study_content.py
 python tools/validate_static_content.py
+python tools/validate_study_content.py
 flutter analyze
 flutter test
 flutter build web --release --base-href "/passagetr_gp/"

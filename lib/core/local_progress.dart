@@ -86,4 +86,40 @@ class LocalProgressController extends StateNotifier<LocalProgressSnapshot> {
         isLoaded: true, completedReadingIds: Set.unmodifiable(ids));
     unawaited(_repository.saveCompletedReadingIds(ids));
   }
+
+  void setStudyLocation({required String moduleId, required String section}) {
+    _changedBeforeRestore = true;
+    state = state.copyWith(
+      isLoaded: true,
+      studyLastModuleId: moduleId,
+      studyLastSection: section,
+    );
+    unawaited(_repository.saveStudyLocation(
+      moduleId: moduleId,
+      section: section,
+    ));
+  }
+
+  void answerStudyQuestion(
+      {required String questionId, required String answer}) {
+    _changedBeforeRestore = true;
+    final answers = Map<String, String>.of(state.studyQuestionAnswers)
+      ..[questionId] = answer;
+    state = state.copyWith(
+      isLoaded: true,
+      studyQuestionAnswers: Map<String, String>.unmodifiable(answers),
+    );
+    unawaited(_repository.saveStudyQuestionAnswers(answers));
+  }
+
+  void markStudyModuleCompleted(String moduleId) {
+    if (state.completedStudyModuleIds.contains(moduleId)) return;
+    _changedBeforeRestore = true;
+    final ids = Set<String>.of(state.completedStudyModuleIds)..add(moduleId);
+    state = state.copyWith(
+      isLoaded: true,
+      completedStudyModuleIds: Set<String>.unmodifiable(ids),
+    );
+    unawaited(_repository.saveCompletedStudyModuleIds(ids));
+  }
 }

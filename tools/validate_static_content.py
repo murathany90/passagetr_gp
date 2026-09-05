@@ -33,6 +33,7 @@ SENTENCES_SOURCE = SOURCE / 'canonical' / 'readings' / 'reading_sentences.csv'
 QUESTIONS_SOURCE = SOURCE / 'canonical' / 'readings' / builder.DERIVED_QUESTIONS_FILENAME
 CURATED_SOURCE = SOURCE / builder.DEFAULT_CURATED_READINGS_RELATIVE_PATH
 DICTIONARY_SOURCE = SOURCE / 'canonical' / 'dictionary' / 'dictionary_tr_en.xlsx'
+STUDY_SOURCE = SOURCE / 'canonical' / 'study' / 'PASSAGETR_YDS_Study_Canonical.xlsx'
 
 EXPECTED_WORDS = 7500
 EXPECTED_READINGS = 678
@@ -207,6 +208,7 @@ def validate_no_sentence_overlay_sources() -> int:
     allowed = {
         WORDS_SOURCE.resolve(), PASSAGES_SOURCE.resolve(), SENTENCES_SOURCE.resolve(),
         QUESTIONS_SOURCE.resolve(), CURATED_SOURCE.resolve(), DICTIONARY_SOURCE.resolve(),
+        STUDY_SOURCE.resolve(),
     }
     files = {path.resolve() for path in SOURCE.rglob('*') if path.is_file()}
     unexpected = sorted(files - allowed)
@@ -323,7 +325,7 @@ def validate_generated_content(
 def main() -> int:
     for path in (
         WORDS_SOURCE, PASSAGES_SOURCE, SENTENCES_SOURCE, QUESTIONS_SOURCE,
-        CURATED_SOURCE, DICTIONARY_SOURCE, CONTENT / 'manifest.json',
+        CURATED_SOURCE, DICTIONARY_SOURCE, STUDY_SOURCE, CONTENT / 'manifest.json',
     ):
         if not path.is_file():
             fail(f'Missing required source/content file: {path.relative_to(ROOT)}')

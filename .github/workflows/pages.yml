@@ -28,12 +28,16 @@ jobs:
         run: flutter pub get
       - name: Build static content
         run: python3 tools/build_static_content.py
+      - name: Build study content
+        run: python3 tools/build_study_content.py
       - name: Analyze
         run: flutter analyze
       - name: Test
         run: flutter test
       - name: Validate static content
         run: python3 tools/validate_static_content.py
+      - name: Validate study content
+        run: python3 tools/validate_study_content.py
       - name: Build web
         run: flutter build web --release --base-href "/passagetr_gp/"
       - name: Configure Pages

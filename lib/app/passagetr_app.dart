@@ -8,6 +8,8 @@ import '../features/dictionary/dictionary_page.dart';
 import '../features/home/landing_page.dart';
 import '../features/readings/reading_detail_page.dart';
 import '../features/readings/readings_page.dart';
+import '../features/study/study_module_page.dart';
+import '../features/study/study_page.dart';
 import '../features/words/flashcards_page.dart';
 import '../features/words/find_word_page.dart';
 import '../features/words/matching_page.dart';
@@ -49,6 +51,14 @@ final _routerProvider = Provider<GoRouter>((ref) => GoRouter(
             GoRoute(
                 path: '/readings',
                 builder: (context, state) => const ReadingsPage()),
+            GoRoute(
+                path: '/study', builder: (context, state) => const StudyPage()),
+            GoRoute(
+              path: '/study/module/:moduleId',
+              builder: (context, state) => StudyModulePage(
+                moduleId: state.pathParameters['moduleId']!,
+              ),
+            ),
             GoRoute(
               path: '/readings/:id',
               builder: (context, state) =>

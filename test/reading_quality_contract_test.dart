@@ -66,6 +66,7 @@ allowed = {
     (source / 'reading_sentences.csv').resolve(),
     (source / 'reading_questions_v1.json').resolve(),
     Path('source_data/canonical/dictionary/dictionary_tr_en.xlsx').resolve(),
+    Path('source_data/canonical/study/PASSAGETR_YDS_Study_Canonical.xlsx').resolve(),
     Path('source_data/curated/readings_001_100_curated_v2.json').resolve(),
 }
 assert {path.resolve() for path in Path('source_data').rglob('*') if path.is_file()} == allowed

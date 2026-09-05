@@ -27,3 +27,5 @@ flutter:
     - assets/content/v1/readings/
     - assets/content/v1/readings/items/
     - assets/content/v1/dictionary/
+    - assets/content/study/
+    - assets/content/study/modules/
