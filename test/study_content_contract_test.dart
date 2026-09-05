@@ -42,11 +42,36 @@ void main() {
     expect(detail.translations.trEn, hasLength(7));
     expect(detail.testQuestions, hasLength(10));
     expect(detail.review, hasLength(29));
+    final activeRecall = detail.review.where(
+      (item) =>
+          item.type == 'active_recall_en' || item.type == 'active_recall_tr',
+    );
+    expect(activeRecall, hasLength(10));
+    expect(
+      activeRecall.every(
+        (item) => item.type == 'active_recall_en'
+            ? item.answerEn.isNotEmpty
+            : item.answerTr.isNotEmpty,
+      ),
+      isTrue,
+    );
     for (final module in modules) {
       final routeDetail = await repository.loadModule(module.id);
       expect(routeDetail.module.id, module.id);
       expect(routeDetail.words, hasLength(15));
       expect(routeDetail.reading.questions, hasLength(5));
+      final routeRecall = routeDetail.review.where(
+        (item) =>
+            item.type == 'active_recall_en' || item.type == 'active_recall_tr',
+      );
+      expect(
+        routeRecall.every(
+          (item) => item.type == 'active_recall_en'
+              ? item.answerEn.isNotEmpty
+              : item.answerTr.isNotEmpty,
+        ),
+        isTrue,
+      );
     }
   });
 

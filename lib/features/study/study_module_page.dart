@@ -217,6 +217,27 @@ class _StudyWordCard extends ConsumerStatefulWidget {
 class _StudyWordCardState extends ConsumerState<_StudyWordCard> {
   bool _details = false;
 
+  Future<void> _openCanonicalWord(WordEntry? cached) async {
+    var canonicalWord = cached;
+    if (canonicalWord == null) {
+      final lookup = ref.read(wordLookupServiceProvider);
+      final result = await lookup.find(widget.word.wordRef);
+      canonicalWord = result.word;
+    }
+    if (!mounted) return;
+    if (canonicalWord == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Kelime detayı yüklenemedi.')),
+      );
+      return;
+    }
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => WordDetailSheet(word: canonicalWord!),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final word = widget.word;
@@ -249,26 +270,28 @@ class _StudyWordCardState extends ConsumerState<_StudyWordCard> {
                       child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: <Widget>[
-                        if (canonicalWord == null)
-                          Text('${word.order}. ${word.headword}',
-                              style: Theme.of(context).textTheme.titleLarge)
-                        else
-                          TextButton(
-                            style: TextButton.styleFrom(
-                              padding: EdgeInsets.zero,
-                              minimumSize: Size.zero,
-                              alignment: Alignment.centerLeft,
-                            ),
-                            onPressed: () => showModalBottomSheet<void>(
-                              context: context,
-                              isScrollControlled: true,
-                              builder: (_) => WordDetailSheet(
-                                word: canonicalWord!,
-                              ),
-                            ),
-                            child: Text('${word.order}. ${word.headword}',
-                                style: Theme.of(context).textTheme.titleLarge),
+                        TextButton(
+                          style: TextButton.styleFrom(
+                            padding: EdgeInsets.zero,
+                            minimumSize: const Size(0, 36),
+                            alignment: Alignment.centerLeft,
                           ),
+                          onPressed: () => _openCanonicalWord(canonicalWord),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: <Widget>[
+                              Flexible(
+                                child: Text(
+                                  '${word.order}. ${word.headword}',
+                                  overflow: TextOverflow.ellipsis,
+                                  style: Theme.of(context).textTheme.titleLarge,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              const Icon(Icons.open_in_new_rounded, size: 16),
+                            ],
+                          ),
+                        ),
                         const SizedBox(height: 4),
                         Text('${word.meaningTr} · ${word.pos} · ${word.level}'),
                       ])),
@@ -392,8 +415,15 @@ class _StudySentencesState extends State<_StudySentences> {
                       style: Theme.of(context).textTheme.titleMedium),
                   const SizedBox(height: 8),
                   Wrap(spacing: 8, runSpacing: 6, children: <Widget>[
-                    Chip(label: Text(sentence.level)),
+                    Chip(
+                      visualDensity: VisualDensity.compact,
+                      label: Text(sentence.level),
+                    ),
                     TextButton.icon(
+                      style: TextButton.styleFrom(
+                        minimumSize: const Size(0, 36),
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
                       onPressed: () => setState(() => showTr
                           ? _translations.remove(sentence.order)
                           : _translations.add(sentence.order)),
@@ -402,6 +432,10 @@ class _StudySentencesState extends State<_StudySentences> {
                           Text(showTr ? 'Çeviriyi gizle' : 'Çeviriyi göster'),
                     ),
                     TextButton.icon(
+                      style: TextButton.styleFrom(
+                        minimumSize: const Size(0, 36),
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
                       onPressed: () => setState(() => showAnalysis
                           ? _analysis.remove(sentence.order)
                           : _analysis.add(sentence.order)),
@@ -440,7 +474,7 @@ class _AnalysisTile extends StatelessWidget {
     final tokens = AppThemeTokens.of(context);
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: tokens.surfaceMuted,
         borderRadius: BorderRadius.circular(14),
@@ -478,6 +512,7 @@ class _StudyReadingState extends State<_StudyReading> {
   Widget build(BuildContext context) =>
       Column(crossAxisAlignment: CrossAxisAlignment.start, children: <Widget>[
         SurfaceCard(
+          padding: const EdgeInsets.all(16),
           child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
@@ -725,7 +760,7 @@ class _StudyStructureCardState extends State<_StudyStructureCard> {
       item.note,
     ].any((value) => value.isNotEmpty);
     return SurfaceCard(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
@@ -1016,10 +1051,9 @@ class _StudyReviewCardState extends State<_StudyReviewCard> {
     final answer = <String>[item.answerEn, item.answerTr]
         .where((value) => value.isNotEmpty)
         .join('\n');
-    final usefulNote =
-        item.note.contains('Kaynak cevapta gösterilmiyor') ? '' : item.note;
+    final usefulNote = isRecall ? '' : item.note;
     return SurfaceCard(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
@@ -1044,13 +1078,6 @@ class _StudyReviewCardState extends State<_StudyReviewCard> {
               const SizedBox(height: 8),
               Text(answer),
             ],
-          ],
-          if (isRecall && answer.isEmpty) ...<Widget>[
-            const SizedBox(height: 8),
-            Text(
-              'Kendin hatırla',
-              style: TextStyle(color: AppThemeTokens.of(context).secondaryText),
-            ),
           ],
         ],
       ),

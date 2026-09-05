@@ -390,6 +390,18 @@ def validate_workbook(workbook: dict[str, list[dict[str, str]]]) -> dict[str, An
             ('review_id', 'module_id', 'item_type', 'order_no'),
             f"10_Review/{record.get('review_id')}",
         )
+        if record['item_type'] == 'active_recall_en' and not clean(
+            record.get('answer_en')
+        ):
+            raise ValueError(
+                f"Active-recall EN answer is blank: {record['review_id']}"
+            )
+        if record['item_type'] == 'active_recall_tr' and not clean(
+            record.get('answer_tr')
+        ):
+            raise ValueError(
+                f"Active-recall TR answer is blank: {record['review_id']}"
+            )
         if not any(
             clean(record.get(field))
             for field in ('prompt_en', 'prompt_tr', 'answer_en', 'answer_tr', 'note')

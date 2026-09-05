@@ -117,7 +117,10 @@ class _StudyPageState extends ConsumerState<StudyPage> {
                       children: shown
                           .map((module) => SizedBox(
                                 width: width,
-                                child: _StudyModuleCard(module: module),
+                                child: _StudyModuleCard(
+                                  module: module,
+                                  uniformHeight: twoColumns,
+                                ),
                               ))
                           .toList(growable: false),
                     );
@@ -221,8 +224,12 @@ class _Stat extends StatelessWidget {
 }
 
 class _StudyModuleCard extends ConsumerWidget {
-  const _StudyModuleCard({required this.module});
+  const _StudyModuleCard({
+    required this.module,
+    required this.uniformHeight,
+  });
   final StudyModuleSummary module;
+  final bool uniformHeight;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -233,56 +240,78 @@ class _StudyModuleCard extends ConsumerWidget {
     final total = 7;
     return SurfaceCard(
       onTap: () => context.go('/study/module/${module.id}'),
-      child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Row(children: <Widget>[
-              Expanded(
-                  child: Text('Modül ${module.number}',
-                      style: Theme.of(context).textTheme.titleLarge)),
-              Chip(
-                  label: Text(completed
-                      ? 'Tamamlandı'
-                      : continuing
-                          ? 'Devam ediyor'
-                          : 'Yeni')),
-            ]),
-            const SizedBox(height: 8),
-            Text(module.mainTopic,
-                style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 4),
-            Text(module.subtopic, maxLines: 2, overflow: TextOverflow.ellipsis),
-            const SizedBox(height: 10),
-            Text('Gramer', style: Theme.of(context).textTheme.labelLarge),
-            const SizedBox(height: 3),
-            Text(module.grammarFocus,
-                maxLines: 2, overflow: TextOverflow.ellipsis),
-            const SizedBox(height: 10),
-            Wrap(spacing: 8, runSpacing: 8, children: <Widget>[
-              _Meta(label: module.levelProfile),
-              _Meta(label: '${module.counts.words} Kelime'),
-              _Meta(label: '${module.counts.sentences} Cümle'),
-              _Meta(label: 'Reading'),
-              _Meta(label: '${module.counts.translations} Çeviri'),
-              _Meta(label: '${module.counts.testQuestions} Test'),
-            ]),
-            const SizedBox(height: 14),
-            LinearProgressIndicator(value: finished / total),
-            const SizedBox(height: 8),
-            Text('$finished / $total bölüm',
-                style: Theme.of(context).textTheme.bodySmall),
-            const SizedBox(height: 10),
-            Align(
-              alignment: Alignment.centerRight,
-              child: FilledButton.icon(
-                onPressed: () => context.go('/study/module/${module.id}'),
-                icon: Icon(continuing
-                    ? Icons.play_arrow_rounded
-                    : Icons.arrow_forward_rounded),
-                label: Text(continuing ? 'Devam Et' : 'Başla'),
+      child: SizedBox(
+        height: uniformHeight ? 400 : null,
+        child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Row(children: <Widget>[
+                Expanded(
+                    child: Text('Modül ${module.number}',
+                        style: Theme.of(context).textTheme.titleLarge)),
+                Chip(
+                    label: Text(completed
+                        ? 'Tamamlandı'
+                        : continuing
+                            ? 'Devam ediyor'
+                            : 'Yeni')),
+              ]),
+              const SizedBox(height: 8),
+              Text(module.mainTopic,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height: 4),
+              SizedBox(
+                height: 44,
+                child: Text(
+                  module.subtopic,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
-            ),
-          ]),
+              const SizedBox(height: 10),
+              Text('Gramer', style: Theme.of(context).textTheme.labelLarge),
+              const SizedBox(height: 3),
+              SizedBox(
+                height: 42,
+                child: Text(
+                  module.grammarFocus,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(height: 10),
+              SizedBox(
+                height: uniformHeight ? 88 : null,
+                child: Wrap(spacing: 8, runSpacing: 8, children: <Widget>[
+                  _Meta(label: module.levelProfile),
+                  _Meta(label: '${module.counts.words} Kelime'),
+                  _Meta(label: '${module.counts.sentences} Cümle'),
+                  _Meta(label: 'Reading'),
+                  _Meta(label: '${module.counts.translations} Çeviri'),
+                  _Meta(label: '${module.counts.testQuestions} Test'),
+                ]),
+              ),
+              if (uniformHeight) const Spacer(),
+              const SizedBox(height: 14),
+              LinearProgressIndicator(value: finished / total),
+              const SizedBox(height: 8),
+              Text('$finished / $total bölüm',
+                  style: Theme.of(context).textTheme.bodySmall),
+              const SizedBox(height: 10),
+              Align(
+                alignment: Alignment.centerRight,
+                child: FilledButton.icon(
+                  onPressed: () => context.go('/study/module/${module.id}'),
+                  icon: Icon(continuing
+                      ? Icons.play_arrow_rounded
+                      : Icons.arrow_forward_rounded),
+                  label: Text(continuing ? 'Devam Et' : 'Başla'),
+                ),
+              ),
+            ]),
+      ),
     );
   }
 }

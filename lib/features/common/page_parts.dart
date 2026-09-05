@@ -322,18 +322,28 @@ class _RailButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = AppThemeTokens.of(context);
-    final foreground = selected ? Colors.white : tokens.secondaryText;
+    final light = Theme.of(context).brightness == Brightness.light;
+    final foreground = selected
+        ? (light ? tokens.accent : Colors.white)
+        : tokens.secondaryText;
+    final background = selected
+        ? (light ? tokens.accentSoft : tokens.accent)
+        : Colors.transparent;
+    final overlay =
+        light ? tokens.accent.withValues(alpha: .12) : Colors.white12;
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: InkWell(
         borderRadius: BorderRadius.circular(18),
+        focusColor: overlay,
+        hoverColor: overlay,
+        splashColor: overlay,
         onTap: onTap,
         child: Ink(
           width: 72,
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
           decoration: BoxDecoration(
-              color: selected ? tokens.accent : Colors.transparent,
-              borderRadius: BorderRadius.circular(18)),
+              color: background, borderRadius: BorderRadius.circular(18)),
           child: Column(children: <Widget>[
             Icon(icon, color: foreground),
             const SizedBox(height: 5),
