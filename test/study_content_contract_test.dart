@@ -149,8 +149,18 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 50));
 
-    expect(find.text('Modül 1'), findsOneWidget);
-    expect(find.text('Ana konu'), findsOneWidget);
+    expect(find.text('Modül 01'), findsOneWidget);
+    expect(find.text('Ana konu'), findsAtLeastNWidgets(1));
+    expect(find.text('Gramer'), findsAtLeastNWidgets(1));
+    expect(find.text('Seviye'), findsNothing);
+    expect(find.text('Durum'), findsNothing);
+    expect(
+      find.text(
+        'Power Grid Resilience & Energy Transition '
+        '(Elektrik Şebekesi Dayanıklılığı ve Enerji Dönüşümü)',
+      ),
+      findsOneWidget,
+    );
     expect(tester.takeException(), isNull);
   });
 }

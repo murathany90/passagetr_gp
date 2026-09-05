@@ -734,7 +734,25 @@ class _StudyReadingState extends State<_StudyReading> {
                         widget.reading.titleTr,
                       ),
                       style: Theme.of(context).textTheme.titleLarge),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      Icon(
+                        Icons.touch_app_outlined,
+                        size: 16,
+                        color: AppThemeTokens.of(context).secondaryText,
+                      ),
+                      const SizedBox(width: 6),
+                      Flexible(
+                        child: Text(
+                          'Cümleye tıkla → çevirisini göster · Vurgulu kelimeye tıkla → anlamı gör',
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
                   ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 900),
                     child: _InteractiveReading(
@@ -983,19 +1001,49 @@ class _StudyTranslationsState extends State<_StudyTranslations> {
   final Set<int> _revealed = <int>{};
   @override
   Widget build(BuildContext context) {
+    final tokens = AppThemeTokens.of(context);
+    final selectedForeground = Theme.of(context).colorScheme.onPrimary;
     final list = _enTr ? widget.translations.enTr : widget.translations.trEn;
     return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Wrap(spacing: 8, children: <Widget>[
             ChoiceChip(
-                label: const Text('İngilizceden Türkçeye'),
-                selected: _enTr,
-                onSelected: (_) => setState(() => _enTr = true)),
+              label: Text(
+                'İngilizceden Türkçeye',
+                style: TextStyle(
+                  color: _enTr ? selectedForeground : tokens.primaryText,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              selected: _enTr,
+              selectedColor: tokens.accent,
+              backgroundColor: tokens.surfaceMuted,
+              side: BorderSide(
+                color: _enTr ? tokens.accent : tokens.surfaceBorder,
+                width: _enTr ? 1.5 : 1,
+              ),
+              showCheckmark: true,
+              onSelected: (_) => setState(() => _enTr = true),
+            ),
             ChoiceChip(
-                label: const Text('Türkçeden İngilizceye'),
-                selected: !_enTr,
-                onSelected: (_) => setState(() => _enTr = false)),
+              label: Text(
+                'Türkçeden İngilizceye',
+                style: TextStyle(
+                  color: !_enTr ? selectedForeground : tokens.primaryText,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              selected: !_enTr,
+              selectedColor: tokens.accent,
+              backgroundColor: tokens.surfaceMuted,
+              side: BorderSide(
+                color: !_enTr ? tokens.accent : tokens.surfaceBorder,
+                width: !_enTr ? 1.5 : 1,
+              ),
+              showCheckmark: true,
+              onSelected: (_) => setState(() => _enTr = false),
+            ),
           ]),
           const SizedBox(height: 12),
           ...list.map((item) {
@@ -1026,7 +1074,9 @@ class _StudyTranslationsState extends State<_StudyTranslations> {
                         OutlinedButton.icon(
                           style: OutlinedButton.styleFrom(
                             alignment: Alignment.centerLeft,
-                            minimumSize: const Size.fromHeight(36),
+                            minimumSize: const Size(0, 36),
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            visualDensity: VisualDensity.compact,
                             padding: const EdgeInsets.symmetric(
                               horizontal: 12,
                               vertical: 8,
