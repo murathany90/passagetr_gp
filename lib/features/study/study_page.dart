@@ -38,20 +38,49 @@ class _StudyPageState extends ConsumerState<StudyPage> {
         onRetry: () => ref.invalidate(studyModulesProvider),
       ),
       data: (allModules) {
+        final allTopics = allModules.map((module) => module.mainTopic).toSet();
+        final allGrammar =
+            allModules.map((module) => module.grammarFocus).toSet();
+        var selectedTopic = allTopics.contains(_topic) ? _topic : null;
+        var selectedGrammar = allGrammar.contains(_grammar) ? _grammar : null;
         final grammarValues = allModules
-            .where((module) => _topic == null || module.mainTopic == _topic)
+            .where(
+              (module) =>
+                  selectedTopic == null || module.mainTopic == selectedTopic,
+            )
             .map((module) => module.grammarFocus)
             .toSet();
-        if (_grammar != null && !grammarValues.contains(_grammar)) {
+        final topicValues = allModules
+            .where(
+              (module) =>
+                  selectedGrammar == null ||
+                  module.grammarFocus == selectedGrammar,
+            )
+            .map((module) => module.mainTopic)
+            .toSet();
+        if (selectedGrammar != null &&
+            !grammarValues.contains(selectedGrammar)) {
+          selectedGrammar = null;
+        }
+        if (selectedTopic != null && !topicValues.contains(selectedTopic)) {
+          selectedTopic = null;
+        }
+        if (_topic != selectedTopic || _grammar != selectedGrammar) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted) setState(() => _grammar = null);
+            if (!mounted) return;
+            setState(() {
+              _topic = selectedTopic;
+              _grammar = selectedGrammar;
+            });
           });
         }
         final shown = allModules
             .where(
               (module) =>
-                  (_topic == null || module.mainTopic == _topic) &&
-                  (_grammar == null || module.grammarFocus == _grammar),
+                  (selectedTopic == null ||
+                      module.mainTopic == selectedTopic) &&
+                  (selectedGrammar == null ||
+                      module.grammarFocus == selectedGrammar),
             )
             .toList(growable: false);
         return PageFrame(
@@ -76,9 +105,9 @@ class _StudyPageState extends ConsumerState<StudyPage> {
                       children: <Widget>[
                         _StudyDropdown(
                           label: 'Ana konu',
-                          value: _topic,
+                          value: selectedTopic,
                           width: width,
-                          values: allModules.map((item) => item.mainTopic),
+                          values: topicValues,
                           onChanged: (value) => setState(() {
                             _topic = value;
                             final availableGrammar = allModules
@@ -96,7 +125,7 @@ class _StudyPageState extends ConsumerState<StudyPage> {
                         ),
                         _StudyDropdown(
                           label: 'Gramer',
-                          value: _grammar,
+                          value: selectedGrammar,
                           width: width,
                           values: grammarValues,
                           onChanged: (value) =>
@@ -277,6 +306,7 @@ class _StudyModuleCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final progress = ref.watch(localProgressProvider);
     final finished = studySectionProgress(progress, module.id);
+    final completed = finished == 7;
     final continuing = finished > 0 && finished < 7;
     const total = 7;
     final content = Padding(
@@ -314,11 +344,19 @@ class _StudyModuleCard extends ConsumerWidget {
             child: FilledButton.icon(
               onPressed: () => context.go('/study/module/${module.id}'),
               icon: Icon(
-                continuing
-                    ? Icons.play_arrow_rounded
-                    : Icons.arrow_forward_rounded,
+                completed
+                    ? Icons.replay_rounded
+                    : continuing
+                        ? Icons.play_arrow_rounded
+                        : Icons.arrow_forward_rounded,
               ),
-              label: Text(continuing ? 'Devam Et' : 'Başla'),
+              label: Text(
+                completed
+                    ? 'Tekrar Et'
+                    : continuing
+                        ? 'Devam Et'
+                        : 'Başla',
+              ),
             ),
           ),
         ],

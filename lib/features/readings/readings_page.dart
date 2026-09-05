@@ -20,7 +20,6 @@ class ReadingsPage extends ConsumerStatefulWidget {
 class _ReadingsPageState extends ConsumerState<ReadingsPage> {
   static const _pageSize = 48;
   String _query = '';
-  String? _packId;
   String? _level;
   String? _category;
   int _page = 0;
@@ -61,7 +60,6 @@ class _ReadingsPageState extends ConsumerState<ReadingsPage> {
   @override
   Widget build(BuildContext context) {
     final readings = ref.watch(readingsProvider);
-    final packs = ref.watch(contentPacksProvider);
     final progress = ref.watch(localProgressProvider);
     if (!_filtersRestored && progress.isLoaded) {
       _filtersRestored = true;
@@ -86,10 +84,27 @@ class _ReadingsPageState extends ConsumerState<ReadingsPage> {
           message: error.toString(),
           onRetry: () => ref.invalidate(readingsProvider)),
       data: (items) {
-        final packItems = packs.valueOrNull ?? const <ContentPack>[];
-        final availablePackIds = items.map((item) => item.packId).toSet();
-        final validPackId = availablePackIds.contains(_packId) ? _packId : null;
+        final allLevels = items
+            .map((item) => item.level)
+            .whereType<String>()
+            .where((value) => value.isNotEmpty)
+            .toSet()
+            .toList()
+          ..sort();
+        final allCategories = items
+            .map((item) => item.category)
+            .whereType<String>()
+            .where((value) => value.isNotEmpty)
+            .toSet()
+            .toList()
+          ..sort();
+        var validLevel = allLevels.contains(_level) ? _level : null;
+        var validCategory =
+            allCategories.contains(_category) ? _category : null;
         final levels = items
+            .where(
+              (item) => validCategory == null || item.category == validCategory,
+            )
             .map((item) => item.level)
             .whereType<String>()
             .where((value) => value.isNotEmpty)
@@ -97,20 +112,37 @@ class _ReadingsPageState extends ConsumerState<ReadingsPage> {
             .toList()
           ..sort();
         final categories = items
+            .where((item) => validLevel == null || item.level == validLevel)
             .map((item) => item.category)
             .whereType<String>()
             .where((value) => value.isNotEmpty)
             .toSet()
             .toList()
           ..sort();
-        final validLevel = levels.contains(_level) ? _level : null;
-        final validCategory = categories.contains(_category) ? _category : null;
+        if (validLevel != null && !levels.contains(validLevel)) {
+          validLevel = null;
+        }
+        if (validCategory != null && !categories.contains(validCategory)) {
+          validCategory = null;
+        }
+        if (_level != validLevel || _category != validCategory) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted) return;
+            setState(() {
+              _level = validLevel;
+              _category = validCategory;
+              _page = 0;
+            });
+            ref
+                .read(localProgressProvider.notifier)
+                .setReadingFilters(level: validLevel, category: validCategory);
+          });
+        }
         final filtered = items.where((item) {
           final text =
               '${item.title} ${item.displayTitle ?? ''} ${item.turkishTitle ?? ''} ${item.level ?? ''} ${item.category ?? ''} ${item.tags.join(' ')}'
                   .toLowerCase();
-          return (validPackId == null || item.packId == validPackId) &&
-              (validLevel == null || item.level == validLevel) &&
+          return (validLevel == null || item.level == validLevel) &&
               (validCategory == null || item.category == validCategory) &&
               text.contains(_query.toLowerCase());
         }).toList(growable: false);
@@ -160,25 +192,6 @@ class _ReadingsPageState extends ConsumerState<ReadingsPage> {
                         })),
                 const SizedBox(height: 14),
                 DropdownButtonFormField<String?>(
-                  key: ValueKey<String?>(validPackId),
-                  initialValue: validPackId,
-                  isExpanded: true,
-                  decoration: const InputDecoration(labelText: 'Paket'),
-                  items: <DropdownMenuItem<String?>>[
-                    const DropdownMenuItem(
-                        value: null, child: Text('Tüm okumalar')),
-                    ...packItems
-                        .where((pack) => availablePackIds.contains(pack.id))
-                        .map((pack) => DropdownMenuItem(
-                            value: pack.id, child: Text(pack.name))),
-                  ],
-                  onChanged: (value) => setState(() {
-                    _packId = value;
-                    _page = 0;
-                  }),
-                ),
-                const SizedBox(height: 14),
-                DropdownButtonFormField<String?>(
                   key: ValueKey<String?>('level-$validLevel'),
                   initialValue: validLevel,
                   isExpanded: true,
@@ -196,13 +209,27 @@ class _ReadingsPageState extends ConsumerState<ReadingsPage> {
                     ),
                   ],
                   onChanged: (value) {
+                    final availableCategories = items
+                        .where(
+                          (item) => value == null || item.level == value,
+                        )
+                        .map((item) => item.category)
+                        .whereType<String>()
+                        .where((category) => category.isNotEmpty)
+                        .toSet();
+                    final nextCategory =
+                        availableCategories.contains(validCategory)
+                            ? validCategory
+                            : null;
                     setState(() {
                       _level = value;
+                      _category = nextCategory;
                       _page = 0;
                     });
-                    ref
-                        .read(localProgressProvider.notifier)
-                        .setReadingFilters(level: value, category: _category);
+                    ref.read(localProgressProvider.notifier).setReadingFilters(
+                          level: value,
+                          category: nextCategory,
+                        );
                   },
                 ),
                 const SizedBox(height: 14),
@@ -224,13 +251,25 @@ class _ReadingsPageState extends ConsumerState<ReadingsPage> {
                     ),
                   ],
                   onChanged: (value) {
+                    final availableLevels = items
+                        .where(
+                          (item) => value == null || item.category == value,
+                        )
+                        .map((item) => item.level)
+                        .whereType<String>()
+                        .where((level) => level.isNotEmpty)
+                        .toSet();
+                    final nextLevel = availableLevels.contains(validLevel)
+                        ? validLevel
+                        : null;
                     setState(() {
                       _category = value;
+                      _level = nextLevel;
                       _page = 0;
                     });
                     ref
                         .read(localProgressProvider.notifier)
-                        .setReadingFilters(level: _level, category: value);
+                        .setReadingFilters(level: nextLevel, category: value);
                   },
                 ),
                 const SizedBox(height: 12),
@@ -270,13 +309,10 @@ class _ReadingsPageState extends ConsumerState<ReadingsPage> {
                     child: Text('${filtered.length} sonuç',
                         style: Theme.of(context).textTheme.titleMedium),
                   ),
-                  if (validPackId != null ||
-                      validLevel != null ||
-                      validCategory != null)
+                  if (validLevel != null || validCategory != null)
                     TextButton.icon(
                       onPressed: () {
                         setState(() {
-                          _packId = null;
                           _level = null;
                           _category = null;
                           _page = 0;

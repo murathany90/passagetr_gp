@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:passagetr_gp/core/app_theme.dart';
 import 'package:passagetr_gp/core/content_providers.dart';
 import 'package:passagetr_gp/core/local_progress.dart';
+import 'package:passagetr_gp/features/study/study_module_page.dart';
 import 'package:passagetr_gp/features/study/study_page.dart';
 import 'package:passagetr_gp/models/study_models.dart';
 import 'package:passagetr_gp/repositories/local_progress_repository.dart';
@@ -163,6 +164,38 @@ void main() {
     );
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('Study module uses a compact 4 + 3 tab grid at 390 px',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(ProviderScope(
+      overrides: <Override>[
+        staticStudyRepositoryProvider
+            .overrideWithValue(_StudyFixtureRepository()),
+        localProgressRepositoryProvider.overrideWithValue(_MemoryProgress()),
+      ],
+      child: MaterialApp(
+        theme: AppTheme.light(),
+        home: const Scaffold(body: StudyModulePage(moduleId: 'study-0001')),
+      ),
+    ));
+    await tester.pump();
+    await tester.pump();
+
+    for (final label in <String>[
+      'Kelime',
+      'Gramer',
+      'Okuma',
+      'Çeviri',
+      'YDS',
+      'Test',
+      'Tekrar',
+    ]) {
+      expect(find.text(label), findsAtLeastNWidgets(1));
+    }
+    expect(tester.takeException(), isNull);
+  });
 }
 
 class _FileAssetBundle extends CachingAssetBundle {
@@ -238,4 +271,34 @@ class _StudyFixtureRepository extends StaticStudyRepository {
           ),
         ),
       ];
+
+  @override
+  Future<StudyModuleDetail> loadModule(String moduleId) async {
+    final module = (await loadModules()).single;
+    return StudyModuleDetail(
+      module: module,
+      words: const <StudyWord>[],
+      sentences: const <StudySentence>[],
+      reading: const StudyReading(
+        title: '',
+        titleTr: '',
+        textEn: '',
+        textTr: '',
+        sentencePairs: <StudyReadingSentence>[],
+        mainIdeaTr: '',
+        flowAnalysis: '',
+        importantWords: '',
+        connectorMap: '',
+        referenceAnalysis: '',
+        questions: <StudyQuestion>[],
+      ),
+      translations: const StudyTranslations(
+        enTr: <StudyTranslation>[],
+        trEn: <StudyTranslation>[],
+      ),
+      structures: const <StudyStructure>[],
+      testQuestions: const <StudyQuestion>[],
+      review: const <StudyReviewItem>[],
+    );
+  }
 }

@@ -92,10 +92,37 @@ class _WordsPageState extends ConsumerState<WordsPage> {
           message: error.toString(),
           onRetry: () => ref.invalidate(wordsProvider)),
       data: (items) {
-        final tags = canonicalWordTags(items);
-        final validTag = tags.contains(_tag) ? _tag : null;
-        final levels = canonicalWordLevels(items);
-        final validLevel = levels.contains(_level) ? _level : null;
+        final allTags = canonicalWordTags(items);
+        final allLevels = canonicalWordLevels(items);
+        var validTag = allTags.contains(_tag) ? _tag : null;
+        var validLevel = allLevels.contains(_level) ? _level : null;
+        final tags = canonicalWordTags(
+          items.where(
+            (word) => validLevel == null || word.level == validLevel,
+          ),
+        );
+        final levels = canonicalWordLevels(
+          items.where(
+            (word) => validTag == null || word.tags.contains(validTag),
+          ),
+        );
+        if (validTag != null && !tags.contains(validTag)) validTag = null;
+        if (validLevel != null && !levels.contains(validLevel)) {
+          validLevel = null;
+        }
+        if (_tag != validTag || _level != validLevel) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted) return;
+            setState(() {
+              _tag = validTag;
+              _level = validLevel;
+              _page = 0;
+            });
+            ref
+                .read(localProgressProvider.notifier)
+                .setWordFilters(tag: validTag, level: validLevel);
+          });
+        }
         final filtered = items.where((word) {
           final text =
               '${word.enWord} ${word.trMeaning} ${word.pos}'.toLowerCase();
@@ -167,13 +194,22 @@ class _WordsPageState extends ConsumerState<WordsPage> {
                     tags: tags,
                     selected: validTag,
                     onChanged: (value) {
+                      final availableLevels = canonicalWordLevels(
+                        items.where(
+                          (word) => value == null || word.tags.contains(value),
+                        ),
+                      );
+                      final nextLevel = availableLevels.contains(validLevel)
+                          ? validLevel
+                          : null;
                       setState(() {
                         _tag = value;
+                        _level = nextLevel;
                         _page = 0;
                       });
                       ref
                           .read(localProgressProvider.notifier)
-                          .setWordFilters(tag: value, level: _level);
+                          .setWordFilters(tag: value, level: nextLevel);
                     }),
                 const SizedBox(height: 14),
                 DropdownButtonFormField<String?>(
@@ -194,13 +230,21 @@ class _WordsPageState extends ConsumerState<WordsPage> {
                     ),
                   ],
                   onChanged: (value) {
+                    final availableTags = canonicalWordTags(
+                      items.where(
+                        (word) => value == null || word.level == value,
+                      ),
+                    );
+                    final nextTag =
+                        availableTags.contains(validTag) ? validTag : null;
                     setState(() {
                       _level = value;
+                      _tag = nextTag;
                       _page = 0;
                     });
                     ref
                         .read(localProgressProvider.notifier)
-                        .setWordFilters(tag: _tag, level: value);
+                        .setWordFilters(tag: nextTag, level: value);
                   },
                 ),
                 const SizedBox(height: 12),

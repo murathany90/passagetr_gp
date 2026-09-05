@@ -68,22 +68,30 @@ class _StudyModulePageState extends ConsumerState<StudyModulePage> {
             ref.invalidate(studyModuleDetailProvider(widget.moduleId)),
       ),
       data: (module) {
-        final tokens = AppThemeTokens.of(context);
         final progress = ref.watch(localProgressProvider);
         final sectionDone = progress.completedStudySectionKeys.contains(
           '${module.module.id}:${_section.storageValue}',
         );
         return PageFrame(
           title: 'Modül ${module.module.number}',
-          subtitle:
-              '${module.module.mainTopic} · ${_bilingualText(module.module.subtopic, module.module.subtopicTr)}',
+          subtitle: module.module.mainTopic,
           actions: <Widget>[
             OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size(0, 36),
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                visualDensity: VisualDensity.compact,
+              ),
               onPressed: () => _confirmReset(module.module.id),
               icon: const Icon(Icons.restart_alt_rounded),
               label: const Text('İlerlemeyi sıfırla'),
             ),
             TextButton.icon(
+              style: TextButton.styleFrom(
+                minimumSize: const Size(0, 36),
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                visualDensity: VisualDensity.compact,
+              ),
               onPressed: () => _setSection(_StudySection.words),
               icon: const Icon(Icons.restart_alt_rounded),
               label: const Text('Başa dön'),
@@ -92,69 +100,42 @@ class _StudyModulePageState extends ConsumerState<StudyModulePage> {
           child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                SizedBox(
-                  width: double.infinity,
-                  child: SurfaceCard(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: <Widget>[
-                          Text(
-                            _bilingualText(
-                              module.module.grammarFocus,
-                              module.module.grammarFocusTr,
-                            ),
-                            style: Theme.of(context).textTheme.titleMedium,
-                          ),
-                          const SizedBox(height: 5),
-                          Text(module.module.levelProfile),
-                        ]),
-                  ),
-                ),
-                const SizedBox(height: 14),
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: _sections
-                        .map((item) => Padding(
-                              padding: const EdgeInsets.only(right: 8),
-                              child: ChoiceChip(
-                                label: Text(item.label),
-                                selected: item == _section,
-                                selectedColor: tokens.accent,
-                                labelStyle: TextStyle(
-                                  fontWeight: FontWeight.w800,
-                                  color: item == _section
-                                      ? Colors.white
-                                      : tokens.primaryText,
-                                ),
-                                onSelected: (_) => _setSection(item),
-                              ),
-                            ))
-                        .toList(growable: false),
-                  ),
-                ),
+                _StudyModuleHeader(module: module.module),
                 const SizedBox(height: 10),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: OutlinedButton.icon(
-                    onPressed: sectionDone
-                        ? null
-                        : () => ref
-                            .read(localProgressProvider.notifier)
-                            .markStudySectionCompleted(
-                              moduleId: module.module.id,
-                              section: _section.storageValue,
-                              sectionCount: _sections.length,
-                            ),
-                    icon: Icon(sectionDone
-                        ? Icons.check_circle_rounded
-                        : Icons.task_alt_rounded),
-                    label: Text(
-                        sectionDone ? 'Bölüm tamamlandı' : 'Bölümü tamamla'),
-                  ),
+                _StudySectionTabs(
+                  sections: _sections,
+                  selected: _section,
+                  onSelected: _setSection,
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 8),
+                Wrap(
+                  alignment: WrapAlignment.end,
+                  children: <Widget>[
+                    OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size(0, 36),
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        visualDensity: VisualDensity.compact,
+                      ),
+                      onPressed: sectionDone
+                          ? null
+                          : () => ref
+                              .read(localProgressProvider.notifier)
+                              .markStudySectionCompleted(
+                                moduleId: module.module.id,
+                                section: _section.storageValue,
+                                sectionCount: _sections.length,
+                              ),
+                      icon: Icon(sectionDone
+                          ? Icons.check_circle_rounded
+                          : Icons.task_alt_rounded),
+                      label: Text(
+                        sectionDone ? 'Bölüm tamamlandı' : 'Bölümü tamamla',
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
                 _section.build(module),
               ]),
         );
@@ -190,18 +171,264 @@ class _StudyModulePageState extends ConsumerState<StudyModulePage> {
   }
 }
 
-enum _StudySection {
-  words('Kelime', 'words'),
-  sentences('Cümle & Gramer', 'sentences'),
-  reading('Reading (Okuma)', 'reading'),
-  translations('Çeviri', 'translations'),
-  structures('YDS Yapıları', 'structures'),
-  test('Test', 'test'),
-  review('Review (Tekrar)', 'review');
+class _StudyModuleHeader extends StatelessWidget {
+  const _StudyModuleHeader({required this.module});
 
-  const _StudySection(this.label, this.storageValue);
+  final StudyModuleSummary module;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = AppThemeTokens.of(context);
+    return SizedBox(
+      width: double.infinity,
+      child: SurfaceCard(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Text(
+              module.subtopic,
+              style: Theme.of(context)
+                  .textTheme
+                  .titleLarge
+                  ?.copyWith(fontWeight: FontWeight.w800),
+            ),
+            if (module.subtopicTr.isNotEmpty) ...<Widget>[
+              const SizedBox(height: 3),
+              Text(
+                '(${module.subtopicTr})',
+                style: Theme.of(context)
+                    .textTheme
+                    .bodyMedium
+                    ?.copyWith(color: tokens.secondaryText),
+              ),
+            ],
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: tokens.surfaceMuted,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: tokens.surfaceBorder),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Icon(
+                    Icons.account_tree_outlined,
+                    size: 18,
+                    color: tokens.accent,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        Text('Gramer',
+                            style: Theme.of(context).textTheme.bodySmall),
+                        const SizedBox(height: 2),
+                        Text(
+                          module.grammarFocus,
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                        if (module.grammarFocusTr.isNotEmpty) ...<Widget>[
+                          const SizedBox(height: 2),
+                          Text(
+                            '(${module.grammarFocusTr})',
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodySmall
+                                ?.copyWith(color: tokens.secondaryText),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              module.levelProfile,
+              style: Theme.of(context)
+                  .textTheme
+                  .bodySmall
+                  ?.copyWith(color: tokens.secondaryText),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _StudySectionTabs extends StatelessWidget {
+  const _StudySectionTabs({
+    required this.sections,
+    required this.selected,
+    required this.onSelected,
+  });
+
+  final List<_StudySection> sections;
+  final _StudySection selected;
+  final ValueChanged<_StudySection> onSelected;
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+        builder: (context, constraints) {
+          if (constraints.maxWidth >= 720) {
+            return SizedBox(
+              width: double.infinity,
+              height: 54,
+              child: Row(children: _tabs(sections, compact: false)),
+            );
+          }
+          return Column(
+            children: <Widget>[
+              SizedBox(
+                width: double.infinity,
+                height: 58,
+                child: Row(children: _tabs(sections.take(4), compact: true)),
+              ),
+              const SizedBox(height: 6),
+              SizedBox(
+                width: double.infinity,
+                height: 58,
+                child: Row(children: _tabs(sections.skip(4), compact: true)),
+              ),
+            ],
+          );
+        },
+      );
+
+  List<Widget> _tabs(
+    Iterable<_StudySection> values, {
+    required bool compact,
+  }) {
+    final items = values.toList(growable: false);
+    return <Widget>[
+      for (final entry in items.indexed) ...<Widget>[
+        Expanded(
+          child: _StudySectionTab(
+            section: entry.$2,
+            selected: entry.$2 == selected,
+            compact: compact,
+            onTap: () => onSelected(entry.$2),
+          ),
+        ),
+        if (entry.$1 != items.length - 1) const SizedBox(width: 6),
+      ],
+    ];
+  }
+}
+
+class _StudySectionTab extends StatelessWidget {
+  const _StudySectionTab({
+    required this.section,
+    required this.selected,
+    required this.compact,
+    required this.onTap,
+  });
+
+  final _StudySection section;
+  final bool selected;
+  final bool compact;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = AppThemeTokens.of(context);
+    final foreground =
+        selected ? Theme.of(context).colorScheme.onPrimary : tokens.primaryText;
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: section.label,
+      child: Material(
+        color: Colors.transparent,
+        child: Ink(
+          decoration: BoxDecoration(
+            color: selected ? tokens.accent : tokens.surfaceMuted,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: selected ? tokens.accent : tokens.surfaceBorder,
+              width: selected ? 1.5 : 1,
+            ),
+          ),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: onTap,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 4),
+              child: compact
+                  ? Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: <Widget>[
+                        Icon(section.icon, size: 16, color: foreground),
+                        const SizedBox(height: 3),
+                        Text(
+                          section.compactLabel,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.center,
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: foreground,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                        ),
+                      ],
+                    )
+                  : Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: <Widget>[
+                        Icon(section.icon, size: 16, color: foreground),
+                        const SizedBox(width: 5),
+                        Flexible(
+                          child: Text(
+                            section.label,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.center,
+                            style:
+                                Theme.of(context).textTheme.bodySmall?.copyWith(
+                                      color: foreground,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                          ),
+                        ),
+                      ],
+                    ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+enum _StudySection {
+  words('Kelime', 'Kelime', 'words', Icons.style_outlined),
+  sentences(
+      'Cümle & Gramer', 'Gramer', 'sentences', Icons.account_tree_outlined),
+  reading('Reading', 'Okuma', 'reading', Icons.menu_book_outlined),
+  translations('Çeviri', 'Çeviri', 'translations', Icons.translate_rounded),
+  structures('YDS Yapıları', 'YDS', 'structures', Icons.hub_outlined),
+  test('Test', 'Test', 'test', Icons.quiz_outlined),
+  review('Review', 'Tekrar', 'review', Icons.refresh_rounded);
+
+  const _StudySection(
+    this.label,
+    this.compactLabel,
+    this.storageValue,
+    this.icon,
+  );
   final String label;
+  final String compactLabel;
   final String storageValue;
+  final IconData icon;
 
   static _StudySection fromStorage(String? value) => values.firstWhere(
         (item) => item.storageValue == value,
@@ -341,7 +568,7 @@ class _StudyWordCardState extends ConsumerState<_StudyWordCard> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            '${word.meaningTr} · ${word.pos} · ${word.level}',
+                            '${word.meaningTr} · ${word.pos}',
                             style: Theme.of(context)
                                 .textTheme
                                 .bodyMedium
@@ -529,7 +756,6 @@ class _StudySentencesState extends State<_StudySentences> {
                         style: Theme.of(context).textTheme.titleMedium),
                     const SizedBox(height: 8),
                     _StudySentenceActions(
-                      level: sentence.level,
                       showTranslation: showTr,
                       showAnalysis: showAnalysis,
                       onToggleTranslation: () => setState(() => showTr
@@ -567,14 +793,12 @@ class _StudySentencesState extends State<_StudySentences> {
 
 class _StudySentenceActions extends StatelessWidget {
   const _StudySentenceActions({
-    required this.level,
     required this.showTranslation,
     required this.showAnalysis,
     required this.onToggleTranslation,
     required this.onToggleAnalysis,
   });
 
-  final String level;
   final bool showTranslation;
   final bool showAnalysis;
   final VoidCallback onToggleTranslation;
@@ -587,18 +811,11 @@ class _StudySentenceActions extends StatelessWidget {
         crossAxisAlignment: WrapCrossAlignment.center,
         children: <Widget>[
           SizedBox(
-            width: 50,
-            child: Chip(
-              visualDensity: VisualDensity.compact,
-              label: Center(child: Text(level)),
-            ),
-          ),
-          SizedBox(
             width: 146,
             child: TextButton.icon(
               style: TextButton.styleFrom(
                 alignment: Alignment.centerLeft,
-                minimumSize: const Size.fromHeight(36),
+                minimumSize: const Size(0, 36),
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
               onPressed: onToggleTranslation,
@@ -613,7 +830,7 @@ class _StudySentenceActions extends StatelessWidget {
             child: TextButton.icon(
               style: TextButton.styleFrom(
                 alignment: Alignment.centerLeft,
-                minimumSize: const Size.fromHeight(36),
+                minimumSize: const Size(0, 36),
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
               onPressed: onToggleAnalysis,
