@@ -45,6 +45,7 @@ ignore edilir ve Pages build’ine dahil edilmez.
 
 - `#/words`
 - `#/words/matching`
+- `#/words/find-word`
 - `#/readings`
 - `#/dictionary`
 

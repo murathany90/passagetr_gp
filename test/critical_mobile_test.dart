@@ -12,8 +12,10 @@ import 'package:passagetr_gp/features/dictionary/dictionary_page.dart';
 import 'package:passagetr_gp/features/tts/student_tts_engine.dart';
 import 'package:passagetr_gp/features/words/dictionary_detail_sheet.dart';
 import 'package:passagetr_gp/features/words/flashcards_page.dart';
+import 'package:passagetr_gp/features/words/find_word_page.dart';
 import 'package:passagetr_gp/features/words/matching_page.dart';
 import 'package:passagetr_gp/features/words/mini_test_page.dart';
+import 'package:passagetr_gp/features/words/word_filtering.dart';
 import 'package:passagetr_gp/features/words/words_page.dart';
 import 'package:passagetr_gp/models/content_models.dart';
 import 'package:passagetr_gp/repositories/local_progress_repository.dart';
@@ -126,6 +128,10 @@ void main() {
     expect(find.text('2 sonuç'), findsOneWidget);
     expect(find.text('Etiket'), findsOneWidget);
     expect(find.text('Paket'), findsNothing);
+    expect(find.text('Flash Kart'), findsOneWidget);
+    expect(find.text('Mini Test'), findsOneWidget);
+    expect(find.text('Eşleştirme'), findsOneWidget);
+    expect(find.text('Kelimeyi Bul'), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey<String?>(null)));
     await tester.pump();
     await tester.tap(find.text('technology & it').last);
@@ -229,6 +235,43 @@ void main() {
     expect(find.byKey(const ValueKey<String>('matching-clear-filters')),
         findsOneWidget);
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('390px Kelimeyi Bul uses canonical filters without overflow',
+      (tester) async {
+    await _setPhoneSize(tester);
+    await tester.pumpWidget(app(const FindWordPage()));
+    await _pumpContent(tester);
+
+    expect(find.text('Kelimeyi Bul'), findsOneWidget);
+    expect(find.text('Seviye'), findsOneWidget);
+    expect(find.text('Etiket'), findsOneWidget);
+    expect(find.text('Soru sayısı'), findsOneWidget);
+    expect(find.byKey(const ValueKey<String>('find-word-details')),
+        findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey<String?>('find-word-tag-null')));
+    await tester.pump();
+    await tester.tap(find.text('technology & it').last);
+    await tester.pump();
+    expect(find.textContaining('1 uygun kelime bulundu'), findsOneWidget);
+    await tester
+        .tap(find.byKey(const ValueKey<String?>('find-word-level-null')));
+    await tester.pump();
+    await tester.tap(find.text('B2').last);
+    await tester.pump();
+    expect(find.byKey(const ValueKey<String>('find-word-clear-filters')),
+        findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  test('matching sessions are split into ten-item rounds', () {
+    final rounds =
+        splitWordPracticeRounds<int>(List<int>.generate(100, (i) => i));
+
+    expect(rounds, hasLength(10));
+    expect(rounds.every((round) => round.length <= matchingRoundSize), isTrue);
+    expect(rounds.expand((round) => round),
+        orderedEquals(List<int>.generate(100, (i) => i)));
   });
 
   testWidgets('390px Readings opens without overflow', (tester) async {

@@ -124,18 +124,22 @@ class _WordsPageState extends ConsumerState<WordsPage> {
           subtitle:
               '${items.length} gerçek kelimeyi ara, kartlarla çalış, test çöz veya eşleştir.',
           actions: <Widget>[
+            FilledButton.icon(
+                onPressed: () => context.go('/words/flashcards'),
+                icon: const Icon(Icons.style_rounded),
+                label: const Text('Flash Kart')),
+            OutlinedButton.icon(
+                onPressed: () => context.go('/words/mini-test'),
+                icon: const Icon(Icons.quiz_outlined),
+                label: const Text('Mini Test')),
             OutlinedButton.icon(
                 onPressed: () => context.go('/words/matching'),
                 icon: const Icon(Icons.compare_arrows_rounded),
                 label: const Text('Eşleştirme')),
             OutlinedButton.icon(
-                onPressed: () => context.go('/words/mini-test'),
-                icon: const Icon(Icons.quiz_outlined),
-                label: const Text('Mini test')),
-            FilledButton.icon(
-                onPressed: () => context.go('/words/flashcards'),
-                icon: const Icon(Icons.style_rounded),
-                label: const Text('Flashcard')),
+                onPressed: () => context.go('/words/find-word'),
+                icon: const Icon(Icons.search_rounded),
+                label: const Text('Kelimeyi Bul')),
           ],
           child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,

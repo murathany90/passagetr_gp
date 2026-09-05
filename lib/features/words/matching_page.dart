@@ -23,6 +23,7 @@ class _MatchingPageState extends ConsumerState<MatchingPage> {
   int _itemCount = practiceItemCountOptions.first;
   int _correct = 0;
   int _wrong = 0;
+  int _roundIndex = 0;
   bool _filtersRestored = false;
   String? _level;
   String? _tag;
@@ -31,6 +32,7 @@ class _MatchingPageState extends ConsumerState<MatchingPage> {
   String? _selectedTurkishId;
   bool? _lastAnswerCorrect;
   List<WordEntry> _sessionWords = const <WordEntry>[];
+  List<List<WordEntry>> _rounds = const <List<WordEntry>>[];
   List<WordEntry> _englishOrder = const <WordEntry>[];
   List<WordEntry> _turkishOrder = const <WordEntry>[];
   final Set<String> _matchedIds = <String>{};
@@ -66,11 +68,17 @@ class _MatchingPageState extends ConsumerState<MatchingPage> {
         );
         final complete = sessionWords.isNotEmpty &&
             _matchedIds.length == sessionWords.length;
+        final roundWords =
+            _rounds.isEmpty ? const <WordEntry>[] : _rounds[_roundIndex];
+        final matchedInRound =
+            roundWords.where((word) => _matchedIds.contains(word.id)).length;
         return PageFrame(
           title: 'Eşleştirme',
           subtitle: complete
-              ? 'Tur tamamlandı'
-              : 'İngilizce kelimeyi Türkçe anlamıyla eşleştir.',
+              ? 'Çalışma tamamlandı'
+              : _rounds.isEmpty
+                  ? 'Önce çalışma havuzunu seçin.'
+                  : 'Tur ${_roundIndex + 1} / ${_rounds.length} · $matchedInRound / ${roundWords.length} eşleştirme',
           actions: <Widget>[
             OutlinedButton.icon(
               onPressed: () => context.go('/words'),
@@ -108,6 +116,12 @@ class _MatchingPageState extends ConsumerState<MatchingPage> {
                   onRestart: _restart,
                 )
               else ...<Widget>[
+                LinearProgressIndicator(
+                  value: _matchedIds.length / sessionWords.length,
+                  minHeight: 7,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                const SizedBox(height: 12),
                 if (_lastAnswerCorrect != null) ...<Widget>[
                   _MatchingFeedback(correct: _lastAnswerCorrect!),
                   const SizedBox(height: 12),
@@ -162,13 +176,32 @@ class _MatchingPageState extends ConsumerState<MatchingPage> {
     final shuffled = List<WordEntry>.of(eligible)..shuffle(random);
     _sessionWords = shuffled
         .where(
-            (word) => uniqueMeanings.add(word.trMeaning.trim().toLowerCase()))
+          (word) => uniqueMeanings.add(word.trMeaning.trim().toLowerCase()),
+        )
         .take(_itemCount)
         .toList(growable: false);
-    _englishOrder = List<WordEntry>.of(_sessionWords)..shuffle(random);
-    _turkishOrder = List<WordEntry>.of(_sessionWords)..shuffle(random);
+    _rounds = splitWordPracticeRounds(_sessionWords);
+    _roundIndex = 0;
+    _matchedIds.clear();
+    _correct = 0;
+    _wrong = 0;
+    _lastAnswerCorrect = null;
+    _selectRound(random);
     _sessionKey = key;
     return _sessionWords;
+  }
+
+  void _selectRound(math.Random random) {
+    if (_rounds.isEmpty) {
+      _englishOrder = const <WordEntry>[];
+      _turkishOrder = const <WordEntry>[];
+      return;
+    }
+    final round = _rounds[_roundIndex];
+    _englishOrder = List<WordEntry>.of(round)..shuffle(random);
+    _turkishOrder = List<WordEntry>.of(round)..shuffle(random);
+    _selectedEnglishId = null;
+    _selectedTurkishId = null;
   }
 
   void _selectEnglish(String id) {
@@ -200,6 +233,8 @@ class _MatchingPageState extends ConsumerState<MatchingPage> {
       return;
     }
     final correct = englishId == turkishId;
+    final completedRoundIds =
+        _rounds[_roundIndex].map((word) => word.id).toSet();
     setState(() {
       _lastAnswerCorrect = correct;
       if (correct) {
@@ -207,6 +242,11 @@ class _MatchingPageState extends ConsumerState<MatchingPage> {
         _correct++;
         _selectedEnglishId = null;
         _selectedTurkishId = null;
+        if (completedRoundIds.every(_matchedIds.contains) &&
+            _roundIndex < _rounds.length - 1) {
+          _roundIndex++;
+          _selectRound(math.Random());
+        }
       } else {
         _wrong++;
         _selectedTurkishId = null;
@@ -250,12 +290,14 @@ class _MatchingPageState extends ConsumerState<MatchingPage> {
   void _resetSession() {
     _correct = 0;
     _wrong = 0;
+    _roundIndex = 0;
     _lastAnswerCorrect = null;
     _selectedEnglishId = null;
     _selectedTurkishId = null;
     _matchedIds.clear();
     _sessionKey = null;
     _sessionWords = const <WordEntry>[];
+    _rounds = const <List<WordEntry>>[];
     _englishOrder = const <WordEntry>[];
     _turkishOrder = const <WordEntry>[];
   }
@@ -359,42 +401,32 @@ class _MatchingBoard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => SurfaceCard(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final english = _MatchingColumn(
-              title: 'İngilizce',
-              words: englishWords,
-              matchedIds: matchedIds,
-              selectedId: selectedEnglishId,
-              useTurkish: false,
-              onSelected: onEnglishSelected,
-            );
-            final turkish = _MatchingColumn(
-              title: 'Türkçe anlam',
-              words: turkishWords,
-              matchedIds: matchedIds,
-              selectedId: selectedTurkishId,
-              useTurkish: true,
-              onSelected: onTurkishSelected,
-            );
-            if (constraints.maxWidth < 560) {
-              return Column(
-                children: <Widget>[
-                  english,
-                  const SizedBox(height: 18),
-                  turkish,
-                ],
-              );
-            }
-            return Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Expanded(child: english),
-                const SizedBox(width: 18),
-                Expanded(child: turkish),
-              ],
-            );
-          },
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Expanded(
+              child: _MatchingColumn(
+                title: 'İngilizce',
+                words: englishWords,
+                matchedIds: matchedIds,
+                selectedId: selectedEnglishId,
+                useTurkish: false,
+                onSelected: onEnglishSelected,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _MatchingColumn(
+                title: 'Türkçe anlam',
+                words: turkishWords,
+                matchedIds: matchedIds,
+                selectedId: selectedTurkishId,
+                useTurkish: true,
+                onSelected: onTurkishSelected,
+              ),
+            ),
+          ],
         ),
       );
 }
@@ -419,36 +451,34 @@ class _MatchingColumn extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = AppThemeTokens.of(context);
+    final remaining = words.where((word) => !matchedIds.contains(word.id));
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        Text(title, style: Theme.of(context).textTheme.titleMedium),
+        Text(title, style: Theme.of(context).textTheme.titleSmall),
         const SizedBox(height: 8),
-        for (final word in words) ...<Widget>[
+        for (final word in remaining) ...<Widget>[
           SizedBox(
             width: double.infinity,
             child: OutlinedButton(
-              onPressed: matchedIds.contains(word.id)
-                  ? null
-                  : () => onSelected(word.id),
+              onPressed: () => onSelected(word.id),
               style: OutlinedButton.styleFrom(
                 alignment: Alignment.centerLeft,
-                backgroundColor: matchedIds.contains(word.id)
-                    ? tokens.success.withValues(alpha: .12)
-                    : selectedId == word.id
-                        ? tokens.accent.withValues(alpha: .14)
-                        : null,
+                minimumSize: const Size(0, 42),
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+                backgroundColor: selectedId == word.id
+                    ? tokens.accent.withValues(alpha: .14)
+                    : null,
               ),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4),
-                child: Text(
-                  useTurkish ? word.trMeaning : word.enWord,
-                  textAlign: TextAlign.left,
-                ),
+              child: Text(
+                useTurkish ? word.trMeaning : word.enWord,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.left,
               ),
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 7),
         ],
       ],
     );
@@ -465,7 +495,7 @@ class _MatchingFeedback extends StatelessWidget {
     final tokens = AppThemeTokens.of(context);
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
         color:
             (correct ? tokens.success : tokens.warning).withValues(alpha: .12),
