@@ -37,6 +37,16 @@ void main() {
     );
     expect(detail.words, hasLength(15));
     expect(detail.sentences, hasLength(5));
+    expect(detail.module.subtopicTr, isNotEmpty);
+    expect(detail.module.grammarFocusTr, isNotEmpty);
+    expect(detail.reading.titleTr, isNotEmpty);
+    expect(detail.reading.sentencePairs, isNotEmpty);
+    expect(
+      detail.reading.sentencePairs.every(
+        (item) => item.english.isNotEmpty && item.turkish.isNotEmpty,
+      ),
+      isTrue,
+    );
     expect(detail.reading.questions, hasLength(5));
     expect(detail.translations.enTr, hasLength(7));
     expect(detail.translations.trEn, hasLength(7));
@@ -59,6 +69,13 @@ void main() {
       final routeDetail = await repository.loadModule(module.id);
       expect(routeDetail.module.id, module.id);
       expect(routeDetail.words, hasLength(15));
+      expect(routeDetail.reading.sentencePairs, isNotEmpty);
+      expect(
+        routeDetail.reading.sentencePairs.every(
+          (item) => item.english.isNotEmpty && item.turkish.isNotEmpty,
+        ),
+        isTrue,
+      );
       expect(routeDetail.reading.questions, hasLength(5));
       final routeRecall = routeDetail.review.where(
         (item) =>
@@ -196,7 +213,9 @@ class _StudyFixtureRepository extends StaticStudyRepository {
           number: 1,
           mainTopic: 'Çevre, İklim ve Enerji',
           subtopic: 'Power Grid Resilience & Energy Transition',
+          subtopicTr: 'Elektrik Şebekesi Dayanıklılığı ve Enerji Dönüşümü',
           grammarFocus: 'Participles & Reductions',
+          grammarFocusTr: 'Ortaçlar ve İndirgenmiş Yapılar',
           levelProfile: 'B2–C1',
           status: 'example',
           file: 'modules/study_0001.json',

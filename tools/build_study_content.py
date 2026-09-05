@@ -7,6 +7,7 @@ import argparse
 import csv
 import hashlib
 import json
+import re
 import shutil
 import sys
 import xml.etree.ElementTree as ET
@@ -66,7 +67,8 @@ WORD_REF_ALIASES = {
 SHEET_HEADERS = {
     '01_Modules': (
         'module_id', 'module_no', 'main_topic', 'subtopic', 'grammar_focus',
-        'level_profile', 'status', 'source_file',
+        'level_profile', 'status', 'source_file', 'subtopic_tr',
+        'grammar_focus_tr',
     ),
     '02_Words': (
         'word_id', 'module_id', 'order_no', 'word_ref', 'headword',
@@ -87,7 +89,7 @@ SHEET_HEADERS = {
     '05_Readings': (
         'reading_id', 'module_id', 'title', 'text_en', 'main_idea_tr',
         'flow_analysis', 'important_words', 'connector_map',
-        'reference_analysis',
+        'reference_analysis', 'title_tr', 'text_tr',
     ),
     '06_Questions': (
         'question_id', 'module_id', 'section', 'question_type', 'order_no',
@@ -125,6 +127,15 @@ def clean(value: str | None) -> str:
 
 def normalized(value: str | None) -> str:
     return content.normalized(value)
+
+
+def split_reading_sentences(value: str) -> list[str]:
+    """Keep the canonical EN/TR Reading rows aligned at sentence level."""
+    return [
+        sentence.strip()
+        for sentence in re.split(r'(?<=[.!?])\s+', clean(value))
+        if sentence.strip()
+    ]
 
 
 def source_hash(path: Path) -> str:
@@ -362,9 +373,16 @@ def validate_workbook(workbook: dict[str, list[dict[str, str]]]) -> dict[str, An
     for record in readings:
         _require(
             record,
-            tuple(field for field in SHEET_HEADERS['05_Readings'] if field != 'title'),
+            SHEET_HEADERS['05_Readings'],
             f"05_Readings/{record.get('reading_id')}",
         )
+        english_sentences = split_reading_sentences(record['text_en'])
+        turkish_sentences = split_reading_sentences(record['text_tr'])
+        if not english_sentences or len(english_sentences) != len(turkish_sentences):
+            raise ValueError(
+                f"Reading EN/TR sentence mismatch in {record['reading_id']}: "
+                f'{len(english_sentences)} != {len(turkish_sentences)}'
+            )
     for record in translations:
         _require(
             record,
@@ -458,6 +476,11 @@ def validate_workbook(workbook: dict[str, list[dict[str, str]]]) -> dict[str, An
             raise ValueError(f'{module_id} has duplicate lexical_family_key values.')
         if len(module_sentences) != 5 or len(module_readings) != 1:
             raise ValueError(f'{module_id} requires 5 sentences and 1 reading.')
+        reading_pairs = list(zip(
+            split_reading_sentences(module_readings[0]['text_en']),
+            split_reading_sentences(module_readings[0]['text_tr']),
+            strict=True,
+        ))
         reading_questions = [item for item in module_questions if item['section'] == 'reading']
         test_questions = [item for item in module_questions if item['section'] == 'mixed_test']
         if len(reading_questions) != 5 or len(test_questions) != 10:
@@ -488,7 +511,9 @@ def validate_workbook(workbook: dict[str, list[dict[str, str]]]) -> dict[str, An
         summary['moduleChecks'].append({
             'moduleId': module_id, 'words': len(module_words),
             'lexicalFamilies': len(set(families)), 'sentences': len(module_sentences),
-            'readings': len(module_readings), 'readingQuestions': len(reading_questions),
+            'readings': len(module_readings),
+            'readingSentencePairs': len(reading_pairs),
+            'readingQuestions': len(reading_questions),
             'translations': dict(direction_counts), 'testQuestions': len(test_questions),
             'structures': len(module_structures), 'reviewItems': len(module_review),
             'manualWordRefBindings': sum(
@@ -540,6 +565,14 @@ def build_payloads(
         reading_questions = [item for item in questions if item['section'] == 'reading']
         test_questions = [item for item in questions if item['section'] == 'mixed_test']
         reading = next(item for item in workbook['05_Readings'] if item['module_id'] == module_id)
+        reading_sentence_pairs = [
+            {'sentence_en': english, 'sentence_tr': turkish}
+            for english, turkish in zip(
+                split_reading_sentences(reading['text_en']),
+                split_reading_sentences(reading['text_tr']),
+                strict=True,
+            )
+        ]
         counts = {
             'words': len(words),
             'sentences': len([
@@ -554,7 +587,7 @@ def build_payloads(
             'testQuestions': len(test_questions),
         }
         payloads[module_id] = {
-            'schemaVersion': 1,
+            'schemaVersion': 2,
             'module': {
                 **module,
                 'file': f"modules/{module_filename(module_id)}",
@@ -564,7 +597,11 @@ def build_payloads(
             'sentences': _sort([
                 item for item in workbook['04_Sentences'] if item['module_id'] == module_id
             ]),
-            'reading': {**reading, 'questions': reading_questions},
+            'reading': {
+                **reading,
+                'sentence_pairs': reading_sentence_pairs,
+                'questions': reading_questions,
+            },
             'translations': {
                 'enTr': _sort([
                     item for item in workbook['08_Translations']
@@ -592,7 +629,7 @@ def build_payloads(
             'counts': payload['module']['counts'],
         })
     manifest = {
-        'schemaVersion': 1,
+        'schemaVersion': 2,
         'source': str(source.relative_to(ROOT)).replace('\\', '/'),
         'checksums': {'canonicalStudy': source_hash(source)},
         'counts': {
@@ -600,6 +637,10 @@ def build_payloads(
             'words': sum(len(payload['words']) for payload in payloads.values()),
             'sentences': sum(len(payload['sentences']) for payload in payloads.values()),
             'readings': len(module_index),
+            'readingSentencePairs': sum(
+                len(payload['reading']['sentence_pairs'])
+                for payload in payloads.values()
+            ),
         },
         'modules': module_index,
         'validation': summary,

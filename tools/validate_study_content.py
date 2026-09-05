@@ -38,14 +38,23 @@ def main() -> int:
     expected_ids = {f'study-{number:04d}' for number in range(1, 13)}
     if generated_ids != set(expected_payloads) or generated_ids != expected_ids:
         raise ValueError('Generated study module IDs are incomplete.')
+    reading_sentence_pairs = 0
     for module_id, expected in expected_payloads.items():
         actual = load_json(OUTPUT / 'modules' / study.module_filename(module_id))
         if actual != expected:
             raise ValueError(f'Generated study module drift: {module_id}')
+        pairs = expected['reading'].get('sentence_pairs', [])
+        if not pairs or any(
+            not item.get('sentence_en') or not item.get('sentence_tr')
+            for item in pairs
+        ):
+            raise ValueError(f'Reading EN/TR sentence contract failed: {module_id}')
+        reading_sentence_pairs += len(pairs)
     print(json.dumps({
         'canonicalExcelParse': 'PASS',
         'studyValidator': 'PASS',
         'modules': len(expected_payloads),
+        'readingSentencePairs': reading_sentence_pairs,
         'moduleIds': sorted(generated_ids),
         'moduleChecks': expected_manifest['validation']['moduleChecks'],
     }, ensure_ascii=False))

@@ -4,7 +4,9 @@ class StudyModuleSummary {
     required this.number,
     required this.mainTopic,
     required this.subtopic,
+    required this.subtopicTr,
     required this.grammarFocus,
+    required this.grammarFocusTr,
     required this.levelProfile,
     required this.status,
     required this.file,
@@ -15,7 +17,9 @@ class StudyModuleSummary {
   final int number;
   final String mainTopic;
   final String subtopic;
+  final String subtopicTr;
   final String grammarFocus;
+  final String grammarFocusTr;
   final String levelProfile;
   final String status;
   final String file;
@@ -27,7 +31,9 @@ class StudyModuleSummary {
         number: int.tryParse(_text(json['module_no'])) ?? 0,
         mainTopic: _text(json['main_topic']),
         subtopic: _text(json['subtopic']),
+        subtopicTr: _text(json['subtopic_tr']),
         grammarFocus: _text(json['grammar_focus']),
+        grammarFocusTr: _text(json['grammar_focus_tr']),
         levelProfile: _text(json['level_profile']),
         status: _text(json['status']),
         file: _text(json['file']),
@@ -218,7 +224,10 @@ class StudySentence {
 class StudyReading {
   const StudyReading({
     required this.title,
+    required this.titleTr,
     required this.textEn,
+    required this.textTr,
+    required this.sentencePairs,
     required this.mainIdeaTr,
     required this.flowAnalysis,
     required this.importantWords,
@@ -228,7 +237,10 @@ class StudyReading {
   });
 
   final String title;
+  final String titleTr;
   final String textEn;
+  final String textTr;
+  final List<StudyReadingSentence> sentencePairs;
   final String mainIdeaTr;
   final String flowAnalysis;
   final String importantWords;
@@ -238,7 +250,12 @@ class StudyReading {
 
   factory StudyReading.fromJson(Map<String, Object?> json) => StudyReading(
         title: _text(json['title']),
+        titleTr: _text(json['title_tr']),
         textEn: _text(json['text_en']),
+        textTr: _text(json['text_tr']),
+        sentencePairs: _list(json['sentence_pairs'])
+            .map(StudyReadingSentence.fromJson)
+            .toList(growable: false),
         mainIdeaTr: _text(json['main_idea_tr']),
         flowAnalysis: _text(json['flow_analysis']),
         importantWords: _text(json['important_words']),
@@ -247,6 +264,22 @@ class StudyReading {
         questions: _list(json['questions'])
             .map(StudyQuestion.fromJson)
             .toList(growable: false),
+      );
+}
+
+class StudyReadingSentence {
+  const StudyReadingSentence({
+    required this.english,
+    required this.turkish,
+  });
+
+  final String english;
+  final String turkish;
+
+  factory StudyReadingSentence.fromJson(Map<String, Object?> json) =>
+      StudyReadingSentence(
+        english: _text(json['sentence_en']),
+        turkish: _text(json['sentence_tr']),
       );
 }
 
