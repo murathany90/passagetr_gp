@@ -111,28 +111,30 @@ void main() {
     expect(controller.state.favoriteWordIds, <String>{'keep-favorite'});
   });
 
-  testWidgets('Testler main page is compact at a 390 px viewport',
+  testWidgets('Testler main page is compact at 360, 390 and 430 px',
       (tester) async {
-    await tester.binding.setSurfaceSize(const Size(390, 844));
     addTearDown(() => tester.binding.setSurfaceSize(null));
-    await tester.pumpWidget(ProviderScope(
-      overrides: <Override>[
-        staticTestRepositoryProvider
-            .overrideWithValue(_TestFixtureRepository()),
-        testQuestionCompatibilityProvider.overrideWith((ref) async {}),
-        localProgressRepositoryProvider.overrideWithValue(_MemoryProgress()),
-      ],
-      child: MaterialApp(
-        theme: AppTheme.light(),
-        home: const Scaffold(body: TestsPage()),
-      ),
-    ));
-    await tester.pump();
-    await tester.pump();
-    expect(find.text('Testler'), findsOneWidget);
-    expect(find.text('1–10'), findsOneWidget);
-    expect(find.text('101–110'), findsOneWidget);
-    expect(tester.takeException(), isNull);
+    for (final width in <double>[360, 390, 430]) {
+      await tester.binding.setSurfaceSize(Size(width, 844));
+      await tester.pumpWidget(ProviderScope(
+        overrides: <Override>[
+          staticTestRepositoryProvider
+              .overrideWithValue(_TestFixtureRepository()),
+          testQuestionCompatibilityProvider.overrideWith((ref) async {}),
+          localProgressRepositoryProvider.overrideWithValue(_MemoryProgress()),
+        ],
+        child: MaterialApp(
+          theme: AppTheme.light(),
+          home: const Scaffold(body: TestsPage()),
+        ),
+      ));
+      await tester.pump();
+      await tester.pump();
+      expect(find.text('Testler'), findsOneWidget);
+      expect(find.text('1–10'), findsOneWidget);
+      expect(find.text('101–110'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    }
   });
 }
 
