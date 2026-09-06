@@ -33,6 +33,7 @@ QUESTIONS_SOURCE = SOURCE / 'canonical' / 'readings' / builder.DERIVED_QUESTIONS
 CURATED_SOURCE = SOURCE / builder.DEFAULT_CURATED_READINGS_RELATIVE_PATH
 DICTIONARY_SOURCE = SOURCE / 'canonical' / 'dictionary' / 'dictionary_tr_en.xlsx'
 STUDY_SOURCE = SOURCE / 'canonical' / 'study' / 'PASSAGETR_YDS_Study_Canonical_v2_Module_01-30.xlsx'
+TEST_BANK_SOURCE = SOURCE / 'canonical' / 'tests' / 'passagetr_test_bank.xlsx'
 
 EXPECTED_WORDS = 9000
 EXPECTED_READINGS = 678
@@ -194,7 +195,7 @@ def validate_no_sentence_overlay_sources() -> int:
     allowed = {
         WORDS_SOURCE.resolve(), PASSAGES_SOURCE.resolve(), SENTENCES_SOURCE.resolve(),
         QUESTIONS_SOURCE.resolve(), CURATED_SOURCE.resolve(), DICTIONARY_SOURCE.resolve(),
-        STUDY_SOURCE.resolve(),
+        STUDY_SOURCE.resolve(), TEST_BANK_SOURCE.resolve(),
     }
     files = {path.resolve() for path in SOURCE.rglob('*') if path.is_file()}
     unexpected = sorted(files - allowed)

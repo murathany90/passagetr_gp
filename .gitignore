@@ -12,5 +12,6 @@ tools/__pycache__/
 coverage/
 assets/content/v1/
 assets/content/study/
+assets/content/tests/
 _local_source_archive/
 .migration_tmp/

@@ -20,6 +20,15 @@ class LocalProgressSnapshot {
     this.studyQuestionCorrectness = const <String, bool>{},
     this.studyQuestionContentVersion,
     this.studyQuestionFingerprints = const <String, String>{},
+    this.testLastModuleNo,
+    this.testFlashcardKnownIds = const <String>{},
+    this.completedTestMatchingModuleIds = const <String>{},
+    this.testQuestionAnswers = const <String, String>{},
+    this.testQuestionCorrectness = const <String, bool>{},
+    this.testQuestionContentVersion,
+    this.testQuestionFingerprints = const <String, String>{},
+    this.testExamLastQuestionIndexes = const <String, int>{},
+    this.testExamBestScores = const <String, int>{},
   });
 
   const LocalProgressSnapshot.empty() : this(isLoaded: false);
@@ -40,6 +49,15 @@ class LocalProgressSnapshot {
   final Map<String, bool> studyQuestionCorrectness;
   final String? studyQuestionContentVersion;
   final Map<String, String> studyQuestionFingerprints;
+  final int? testLastModuleNo;
+  final Set<String> testFlashcardKnownIds;
+  final Set<String> completedTestMatchingModuleIds;
+  final Map<String, String> testQuestionAnswers;
+  final Map<String, bool> testQuestionCorrectness;
+  final String? testQuestionContentVersion;
+  final Map<String, String> testQuestionFingerprints;
+  final Map<String, int> testExamLastQuestionIndexes;
+  final Map<String, int> testExamBestScores;
 
   LocalProgressSnapshot copyWith({
     bool? isLoaded,
@@ -65,6 +83,17 @@ class LocalProgressSnapshot {
     String? studyQuestionContentVersion,
     bool clearStudyQuestionContentVersion = false,
     Map<String, String>? studyQuestionFingerprints,
+    int? testLastModuleNo,
+    bool clearTestLastModuleNo = false,
+    Set<String>? testFlashcardKnownIds,
+    Set<String>? completedTestMatchingModuleIds,
+    Map<String, String>? testQuestionAnswers,
+    Map<String, bool>? testQuestionCorrectness,
+    String? testQuestionContentVersion,
+    bool clearTestQuestionContentVersion = false,
+    Map<String, String>? testQuestionFingerprints,
+    Map<String, int>? testExamLastQuestionIndexes,
+    Map<String, int>? testExamBestScores,
   }) =>
       LocalProgressSnapshot(
         isLoaded: isLoaded ?? this.isLoaded,
@@ -96,6 +125,24 @@ class LocalProgressSnapshot {
             : studyQuestionContentVersion ?? this.studyQuestionContentVersion,
         studyQuestionFingerprints:
             studyQuestionFingerprints ?? this.studyQuestionFingerprints,
+        testLastModuleNo: clearTestLastModuleNo
+            ? null
+            : testLastModuleNo ?? this.testLastModuleNo,
+        testFlashcardKnownIds:
+            testFlashcardKnownIds ?? this.testFlashcardKnownIds,
+        completedTestMatchingModuleIds: completedTestMatchingModuleIds ??
+            this.completedTestMatchingModuleIds,
+        testQuestionAnswers: testQuestionAnswers ?? this.testQuestionAnswers,
+        testQuestionCorrectness:
+            testQuestionCorrectness ?? this.testQuestionCorrectness,
+        testQuestionContentVersion: clearTestQuestionContentVersion
+            ? null
+            : testQuestionContentVersion ?? this.testQuestionContentVersion,
+        testQuestionFingerprints:
+            testQuestionFingerprints ?? this.testQuestionFingerprints,
+        testExamLastQuestionIndexes:
+            testExamLastQuestionIndexes ?? this.testExamLastQuestionIndexes,
+        testExamBestScores: testExamBestScores ?? this.testExamBestScores,
       );
 }
 
@@ -120,6 +167,20 @@ class LocalProgressRepository {
       'passagetr.studyQuestionContentVersion.v1';
   static const _studyQuestionFingerprintsKey =
       'passagetr.studyQuestionFingerprints.v1';
+  static const _testLastModuleKey = 'passagetr.testLastModuleNo.v1';
+  static const _testFlashcardKnownKey = 'passagetr.testFlashcardKnownIds.v1';
+  static const _completedTestMatchingKey =
+      'passagetr.completedTestMatchingModuleIds.v1';
+  static const _testQuestionAnswersKey = 'passagetr.testQuestionAnswers.v1';
+  static const _testQuestionCorrectnessKey =
+      'passagetr.testQuestionCorrectness.v1';
+  static const _testQuestionContentVersionKey =
+      'passagetr.testQuestionContentVersion.v1';
+  static const _testQuestionFingerprintsKey =
+      'passagetr.testQuestionFingerprints.v1';
+  static const _testExamLastQuestionIndexesKey =
+      'passagetr.testExamLastQuestionIndexes.v1';
+  static const _testExamBestScoresKey = 'passagetr.testExamBestScores.v1';
 
   Future<SharedPreferences>? _preferencesFuture;
 
@@ -146,6 +207,20 @@ class LocalProgressRepository {
           preferences.getString(_studyQuestionContentVersionKey),
       studyQuestionFingerprints:
           _readMap(preferences, _studyQuestionFingerprintsKey),
+      testLastModuleNo: preferences.getInt(_testLastModuleKey),
+      testFlashcardKnownIds: _readSet(preferences, _testFlashcardKnownKey),
+      completedTestMatchingModuleIds:
+          _readSet(preferences, _completedTestMatchingKey),
+      testQuestionAnswers: _readMap(preferences, _testQuestionAnswersKey),
+      testQuestionCorrectness:
+          _readBoolMap(preferences, _testQuestionCorrectnessKey),
+      testQuestionContentVersion:
+          preferences.getString(_testQuestionContentVersionKey),
+      testQuestionFingerprints:
+          _readMap(preferences, _testQuestionFingerprintsKey),
+      testExamLastQuestionIndexes:
+          _readIntMap(preferences, _testExamLastQuestionIndexesKey),
+      testExamBestScores: _readIntMap(preferences, _testExamBestScoresKey),
     );
   }
 
@@ -207,6 +282,53 @@ class LocalProgressRepository {
     );
   }
 
+  Future<void> saveTestLastModuleNo(int? moduleNo) async {
+    final preferences = await _preferences();
+    if (moduleNo == null) {
+      await preferences.remove(_testLastModuleKey);
+    } else {
+      await preferences.setInt(_testLastModuleKey, moduleNo);
+    }
+  }
+
+  Future<void> saveTestFlashcardKnownIds(Set<String> ids) =>
+      _saveSet(_testFlashcardKnownKey, ids);
+
+  Future<void> saveCompletedTestMatchingModuleIds(Set<String> ids) =>
+      _saveSet(_completedTestMatchingKey, ids);
+
+  Future<void> saveTestQuestionAnswers(Map<String, String> answers) async {
+    final preferences = await _preferences();
+    await preferences.setString(_testQuestionAnswersKey, jsonEncode(answers));
+  }
+
+  Future<void> saveTestQuestionCorrectness(
+      Map<String, bool> correctness) async {
+    final preferences = await _preferences();
+    await preferences.setString(
+      _testQuestionCorrectnessKey,
+      jsonEncode(correctness),
+    );
+  }
+
+  Future<void> saveTestQuestionContent({
+    required String version,
+    required Map<String, String> fingerprints,
+  }) async {
+    final preferences = await _preferences();
+    await _saveOptional(preferences, _testQuestionContentVersionKey, version);
+    await preferences.setString(
+      _testQuestionFingerprintsKey,
+      jsonEncode(fingerprints),
+    );
+  }
+
+  Future<void> saveTestExamLastQuestionIndexes(Map<String, int> indexes) =>
+      _saveIntMap(_testExamLastQuestionIndexesKey, indexes);
+
+  Future<void> saveTestExamBestScores(Map<String, int> scores) =>
+      _saveIntMap(_testExamBestScoresKey, scores);
+
   Future<SharedPreferences> _preferences() =>
       _preferencesFuture ??= SharedPreferences.getInstance();
 
@@ -242,9 +364,28 @@ class LocalProgressRepository {
     }
   }
 
+  Map<String, int> _readIntMap(SharedPreferences preferences, String key) {
+    final raw = preferences.getString(key);
+    if (raw == null || raw.isEmpty) return const <String, int>{};
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is! Map) return const <String, int>{};
+      return Map<String, int>.unmodifiable(decoded.map(
+        (key, value) => MapEntry(key.toString(), value is int ? value : 0),
+      ));
+    } catch (_) {
+      return const <String, int>{};
+    }
+  }
+
   Future<void> _saveSet(String key, Set<String> ids) async {
     final preferences = await _preferences();
     await preferences.setStringList(key, ids.toList()..sort());
+  }
+
+  Future<void> _saveIntMap(String key, Map<String, int> values) async {
+    final preferences = await _preferences();
+    await preferences.setString(key, jsonEncode(values));
   }
 
   Future<void> _saveOptional(

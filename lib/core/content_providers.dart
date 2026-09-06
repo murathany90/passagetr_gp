@@ -2,9 +2,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/content_models.dart';
 import '../models/study_models.dart';
+import '../models/test_models.dart';
 import '../repositories/static_content_repository.dart';
 import '../repositories/static_dictionary_repository.dart';
 import '../repositories/static_study_repository.dart';
+import '../repositories/static_test_repository.dart';
 import '../repositories/word_lookup_service.dart';
 import '../features/tts/student_tts_controller.dart';
 import '../features/tts/student_tts_engine.dart';
@@ -22,6 +24,10 @@ final staticDictionaryRepositoryProvider =
 
 final staticStudyRepositoryProvider = Provider<StaticStudyRepository>((ref) {
   return StaticStudyRepository();
+});
+
+final staticTestRepositoryProvider = Provider<StaticTestRepository>((ref) {
+  return StaticTestRepository();
 });
 
 final wordLookupServiceProvider = Provider<WordLookupService>((ref) {
@@ -65,6 +71,43 @@ final studyQuestionCompatibilityProvider = FutureProvider<void>((ref) async {
       .watch(staticStudyRepositoryProvider)
       .loadQuestionContentContract();
   await ref.read(localProgressProvider.notifier).reconcileStudyQuestionContent(
+        version: contract.version,
+        fingerprints: contract.fingerprints,
+      );
+});
+
+final testBankManifestProvider = FutureProvider<TestBankManifest>((ref) {
+  return ref.watch(staticTestRepositoryProvider).loadManifest();
+});
+
+final testModulesProvider = FutureProvider<List<TestModuleSummary>>((ref) {
+  return ref.watch(staticTestRepositoryProvider).loadModules();
+});
+
+final testModuleDetailProvider =
+    FutureProvider.family<TestModuleDetail, int>((ref, moduleNo) {
+  return ref.watch(staticTestRepositoryProvider).loadModule(moduleNo);
+});
+
+final testStructuresProvider = FutureProvider<TestStructureBank>((ref) {
+  return ref.watch(staticTestRepositoryProvider).loadStructures();
+});
+
+final testExamsProvider = FutureProvider<List<TestExamSummary>>((ref) {
+  return ref.watch(staticTestRepositoryProvider).loadExams();
+});
+
+final testExamProvider = FutureProvider.family<TestExam, int>((ref, testNo) {
+  return ref.watch(staticTestRepositoryProvider).loadExam(testNo);
+});
+
+/// Test Bank revisions only remove incompatible Test answer records. Favourites,
+/// Study progress and unrelated local state are intentionally preserved.
+final testQuestionCompatibilityProvider = FutureProvider<void>((ref) async {
+  final contract = await ref
+      .watch(staticTestRepositoryProvider)
+      .loadQuestionContentContract();
+  await ref.read(localProgressProvider.notifier).reconcileTestQuestionContent(
         version: contract.version,
         fingerprints: contract.fingerprints,
       );

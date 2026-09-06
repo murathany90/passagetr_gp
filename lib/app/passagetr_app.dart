@@ -11,6 +11,10 @@ import '../features/readings/reading_detail_page.dart';
 import '../features/readings/readings_page.dart';
 import '../features/study/study_module_page.dart';
 import '../features/study/study_page.dart';
+import '../features/tests/test_exams_page.dart';
+import '../features/tests/test_module_page.dart';
+import '../features/tests/test_structures_page.dart';
+import '../features/tests/tests_page.dart';
 import '../features/words/flashcards_page.dart';
 import '../features/words/find_word_page.dart';
 import '../features/words/matching_page.dart';
@@ -63,6 +67,46 @@ final _routerProvider = Provider<GoRouter>((ref) => GoRouter(
               builder: (context, state) => StudyModulePage(
                 moduleId: state.pathParameters['moduleId']!,
               ),
+            ),
+            GoRoute(
+              path: '/tests',
+              builder: (context, state) => const TestsPage(),
+            ),
+            GoRoute(
+              path: '/tests/module/:moduleNo',
+              builder: (context, state) => TestModulePage(
+                moduleNo: int.parse(state.pathParameters['moduleNo']!),
+              ),
+            ),
+            GoRoute(
+              path: '/tests/module/:moduleNo/flashcards',
+              builder: (context, state) => TestFlashcardsPage(
+                moduleNo: int.parse(state.pathParameters['moduleNo']!),
+              ),
+            ),
+            GoRoute(
+              path: '/tests/module/:moduleNo/matching',
+              builder: (context, state) => TestMatchingPage(
+                moduleNo: int.parse(state.pathParameters['moduleNo']!),
+              ),
+            ),
+            GoRoute(
+              path: '/tests/structures',
+              builder: (context, state) => const TestStructuresPage(),
+            ),
+            GoRoute(
+              path: '/tests/exams',
+              builder: (context, state) => const TestExamsPage(),
+            ),
+            GoRoute(
+              path: '/tests/exam/:testNo',
+              builder: (context, state) => TestExamPage(
+                testNo: int.parse(state.pathParameters['testNo']!),
+              ),
+            ),
+            GoRoute(
+              path: '/tests/wrong',
+              builder: (context, state) => const TestWrongAnswersPage(),
             ),
             GoRoute(
               path: '/readings/:id',

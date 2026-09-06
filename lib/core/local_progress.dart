@@ -241,4 +241,131 @@ class LocalProgressController extends StateNotifier<LocalProgressSnapshot> {
       unawaited(_repository.saveStudyLocation());
     }
   }
+
+  void setTestLastModuleNo(int moduleNo) {
+    _changedBeforeRestore = true;
+    state = state.copyWith(isLoaded: true, testLastModuleNo: moduleNo);
+    unawaited(_repository.saveTestLastModuleNo(moduleNo));
+  }
+
+  void markTestFlashcardKnown(String wordId) {
+    _changedBeforeRestore = true;
+    final ids = Set<String>.of(state.testFlashcardKnownIds)..add(wordId);
+    state = state.copyWith(
+      isLoaded: true,
+      testFlashcardKnownIds: Set<String>.unmodifiable(ids),
+    );
+    unawaited(_repository.saveTestFlashcardKnownIds(ids));
+  }
+
+  void markTestMatchingCompleted(int moduleNo) {
+    _changedBeforeRestore = true;
+    final ids = Set<String>.of(state.completedTestMatchingModuleIds)
+      ..add(moduleNo.toString());
+    state = state.copyWith(
+      isLoaded: true,
+      completedTestMatchingModuleIds: Set<String>.unmodifiable(ids),
+    );
+    unawaited(_repository.saveCompletedTestMatchingModuleIds(ids));
+  }
+
+  void answerTestQuestion({
+    required String questionId,
+    required String answer,
+    required bool isCorrect,
+    String? contentFingerprint,
+  }) {
+    _changedBeforeRestore = true;
+    final answers = Map<String, String>.of(state.testQuestionAnswers)
+      ..[questionId] = answer;
+    final correctness = Map<String, bool>.of(state.testQuestionCorrectness)
+      ..[questionId] = isCorrect;
+    final fingerprints = Map<String, String>.of(state.testQuestionFingerprints);
+    if (contentFingerprint != null && contentFingerprint.isNotEmpty) {
+      fingerprints[questionId] = contentFingerprint;
+    }
+    state = state.copyWith(
+      isLoaded: true,
+      testQuestionAnswers: Map<String, String>.unmodifiable(answers),
+      testQuestionCorrectness: Map<String, bool>.unmodifiable(correctness),
+      testQuestionFingerprints: Map<String, String>.unmodifiable(fingerprints),
+    );
+    unawaited(_repository.saveTestQuestionAnswers(answers));
+    unawaited(_repository.saveTestQuestionCorrectness(correctness));
+    unawaited(_repository.saveTestQuestionContent(
+      version: state.testQuestionContentVersion ?? '',
+      fingerprints: fingerprints,
+    ));
+  }
+
+  /// Test Bank revisions must never attach an old response to a different
+  /// canonical question. Records absent from [fingerprints] are removed before
+  /// the map is dereferenced, so deleted question ids are safe too.
+  Future<void> reconcileTestQuestionContent({
+    required String version,
+    required Map<String, String> fingerprints,
+  }) async {
+    await _restoreFuture;
+    if (!mounted || version.isEmpty) return;
+    if (state.testQuestionContentVersion == version) return;
+
+    _changedBeforeRestore = true;
+    final previousFingerprints = state.testQuestionFingerprints;
+    final answers = Map<String, String>.of(state.testQuestionAnswers)
+      ..removeWhere(
+        (questionId, _) =>
+            fingerprints[questionId] == null ||
+            previousFingerprints[questionId] != fingerprints[questionId],
+      );
+    final correctness = Map<String, bool>.of(state.testQuestionCorrectness)
+      ..removeWhere((questionId, _) => !answers.containsKey(questionId));
+    final retainedFingerprints = <String, String>{
+      for (final questionId in answers.keys)
+        questionId: fingerprints[questionId]!,
+    };
+    state = state.copyWith(
+      isLoaded: true,
+      testQuestionAnswers: Map<String, String>.unmodifiable(answers),
+      testQuestionCorrectness: Map<String, bool>.unmodifiable(correctness),
+      testQuestionContentVersion: version,
+      testQuestionFingerprints:
+          Map<String, String>.unmodifiable(retainedFingerprints),
+    );
+    await _repository.saveTestQuestionAnswers(answers);
+    await _repository.saveTestQuestionCorrectness(correctness);
+    await _repository.saveTestQuestionContent(
+      version: version,
+      fingerprints: retainedFingerprints,
+    );
+  }
+
+  void setTestExamLastQuestion({required int testNo, required int index}) {
+    _changedBeforeRestore = true;
+    final indexes = Map<String, int>.of(state.testExamLastQuestionIndexes)
+      ..[testNo.toString()] = index;
+    state = state.copyWith(
+      isLoaded: true,
+      testExamLastQuestionIndexes: Map<String, int>.unmodifiable(indexes),
+    );
+    unawaited(_repository.saveTestExamLastQuestionIndexes(indexes));
+  }
+
+  void setTestExamBestScore({
+    required int testNo,
+    required int correct,
+    required int total,
+  }) {
+    if (total == 0) return;
+    _changedBeforeRestore = true;
+    final key = testNo.toString();
+    final score = ((correct / total) * 100).round();
+    final scores = Map<String, int>.of(state.testExamBestScores);
+    if ((scores[key] ?? 0) >= score) return;
+    scores[key] = score;
+    state = state.copyWith(
+      isLoaded: true,
+      testExamBestScores: Map<String, int>.unmodifiable(scores),
+    );
+    unawaited(_repository.saveTestExamBestScores(scores));
+  }
 }

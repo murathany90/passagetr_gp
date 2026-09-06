@@ -6,7 +6,7 @@ import '../../core/app_breakpoints.dart';
 import '../../core/app_theme_tokens.dart';
 import '../../core/theme_mode_controller.dart';
 
-enum PassagetrDestination { home, words, readings, study, dictionary }
+enum PassagetrDestination { home, words, readings, study, tests, dictionary }
 
 class PassagetrShell extends ConsumerWidget {
   const PassagetrShell(
@@ -23,9 +23,11 @@ class PassagetrShell extends ConsumerWidget {
             ? PassagetrDestination.readings
             : location.startsWith('/study')
                 ? PassagetrDestination.study
-                : location.startsWith('/dictionary')
-                    ? PassagetrDestination.dictionary
-                    : PassagetrDestination.home;
+                : location.startsWith('/tests')
+                    ? PassagetrDestination.tests
+                    : location.startsWith('/dictionary')
+                        ? PassagetrDestination.dictionary
+                        : PassagetrDestination.home;
     return LayoutBuilder(builder: (context, constraints) {
       final wide = constraints.maxWidth >= AppBreakpoints.shellWide;
       final tokens = AppThemeTokens.of(context);
@@ -47,13 +49,15 @@ class PassagetrShell extends ConsumerWidget {
                   PassagetrDestination.words => 0,
                   PassagetrDestination.readings => 1,
                   PassagetrDestination.study => 2,
-                  PassagetrDestination.dictionary => 3,
+                  PassagetrDestination.tests => 3,
+                  PassagetrDestination.dictionary => 4,
                   PassagetrDestination.home => 0,
                 },
                 onDestinationSelected: (index) => context.go(switch (index) {
                   0 => '/words',
                   1 => '/readings',
                   2 => '/study',
+                  3 => '/tests',
                   _ => '/dictionary',
                 }),
                 destinations: const <NavigationDestination>[
@@ -69,6 +73,10 @@ class PassagetrShell extends ConsumerWidget {
                       icon: Icon(Icons.school_outlined),
                       selectedIcon: Icon(Icons.school_rounded),
                       label: 'Çalışma'),
+                  NavigationDestination(
+                      icon: Icon(Icons.quiz_outlined),
+                      selectedIcon: Icon(Icons.quiz_rounded),
+                      label: 'Testler'),
                   NavigationDestination(
                       icon: Icon(Icons.translate_outlined),
                       selectedIcon: Icon(Icons.translate_rounded),
@@ -267,6 +275,11 @@ class _DesktopRail extends StatelessWidget {
             label: 'Çalışma',
             selected: destination == PassagetrDestination.study,
             onTap: () => context.go('/study')),
+        _RailButton(
+            icon: Icons.quiz_rounded,
+            label: 'Testler',
+            selected: destination == PassagetrDestination.tests,
+            onTap: () => context.go('/tests')),
         _RailButton(
             icon: Icons.translate_rounded,
             label: 'Sözlük',

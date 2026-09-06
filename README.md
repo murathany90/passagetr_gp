@@ -1,6 +1,6 @@
 # PASSAGETR GP
 
-PASSAGETR GP; Kelime, Okuma, Çalışma ve Sözlük modüllerini sunan tamamen public bir
+PASSAGETR GP; Kelime, Okuma, Çalışma, Testler ve Sözlük modüllerini sunan tamamen public bir
 Flutter Web uygulamasıdır. GitHub Pages üzerinde çalışır; backend, API,
 kullanıcı girişi, auth ve runtime database içermez.
 
@@ -23,6 +23,7 @@ kullanıcı girişi, auth ve runtime database içermez.
 | `source_data/canonical/readings/reading_questions_v1.json` | JSON | Korunan 101–678 vocabulary-practice soru snapshot’ı | 578 reading | `sourceNumber`, `readingId`, `questions` | Soru içeriği; reading body override değildir |
 | `source_data/canonical/dictionary/dictionary_tr_en.xlsx` | XLSX | Geniş EN→TR sözlük | 121.783 kaynak satırı | `en_word`, `pos`, `tr_meaning_clean` | Lazy shard sözlük indeksi |
 | `source_data/canonical/study/PASSAGETR_YDS_Study_Canonical_v2_Module_01-30.xlsx` | XLSX | Çalışma modüllerinin tek canonical kaynağı | 30 modül | 10 ilişkili worksheet; modül, hedef kelime, cümle, reading, soru, çeviri, yapı ve review alanları | Yalnız `tools/build_study_content.py` tarafından 30 manifest/modül JSON’una dönüştürülür |
+| `source_data/canonical/tests/passagetr_test_bank.xlsx` | XLSX | Testler modülünün tek canonical kaynağı | 110 modül / 2.200 kelime satırı / 480 yapı / 9 test / 450 soru | `words`, `phrasal_prepositions`, `vocabulary_tests` worksheet’leri | Yalnız `tools/build_test_content.py` tarafından bundled JSON’a dönüştürülür |
 | `source_data/curated/readings_001_100_curated_v2.json` | JSON | 001–100 curated özet/metadata/comprehension soruları | 100 | `source_number`, `summary_en`, `summary_tr`, `questions` | Curated soru ve özet kaynağı; EN/TR body override değildir |
 
 Kelime için tek authoritative kaynak ilk CSV’dir ve kayıt sayısı 9.000’dir.
@@ -46,6 +47,13 @@ canonical Excel'i çalışma manifesti ve modül JSON'larına dönüştürür;
 EN→TR/TR→EN çeviriler, test ve review sözleşmesini doğrular. Flutter Web
 runtime Excel okumaz; yalnız bundled JSON yükler.
 
+`assets/content/tests` Git’te tutulmaz. `tools/build_test_content.py`, Test
+Bank XLSX’ini 110 modül, yapı ve 9 özgün test JSON assetine dönüştürür. Test
+sorusu, İngilizce şık ve doğru cevap yalnız bu XLSX’ten gelir. Generated
+`option_tr` alanı salt-okunur olarak sırasıyla Test Bank kelimeleri, 9.000
+canonical kelime bankası ve canonical sözlükten zenginleştirilir; bulunamayan
+karşılıklar validator tarafından raporlanır ancak build’i bloklamaz.
+
 `_local_source_archive/` varsa yalnız yerel inceleme arşividir, Git tarafından
 ignore edilir ve Pages build’ine dahil edilmez.
 
@@ -57,6 +65,10 @@ ignore edilir ve Pages build’ine dahil edilmez.
 - `#/readings`
 - `#/study`
 - `#/study/module/:moduleId`
+- `#/tests`
+- `#/tests/module/:moduleNo`
+- `#/tests/structures`
+- `#/tests/exams`
 - `#/dictionary`
 
 Hash routing, GitHub Pages’te server rewrite gerektirmez.
@@ -67,8 +79,10 @@ Hash routing, GitHub Pages’te server rewrite gerektirmez.
 flutter pub get
 python tools/build_static_content.py
 python tools/build_study_content.py
+python tools/build_test_content.py
 python tools/validate_static_content.py
 python tools/validate_study_content.py
+python tools/validate_test_content.py
 flutter analyze
 flutter test
 flutter build web --release --base-href "/passagetr_gp/"

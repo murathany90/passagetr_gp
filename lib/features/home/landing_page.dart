@@ -27,7 +27,7 @@ class LandingPage extends StatelessWidget {
                 child: const Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
-                      Text('KELİME + OKUMA + ÇALIŞMA',
+                      Text('KELİME + OKUMA + ÇALIŞMA + TESTLER',
                           style: TextStyle(
                               color: Colors.white70,
                               letterSpacing: 1.2,
@@ -41,7 +41,7 @@ class LandingPage extends StatelessWidget {
                               height: 1.15)),
                       SizedBox(height: 10),
                       Text(
-                          '9.000 kelime · 678 okuma · kaynaklı çalışma modülleri',
+                          '9.000 kelime · 678 okuma · kaynaklı çalışma ve test modülleri',
                           style: TextStyle(
                               color: Colors.white70,
                               fontWeight: FontWeight.w700)),
@@ -79,6 +79,15 @@ class LandingPage extends StatelessWidget {
                                   'YDS için kaynaklı modüller ve bölüm bazlı ilerleme.',
                               color: tokens.accentBlue,
                               onTap: () => context.go('/study'))),
+                      SizedBox(
+                          width: _moduleWidth(constraints.maxWidth),
+                          child: _ModuleCard(
+                              icon: Icons.quiz_rounded,
+                              title: 'Testler',
+                              description:
+                                  'Canonical modüller, yapılar ve özgün testler.',
+                              color: tokens.green,
+                              onTap: () => context.go('/tests'))),
                     ])),
           ]),
     );
@@ -86,6 +95,7 @@ class LandingPage extends StatelessWidget {
 }
 
 double _moduleWidth(double maxWidth) {
+  if (maxWidth >= 1180) return (maxWidth - 48) / 4;
   if (maxWidth >= 980) return (maxWidth - 32) / 3;
   if (maxWidth >= 680) return (maxWidth - 16) / 2;
   return maxWidth;
