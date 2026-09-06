@@ -256,12 +256,9 @@ class _WordsPageState extends ConsumerState<WordsPage> {
                   },
                 ),
                 const SizedBox(height: 12),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: <Widget>[
-                    SegmentedButton<PresentationOrder>(
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final orderControl = SegmentedButton<PresentationOrder>(
                       showSelectedIcon: false,
                       segments: const <ButtonSegment<PresentationOrder>>[
                         ButtonSegment(
@@ -278,13 +275,13 @@ class _WordsPageState extends ConsumerState<WordsPage> {
                         _order = selection.single;
                         _page = 0;
                       }),
-                    ),
-                    OutlinedButton.icon(
+                    );
+                    final shuffleControl = OutlinedButton.icon(
                       onPressed: _reshuffle,
                       icon: const Icon(Icons.shuffle_rounded, size: 18),
                       label: const Text('Karıştır'),
-                    ),
-                    OutlinedButton.icon(
+                    );
+                    final translationControl = OutlinedButton.icon(
                       key: const ValueKey<String>('word-translation-toggle'),
                       onPressed: () => setState(
                         () => _showTranslations = !_showTranslations,
@@ -300,8 +297,36 @@ class _WordsPageState extends ConsumerState<WordsPage> {
                             ? 'Çeviriyi gizle'
                             : 'Çeviriyi göster',
                       ),
-                    ),
-                  ],
+                    );
+                    if (constraints.maxWidth < 520) {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            children: <Widget>[
+                              orderControl,
+                              shuffleControl,
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          translationControl,
+                        ],
+                      );
+                    }
+                    return Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: <Widget>[
+                        orderControl,
+                        shuffleControl,
+                        translationControl,
+                      ],
+                    );
+                  },
                 ),
                 const SizedBox(height: 10),
                 FilterChip(
