@@ -40,6 +40,25 @@ class _StudyPageState extends ConsumerState<StudyPage> {
 
   @override
   Widget build(BuildContext context) {
+    final compatibility = ref.watch(studyQuestionCompatibilityProvider);
+    if (compatibility.isLoading) {
+      return const PageFrame(
+        title: 'Çalışma',
+        subtitle: 'Çalışma ilerlemesi doğrulanıyor.',
+        child: Center(
+          child: Padding(
+            padding: EdgeInsets.all(40),
+            child: CircularProgressIndicator(),
+          ),
+        ),
+      );
+    }
+    if (compatibility.hasError) {
+      return DataLoadErrorPage(
+        message: compatibility.error.toString(),
+        onRetry: () => ref.invalidate(studyQuestionCompatibilityProvider),
+      );
+    }
     final modules = ref.watch(studyModulesProvider);
     return modules.when(
       loading: () => const PageFrame(
@@ -334,8 +353,13 @@ class _StudyStats extends ConsumerWidget {
     final completed = modules
         .where((module) => studySectionProgress(progress, module.id) == 7)
         .length;
-    final answered = progress.studyQuestionCorrectness.length;
-    final correct = progress.studyQuestionCorrectness.values
+    // Reading-comprehension answers remain local progress only. The home-card
+    // score measures the explicit Study Test (mixed_test / yq) questions.
+    final testResults = progress.studyQuestionCorrectness.entries
+        .where((entry) => RegExp(r'^study-\d{4}-yq\d+$').hasMatch(entry.key));
+    final answered = testResults.length;
+    final correct = testResults
+        .map((entry) => entry.value)
         .where((isCorrect) => isCorrect)
         .length;
     final successRate =

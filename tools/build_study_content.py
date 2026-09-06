@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import argparse
-import csv
 import hashlib
 import json
 import re
@@ -27,127 +26,52 @@ SOURCE_RELATIVE_PATH = Path(
 )
 DEFAULT_OUTPUT = ROOT / 'assets' / 'content' / 'study'
 EXPECTED_MODULE_COUNT = 30
-# Study headwords remain verbatim in the supplied workbook.  Some are
-# inflected forms, lexical-family variants, or specialised terms that are not
-# literal entries in the existing 7,500-word bank.  These bindings preserve
-# the source workbook while keeping the shared canonical word-detail action
-# available for every target word.
+# Study headwords remain verbatim in the supplied workbook.  Only genuine
+# spelling, inflectional, or lexical-family variants may bind to the shared
+# 7,500-word bank.  A semantically similar *different* word must remain
+# unbound so the runtime can show the Study workbook's own vetted detail.
 WORD_REF_ALIASES = {
-    'threshold': 'boundary',
-    'intermittent': 'episodic',
     'inevitably': 'inevitable',
     'robustness': 'robust',
-    'unavoidably': 'inevitable',
-    'intuitive': 'instinctive',
     'rigorously': 'rigorous',
-    'disparity': 'discrepancy',
-    'oscillate': 'fluctuate',
-    'paramount': 'supreme',
-    'vividly': 'distinctly',
     'adequately': 'adequate',
-    'remnant': 'remain',
-    'lucrative': 'profitable',
-    'procure': 'acquisition',
-    'perish': 'expire',
-    'predominantly': 'dominant',
-    'scrupulously': 'meticulously',
     'stagnate': 'stagnant',
-    'remuneration': 'compensation',
     'adversely': 'adverse',
-    'levy': 'impose',
-    'rationale': 'rational',
     'automation': 'automatic',
-    'streamline': 'facilitate',
     'mobility': 'mobilize',
-    'outpace': 'surpass',
-    'surveillance': 'monitor',
     'vigilant': 'vigilance',
-    'connectivity': 'interconnectivity',
-    'barrier': 'obstacle',
-    'bridge': 'reconcile',
     'prioritize': 'priority',
     'acquit': 'acquittal',
     'adaptation': 'adaption',
     'algorithm': 'algorithmic',
     'artifact': 'artefact',
     'ascribe': 'ascribe to',
-    'asteroid': 'spacecraft',
-    'atone for': 'redress',
     'biased': 'bias',
     'bilingual': 'bilingualism',
-    'bioluminescent': 'fluorescence',
-    'biosecurity': 'protection',
-    'blight': 'disease',
-    'bring on': 'bring about',
-    'call into question': 'in question',
-    'celestial': 'universe',
     'coexist': 'coexistence',
-    'cognizant': 'aware',
-    'contraction': 'contract',
-    'craving': 'desire',
-    'culminate in': 'result in',
-    'cultivar': 'cultivate',
-    'dataset': 'data provenance',
     'deprive': 'deprive of',
     'deterrent': 'deterrence',
     'diplomacy': 'diplomatic',
     'divergence': 'divergent',
-    'dopamine': 'neurotransmitter',
     'dosage': 'dose',
-    'drive at': 'mean',
-    'dysfunction': 'function',
-    'elicit': 'prompt',
-    'emanate': 'emit',
-    'equity': 'equality',
     'falsifiable': 'falsifiability',
     'fend': 'fend for',
     'fluency': 'fluent',
-    'framing': 'framework',
-    'fritter away': 'squander',
     'harmonize': 'harmonization',
-    'hierarchy': 'rank',
     'hinge on': 'hinge upon',
     'hypothesis': 'hypothetical',
-    'impervious': 'resistant',
-    'incur': 'suffer',
-    'institution': 'institutionalization',
-    'inundate': 'submerge',
-    'irrational': 'aberrational',
     'liberalize': 'liberalization',
     'look back on': 'look back upon',
-    'loom': 'threatening',
     'migration': 'migrant',
-    'nudge': 'encourage',
-    'oversight': 'supervision',
-    'paradigm': 'framework',
-    'pass down': 'hand down',
-    'preclude': 'obviate',
-    'precursor': 'predecessor',
-    'predisposed': 'prone',
-    'predisposition': 'disposition',
     'propulsion': 'propel',
-    'proximity': 'adjacent',
-    'radiation': 'exposure',
     'rationality': 'rational',
     'reciprocate': 'reciprocal',
     'refrain from': 'refrain',
-    'relapse': 'recurrence',
-    'retention': 'retention span',
     'salience': 'salient',
-    'sanctuary': 'preserve',
-    'sift': 'scrutinize',
     'sovereign': 'sovereignty',
-    'spring': 'stem from',
-    'statute': 'law',
-    'stave off': 'ward off',
-    'stumbling block': 'obstacle',
     'syntax': 'syntactic',
     'tolerant': 'tolerance',
-    'trajectory': 'course',
-    'tribunal': 'court',
-    'unparalleled': 'unique',
     'vigorously': 'vigorous',
-    'wean': 'withdraw',
 }
 SHEET_HEADERS = {
     '01_Modules': (
@@ -379,16 +303,6 @@ def _unique(records: list[dict[str, str]], field: str, label: str) -> None:
         raise ValueError(f'Duplicate {field} in {label}')
 
 
-def _canonical_word_refs() -> set[str]:
-    path = ROOT / 'source_data' / 'canonical' / 'words' / content.WORDS_CANONICAL_FILENAME
-    with path.open(encoding='utf-8-sig', newline='') as stream:
-        return {
-            normalized(row['en_word'])
-            for row in csv.DictReader(stream, delimiter=';')
-            if clean(row.get('en_word'))
-        }
-
-
 def resolved_word_ref(value: str) -> str:
     return WORD_REF_ALIASES.get(normalized(value), normalized(value))
 
@@ -540,7 +454,6 @@ def validate_workbook(workbook: dict[str, list[dict[str, str]]]) -> dict[str, An
 
     _unique(words, 'word_id', '02_Words')
     word_by_id = {record['word_id']: record for record in words}
-    canonical_refs = _canonical_word_refs()
     question_by_id = {record['question_id']: record for record in questions}
     _unique(questions, 'question_id', '06_Questions')
     for record in word_items:
@@ -566,12 +479,9 @@ def validate_workbook(workbook: dict[str, list[dict[str, str]]]) -> dict[str, An
         module_review = [item for item in review if item['module_id'] == module_id]
         if len(module_words) != 15:
             raise ValueError(f'{module_id} must contain exactly 15 target words.')
-        references = [resolved_word_ref(item['word_ref']) for item in module_words]
+        references = [normalized(item['word_ref']) for item in module_words]
         if len(references) != len(set(references)):
-            raise ValueError(f'{module_id} has duplicate target word_ref values.')
-        missing_refs = sorted(set(references) - canonical_refs)
-        if missing_refs:
-            raise ValueError(f'{module_id} word_ref absent from canonical words: {missing_refs}')
+            raise ValueError(f'{module_id} has duplicate source word_ref values.')
         families = [normalized(item['lexical_family_key']) for item in module_words]
         if len(families) != len(set(families)):
             raise ValueError(f'{module_id} has duplicate lexical_family_key values.')
@@ -628,7 +538,24 @@ def validate_workbook(workbook: dict[str, list[dict[str, str]]]) -> dict[str, An
 def _question_payload(
     question: dict[str, str], options: list[dict[str, str]],
 ) -> dict[str, Any]:
-    return {**question, 'options': _sort(options, 'option_letter')}
+    sorted_options = _sort(options, 'option_letter')
+    fingerprint_payload = {
+        'question': question,
+        'options': sorted_options,
+    }
+    fingerprint = hashlib.sha256(
+        json.dumps(
+            fingerprint_payload,
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(',', ':'),
+        ).encode('utf-8')
+    ).hexdigest()
+    return {
+        **question,
+        'content_fingerprint': fingerprint,
+        'options': sorted_options,
+    }
 
 
 def build_payloads(
@@ -729,10 +656,22 @@ def build_payloads(
             'file': f"modules/{module_filename(module['module_id'])}",
             'counts': payload['module']['counts'],
         })
+    question_fingerprints = {
+        question['question_id']: question['content_fingerprint']
+        for payload in payloads.values()
+        for question in [
+            *payload['reading']['questions'],
+            *payload['testQuestions'],
+        ]
+    }
     manifest = {
         'schemaVersion': 2,
         'source': str(source.relative_to(ROOT)).replace('\\', '/'),
         'checksums': {'canonicalStudy': source_hash(source)},
+        'questionContent': {
+            'version': source_hash(source),
+            'fingerprints': dict(sorted(question_fingerprints.items())),
+        },
         'counts': {
             'modules': len(module_index),
             'words': sum(len(payload['words']) for payload in payloads.values()),

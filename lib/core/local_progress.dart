@@ -16,10 +16,11 @@ final localProgressProvider =
 class LocalProgressController extends StateNotifier<LocalProgressSnapshot> {
   LocalProgressController(this._repository)
       : super(const LocalProgressSnapshot.empty()) {
-    unawaited(_restore());
+    _restoreFuture = _restore();
   }
 
   final LocalProgressRepository _repository;
+  late final Future<void> _restoreFuture;
   bool _changedBeforeRestore = false;
 
   Future<void> _restore() async {
@@ -104,19 +105,73 @@ class LocalProgressController extends StateNotifier<LocalProgressSnapshot> {
     required String questionId,
     required String answer,
     required bool isCorrect,
+    String? contentFingerprint,
   }) {
     _changedBeforeRestore = true;
     final answers = Map<String, String>.of(state.studyQuestionAnswers)
       ..[questionId] = answer;
     final correctness = Map<String, bool>.of(state.studyQuestionCorrectness)
       ..[questionId] = isCorrect;
+    final fingerprints =
+        Map<String, String>.of(state.studyQuestionFingerprints);
+    if (contentFingerprint != null && contentFingerprint.isNotEmpty) {
+      fingerprints[questionId] = contentFingerprint;
+    }
     state = state.copyWith(
       isLoaded: true,
       studyQuestionAnswers: Map<String, String>.unmodifiable(answers),
       studyQuestionCorrectness: Map<String, bool>.unmodifiable(correctness),
+      studyQuestionFingerprints: Map<String, String>.unmodifiable(fingerprints),
     );
     unawaited(_repository.saveStudyQuestionAnswers(answers));
     unawaited(_repository.saveStudyQuestionCorrectness(correctness));
+    unawaited(_repository.saveStudyQuestionContent(
+      version: state.studyQuestionContentVersion ?? '',
+      fingerprints: fingerprints,
+    ));
+  }
+
+  /// Keeps answers only when the exact canonical question payload is still
+  /// present. A workbook revision may reuse question ids, so ids alone are not
+  /// a safe compatibility signal. This intentionally affects only Study
+  /// answer/score records; favourites and all other local progress stay put.
+  Future<void> reconcileStudyQuestionContent({
+    required String version,
+    required Map<String, String> fingerprints,
+  }) async {
+    await _restoreFuture;
+    if (!mounted || version.isEmpty) return;
+    if (state.studyQuestionContentVersion == version) return;
+
+    _changedBeforeRestore = true;
+    final previousFingerprints = state.studyQuestionFingerprints;
+    final answers = Map<String, String>.of(state.studyQuestionAnswers)
+      ..removeWhere(
+        (questionId, _) =>
+            previousFingerprints[questionId] != fingerprints[questionId],
+      );
+    final correctness = Map<String, bool>.of(state.studyQuestionCorrectness)
+      ..removeWhere(
+        (questionId, _) => !answers.containsKey(questionId),
+      );
+    final retainedFingerprints = <String, String>{
+      for (final questionId in answers.keys)
+        questionId: fingerprints[questionId]!,
+    };
+    state = state.copyWith(
+      isLoaded: true,
+      studyQuestionAnswers: Map<String, String>.unmodifiable(answers),
+      studyQuestionCorrectness: Map<String, bool>.unmodifiable(correctness),
+      studyQuestionContentVersion: version,
+      studyQuestionFingerprints:
+          Map<String, String>.unmodifiable(retainedFingerprints),
+    );
+    await _repository.saveStudyQuestionAnswers(answers);
+    await _repository.saveStudyQuestionCorrectness(correctness);
+    await _repository.saveStudyQuestionContent(
+      version: version,
+      fingerprints: retainedFingerprints,
+    );
   }
 
   void markStudySectionCompleted({
@@ -159,6 +214,8 @@ class LocalProgressController extends StateNotifier<LocalProgressSnapshot> {
       ..removeWhere((questionId, _) => questionId.startsWith(questionPrefix));
     final correctness = Map<String, bool>.of(state.studyQuestionCorrectness)
       ..removeWhere((questionId, _) => questionId.startsWith(questionPrefix));
+    final fingerprints = Map<String, String>.of(state.studyQuestionFingerprints)
+      ..removeWhere((questionId, _) => questionId.startsWith(questionPrefix));
     final isCurrentModule = state.studyLastModuleId == moduleId;
 
     state = state.copyWith(
@@ -167,6 +224,7 @@ class LocalProgressController extends StateNotifier<LocalProgressSnapshot> {
       completedStudyModuleIds: Set<String>.unmodifiable(modules),
       studyQuestionAnswers: Map<String, String>.unmodifiable(answers),
       studyQuestionCorrectness: Map<String, bool>.unmodifiable(correctness),
+      studyQuestionFingerprints: Map<String, String>.unmodifiable(fingerprints),
       clearStudyLastModuleId: isCurrentModule,
       clearStudyLastSection: isCurrentModule,
     );
@@ -174,6 +232,10 @@ class LocalProgressController extends StateNotifier<LocalProgressSnapshot> {
     unawaited(_repository.saveCompletedStudyModuleIds(modules));
     unawaited(_repository.saveStudyQuestionAnswers(answers));
     unawaited(_repository.saveStudyQuestionCorrectness(correctness));
+    unawaited(_repository.saveStudyQuestionContent(
+      version: state.studyQuestionContentVersion ?? '',
+      fingerprints: fingerprints,
+    ));
     if (isCurrentModule) {
       unawaited(_repository.saveStudyLocation());
     }

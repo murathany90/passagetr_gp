@@ -114,6 +114,7 @@ class StudyWord {
   const StudyWord({
     required this.id,
     required this.order,
+    required this.sourceWordRef,
     required this.wordRef,
     required this.headword,
     required this.lexicalFamilyKey,
@@ -129,6 +130,7 @@ class StudyWord {
 
   final String id;
   final int order;
+  final String sourceWordRef;
   final String wordRef;
   final String headword;
   final String lexicalFamilyKey;
@@ -144,6 +146,7 @@ class StudyWord {
   factory StudyWord.fromJson(Map<String, Object?> json) => StudyWord(
         id: _text(json['word_id']),
         order: _int(json['order_no']),
+        sourceWordRef: _text(json['source_word_ref']),
         wordRef: _text(json['word_ref']),
         headword: _text(json['headword']),
         lexicalFamilyKey: _text(json['lexical_family_key']),
@@ -294,6 +297,7 @@ class StudyQuestion {
     required this.whyCorrect,
     required this.reminderPattern,
     required this.options,
+    this.contentFingerprint = '',
   });
 
   final String id;
@@ -305,6 +309,7 @@ class StudyQuestion {
   final String whyCorrect;
   final String reminderPattern;
   final List<StudyQuestionOption> options;
+  final String contentFingerprint;
 
   factory StudyQuestion.fromJson(Map<String, Object?> json) => StudyQuestion(
         id: _text(json['question_id']),
@@ -315,6 +320,7 @@ class StudyQuestion {
         evidence: _text(json['evidence']),
         whyCorrect: _text(json['why_correct']),
         reminderPattern: _text(json['reminder_pattern']),
+        contentFingerprint: _text(json['content_fingerprint']),
         options: _list(json['options'])
             .map(StudyQuestionOption.fromJson)
             .toList(growable: false),

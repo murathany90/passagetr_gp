@@ -8,6 +8,7 @@ import '../repositories/static_study_repository.dart';
 import '../repositories/word_lookup_service.dart';
 import '../features/tts/student_tts_controller.dart';
 import '../features/tts/student_tts_engine.dart';
+import 'local_progress.dart';
 
 final staticContentRepositoryProvider =
     Provider<StaticContentRepository>((ref) {
@@ -54,6 +55,19 @@ final studyModulesProvider = FutureProvider<List<StudyModuleSummary>>((ref) {
 final studyModuleDetailProvider =
     FutureProvider.family<StudyModuleDetail, String>((ref, id) {
   return ref.watch(staticStudyRepositoryProvider).loadModule(id);
+});
+
+/// Reconciles persisted Study answers before a Study screen can show them.
+/// Only question records whose canonical payload fingerprint changed are
+/// removed; favourites and all unrelated local state remain untouched.
+final studyQuestionCompatibilityProvider = FutureProvider<void>((ref) async {
+  final contract = await ref
+      .watch(staticStudyRepositoryProvider)
+      .loadQuestionContentContract();
+  await ref.read(localProgressProvider.notifier).reconcileStudyQuestionContent(
+        version: contract.version,
+        fingerprints: contract.fingerprints,
+      );
 });
 
 final studentTtsEngineProvider = Provider<StudentTtsEngine>((ref) {

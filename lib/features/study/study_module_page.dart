@@ -9,6 +9,39 @@ import '../../models/study_models.dart';
 import '../common/page_parts.dart';
 import '../tts/student_tts_icon_button.dart';
 import '../words/word_detail_sheet.dart';
+import 'study_word_detail_sheet.dart';
+
+/// Opens the shared word-detail sheet only for a literal canonical match.
+/// Study content remains the trusted fallback for every unbound headword;
+/// neither a fuzzy lookup nor a semantically different alias is acceptable.
+Future<void> showStudyWordDetail(
+  BuildContext context,
+  WidgetRef ref,
+  StudyWord studyWord,
+) async {
+  WordEntry? canonicalWord;
+  final exactReference = studyWord.sourceWordRef.trim().toLowerCase();
+  try {
+    final loadedWords = ref.read(wordsProvider).valueOrNull ??
+        await ref.read(staticContentRepositoryProvider).loadWords();
+    for (final word in loadedWords) {
+      if (word.enWord.trim().toLowerCase() == exactReference) {
+        canonicalWord = word;
+        break;
+      }
+    }
+  } catch (_) {
+    // The Study workbook still contains its own vetted word detail.
+  }
+  if (!context.mounted) return;
+  await showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    builder: (_) => canonicalWord == null
+        ? StudyWordDetailSheet(word: studyWord)
+        : WordDetailSheet(word: canonicalWord),
+  );
+}
 
 class StudyModulePage extends ConsumerStatefulWidget {
   const StudyModulePage({super.key, required this.moduleId});
@@ -51,6 +84,25 @@ class _StudyModulePageState extends ConsumerState<StudyModulePage> {
 
   @override
   Widget build(BuildContext context) {
+    final compatibility = ref.watch(studyQuestionCompatibilityProvider);
+    if (compatibility.isLoading) {
+      return const PageFrame(
+        title: 'Çalışma modülü',
+        subtitle: 'Çalışma ilerlemesi doğrulanıyor.',
+        child: Center(
+          child: Padding(
+            padding: EdgeInsets.all(40),
+            child: CircularProgressIndicator(),
+          ),
+        ),
+      );
+    }
+    if (compatibility.hasError) {
+      return DataLoadErrorPage(
+        message: compatibility.error.toString(),
+        onRetry: () => ref.invalidate(studyQuestionCompatibilityProvider),
+      );
+    }
     final detail = ref.watch(studyModuleDetailProvider(widget.moduleId));
     return detail.when(
       loading: () => const PageFrame(
@@ -488,42 +540,10 @@ class _StudyWordCard extends ConsumerStatefulWidget {
 class _StudyWordCardState extends ConsumerState<_StudyWordCard> {
   bool _details = false;
 
-  Future<void> _openCanonicalWord(WordEntry? cached) async {
-    var canonicalWord = cached;
-    if (canonicalWord == null) {
-      final lookup = ref.read(wordLookupServiceProvider);
-      final result = await lookup.find(widget.word.wordRef);
-      canonicalWord = result.word;
-    }
-    if (!mounted) return;
-    if (canonicalWord == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Kelime detayı yüklenemedi.')),
-      );
-      return;
-    }
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      builder: (_) => WordDetailSheet(word: canonicalWord!),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final word = widget.word;
     final tts = ref.watch(studentTtsControllerProvider);
-    final canonicalWords = ref.watch(wordsProvider).maybeWhen(
-          data: (items) => items,
-          orElse: () => const <WordEntry>[],
-        );
-    WordEntry? canonicalWord;
-    for (final item in canonicalWords) {
-      if (item.enWord.toLowerCase() == word.wordRef.toLowerCase()) {
-        canonicalWord = item;
-        break;
-      }
-    }
     final speaking = tts.isSpeaking && tts.activeWordId == word.id;
     final grouped = <String, List<StudyWordItem>>{};
     for (final item in word.items) {
@@ -549,7 +569,8 @@ class _StudyWordCardState extends ConsumerState<_StudyWordCard> {
                               minimumSize: const Size(0, 36),
                               alignment: Alignment.centerLeft,
                             ),
-                            onPressed: () => _openCanonicalWord(canonicalWord),
+                            onPressed: () =>
+                                showStudyWordDetail(context, ref, word),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: <Widget>[
@@ -1049,38 +1070,6 @@ class _InteractiveReading extends ConsumerStatefulWidget {
 class _InteractiveReadingState extends ConsumerState<_InteractiveReading> {
   final Set<int> _revealedSentenceIndexes = <int>{};
 
-  Future<void> _openCanonicalWord(
-    BuildContext context,
-    WidgetRef ref,
-    StudyWord studyWord,
-  ) async {
-    final loadedWords = ref.read(wordsProvider).valueOrNull;
-    WordEntry? canonicalWord;
-    if (loadedWords != null) {
-      for (final word in loadedWords) {
-        if (word.enWord.toLowerCase() == studyWord.wordRef.toLowerCase()) {
-          canonicalWord = word;
-          break;
-        }
-      }
-    }
-    canonicalWord ??=
-        (await ref.read(wordLookupServiceProvider).find(studyWord.wordRef))
-            .word;
-    if (!context.mounted) return;
-    if (canonicalWord == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Kelime detayı yüklenemedi.')),
-      );
-      return;
-    }
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      builder: (_) => WordDetailSheet(word: canonicalWord!),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final tokens = AppThemeTokens.of(context);
@@ -1114,7 +1103,7 @@ class _InteractiveReadingState extends ConsumerState<_InteractiveReading> {
                       expressionPattern: expressions,
                       words: orderedWords,
                       onTargetWordTap: (word) =>
-                          _openCanonicalWord(context, ref, word),
+                          showStudyWordDetail(context, ref, word),
                     ),
                     if (revealed) ...<Widget>[
                       const SizedBox(height: 7),
@@ -1636,6 +1625,8 @@ class _QuestionCard extends ConsumerWidget {
                                   questionId: question.id,
                                   answer: option.letter,
                                   isCorrect: option.isCorrect,
+                                  contentFingerprint:
+                                      question.contentFingerprint,
                                 );
                             onAnswered?.call();
                           },

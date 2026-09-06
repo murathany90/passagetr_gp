@@ -104,6 +104,13 @@ void main() {
     }
     expect(usageNoteCount, 120);
     expect(translationStrategyCount, 150);
+    final contract = await repository.loadQuestionContentContract();
+    expect(contract.version, isNotEmpty);
+    expect(contract.fingerprints, hasLength(450));
+    expect(
+      contract.fingerprints['study-0001-yq01'],
+      detail.testQuestions.first.contentFingerprint,
+    );
   });
 
   test('Study deploy versioning preserves injected AssetBundle paths',
@@ -178,6 +185,54 @@ void main() {
         controller.state.studyQuestionCorrectness, {'study-0002-yq01': false});
     expect(controller.state.studyLastModuleId, isNull);
     expect(controller.state.studyLastSection, isNull);
+  });
+
+  test('Study content revision retains only matching question fingerprints',
+      () async {
+    final repository = _MemoryProgress(
+      initial: const LocalProgressSnapshot(
+        isLoaded: true,
+        favoriteWordIds: {'word-keep'},
+        knownWordIds: {'word-known'},
+        completedReadingIds: {'reading-keep'},
+        studyQuestionAnswers: {
+          'study-0001-yq01': 'A',
+          'study-0001-yq02': 'B',
+        },
+        studyQuestionCorrectness: {
+          'study-0001-yq01': true,
+          'study-0001-yq02': false,
+        },
+        studyQuestionContentVersion: 'old-workbook',
+        studyQuestionFingerprints: {
+          'study-0001-yq01': 'unchanged',
+          'study-0001-yq02': 'old-question',
+        },
+      ),
+    );
+    final controller = LocalProgressController(repository);
+    addTearDown(controller.dispose);
+
+    await controller.reconcileStudyQuestionContent(
+      version: 'new-workbook',
+      fingerprints: const {
+        'study-0001-yq01': 'unchanged',
+        'study-0001-yq02': 'new-question',
+      },
+    );
+
+    expect(controller.state.favoriteWordIds, {'word-keep'});
+    expect(controller.state.knownWordIds, {'word-known'});
+    expect(controller.state.completedReadingIds, {'reading-keep'});
+    expect(controller.state.studyQuestionAnswers, {'study-0001-yq01': 'A'});
+    expect(
+      controller.state.studyQuestionCorrectness,
+      {'study-0001-yq01': true},
+    );
+    expect(controller.state.studyQuestionFingerprints, {
+      'study-0001-yq01': 'unchanged',
+    });
+    expect(controller.state.studyQuestionContentVersion, 'new-workbook');
   });
 
   testWidgets('Study home opens at a 390 px viewport without overflow',
@@ -299,7 +354,10 @@ class _VersionedFileAssetBundle extends CachingAssetBundle {
 }
 
 class _MemoryProgress extends LocalProgressRepository {
-  LocalProgressSnapshot _state = const LocalProgressSnapshot(isLoaded: true);
+  _MemoryProgress({LocalProgressSnapshot? initial})
+      : _state = initial ?? const LocalProgressSnapshot(isLoaded: true);
+
+  LocalProgressSnapshot _state;
 
   @override
   Future<LocalProgressSnapshot> load() async => _state;
@@ -329,6 +387,17 @@ class _MemoryProgress extends LocalProgressRepository {
   }
 
   @override
+  Future<void> saveStudyQuestionContent({
+    required String version,
+    required Map<String, String> fingerprints,
+  }) async {
+    _state = _state.copyWith(
+      studyQuestionContentVersion: version,
+      studyQuestionFingerprints: fingerprints,
+    );
+  }
+
+  @override
   Future<void> saveCompletedStudySectionKeys(Set<String> keys) async {
     _state = _state.copyWith(completedStudySectionKeys: keys);
   }
@@ -340,6 +409,13 @@ class _MemoryProgress extends LocalProgressRepository {
 }
 
 class _StudyFixtureRepository extends StaticStudyRepository {
+  @override
+  Future<StudyQuestionContentContract> loadQuestionContentContract() async =>
+      const StudyQuestionContentContract(
+        version: 'study-fixture-v1',
+        fingerprints: <String, String>{},
+      );
+
   @override
   Future<List<StudyModuleSummary>> loadModules() async =>
       const <StudyModuleSummary>[

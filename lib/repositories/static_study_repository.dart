@@ -23,12 +23,33 @@ class StaticStudyRepository {
   final String root;
   final String _appBuildSha;
   final bool _versionAssetLoads;
+  Future<Map<String, Object?>>? _manifestFuture;
   Future<List<StudyModuleSummary>>? _modulesFuture;
   final Map<String, Future<StudyModuleDetail>> _moduleCache =
       <String, Future<StudyModuleDetail>>{};
 
   Future<List<StudyModuleSummary>> loadModules() =>
       _modulesFuture ??= _loadModules();
+
+  /// A stable content contract for safely retaining only answers that still
+  /// belong to the current canonical Study questions after a workbook update.
+  Future<StudyQuestionContentContract> loadQuestionContentContract() async {
+    final manifest = await _loadManifest();
+    final questionContent = _map(manifest['questionContent']);
+    final version = _text(questionContent['version']);
+    final rawFingerprints = _map(questionContent['fingerprints']);
+    if (version.isEmpty || rawFingerprints.isEmpty) {
+      throw const StaticContentException(
+        'Çalışma soru sürüm bilgisi geçersiz.',
+      );
+    }
+    return StudyQuestionContentContract(
+      version: version,
+      fingerprints: Map<String, String>.unmodifiable(
+        rawFingerprints.map((key, value) => MapEntry(key, _text(value))),
+      ),
+    );
+  }
 
   Future<StudyModuleDetail> loadModule(String id) {
     return _moduleCache.putIfAbsent(id, () async {
@@ -46,7 +67,7 @@ class StaticStudyRepository {
   }
 
   Future<List<StudyModuleSummary>> _loadModules() async {
-    final manifest = await _loadJson('study_manifest.json');
+    final manifest = await _loadManifest();
     final counts = _map(manifest['counts']);
     if (counts['modules'] is! int || (counts['modules'] as int) < 1) {
       throw const StaticContentException('Çalışma manifest sayıları geçersiz.');
@@ -62,6 +83,9 @@ class StaticStudyRepository {
     }
     return List<StudyModuleSummary>.unmodifiable(modules);
   }
+
+  Future<Map<String, Object?>> _loadManifest() =>
+      _manifestFuture ??= _loadJson('study_manifest.json');
 
   Future<Map<String, Object?>> _loadJson(String relativePath) async {
     try {
@@ -98,5 +122,17 @@ class StaticStudyRepository {
   }
 }
 
+class StudyQuestionContentContract {
+  const StudyQuestionContentContract({
+    required this.version,
+    required this.fingerprints,
+  });
+
+  final String version;
+  final Map<String, String> fingerprints;
+}
+
 Map<String, Object?> _map(Object? value) =>
     Map<String, Object?>.from(value! as Map);
+
+String _text(Object? value) => value?.toString().trim() ?? '';

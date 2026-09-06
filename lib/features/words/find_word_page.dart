@@ -475,7 +475,9 @@ class _FindWordQuestionCard extends StatelessWidget {
           ],
           OutlinedButton.icon(
             key: const ValueKey<String>('find-word-details'),
-            onPressed: onToggleDetails,
+            // Details reveal the answer-adjacent learning material, so it
+            // must not give away context before the learner has responded.
+            onPressed: selected == null ? null : onToggleDetails,
             icon: Icon(
               showDetails
                   ? Icons.expand_less_rounded

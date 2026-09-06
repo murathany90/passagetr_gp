@@ -18,6 +18,8 @@ class LocalProgressSnapshot {
     this.studyLastSection,
     this.studyQuestionAnswers = const <String, String>{},
     this.studyQuestionCorrectness = const <String, bool>{},
+    this.studyQuestionContentVersion,
+    this.studyQuestionFingerprints = const <String, String>{},
   });
 
   const LocalProgressSnapshot.empty() : this(isLoaded: false);
@@ -36,6 +38,8 @@ class LocalProgressSnapshot {
   final String? studyLastSection;
   final Map<String, String> studyQuestionAnswers;
   final Map<String, bool> studyQuestionCorrectness;
+  final String? studyQuestionContentVersion;
+  final Map<String, String> studyQuestionFingerprints;
 
   LocalProgressSnapshot copyWith({
     bool? isLoaded,
@@ -58,6 +62,9 @@ class LocalProgressSnapshot {
     bool clearStudyLastSection = false,
     Map<String, String>? studyQuestionAnswers,
     Map<String, bool>? studyQuestionCorrectness,
+    String? studyQuestionContentVersion,
+    bool clearStudyQuestionContentVersion = false,
+    Map<String, String>? studyQuestionFingerprints,
   }) =>
       LocalProgressSnapshot(
         isLoaded: isLoaded ?? this.isLoaded,
@@ -84,6 +91,11 @@ class LocalProgressSnapshot {
         studyQuestionAnswers: studyQuestionAnswers ?? this.studyQuestionAnswers,
         studyQuestionCorrectness:
             studyQuestionCorrectness ?? this.studyQuestionCorrectness,
+        studyQuestionContentVersion: clearStudyQuestionContentVersion
+            ? null
+            : studyQuestionContentVersion ?? this.studyQuestionContentVersion,
+        studyQuestionFingerprints:
+            studyQuestionFingerprints ?? this.studyQuestionFingerprints,
       );
 }
 
@@ -104,6 +116,10 @@ class LocalProgressRepository {
   static const _studyQuestionAnswersKey = 'passagetr.studyQuestionAnswers.v1';
   static const _studyQuestionCorrectnessKey =
       'passagetr.studyQuestionCorrectness.v1';
+  static const _studyQuestionContentVersionKey =
+      'passagetr.studyQuestionContentVersion.v1';
+  static const _studyQuestionFingerprintsKey =
+      'passagetr.studyQuestionFingerprints.v1';
 
   Future<SharedPreferences>? _preferencesFuture;
 
@@ -126,6 +142,10 @@ class LocalProgressRepository {
       studyQuestionAnswers: _readMap(preferences, _studyQuestionAnswersKey),
       studyQuestionCorrectness:
           _readBoolMap(preferences, _studyQuestionCorrectnessKey),
+      studyQuestionContentVersion:
+          preferences.getString(_studyQuestionContentVersionKey),
+      studyQuestionFingerprints:
+          _readMap(preferences, _studyQuestionFingerprintsKey),
     );
   }
 
@@ -172,6 +192,18 @@ class LocalProgressRepository {
     await preferences.setString(
       _studyQuestionCorrectnessKey,
       jsonEncode(correctness),
+    );
+  }
+
+  Future<void> saveStudyQuestionContent({
+    required String version,
+    required Map<String, String> fingerprints,
+  }) async {
+    final preferences = await _preferences();
+    await _saveOptional(preferences, _studyQuestionContentVersionKey, version);
+    await preferences.setString(
+      _studyQuestionFingerprintsKey,
+      jsonEncode(fingerprints),
     );
   }
 
