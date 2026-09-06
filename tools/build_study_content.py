@@ -29,7 +29,7 @@ DEFAULT_OUTPUT = ROOT / 'assets' / 'content' / 'study'
 EXPECTED_MODULE_COUNT = 30
 # Study headwords remain verbatim in the supplied workbook.  Only genuine
 # spelling, inflectional, or lexical-family variants may bind to the shared
-# 7,500-word bank.  A semantically similar *different* word must remain
+# 9,000-word bank.  A semantically similar *different* word must remain
 # unbound so the runtime can show the Study workbook's own vetted detail.
 WORD_REF_ALIASES = {
     'inevitably': 'inevitable',

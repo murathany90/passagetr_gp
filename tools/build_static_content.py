@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Build PASSAGETR public content from its canonical static sources.
 
-Words are read only from the 7,500-record canonical CSV.  Reading EN/TR body
+Words are read only from the 9,000-record canonical CSV.  Reading EN/TR body
 is read only from the canonical passage/sentence CSV pair; no repair,
 translation, or editorial JSON overlay participates in production builds.
 """
@@ -44,8 +44,9 @@ POS_ALIASES = {
     'adjective': 'adj.', 'adj': 'adj.', 'adverb': 'adv.', 'adv': 'adv.',
     'np': 'NP', 'proper noun': 'NP', 'conjunction': 'conj.', 'conj': 'conj.',
     'determiner': 'det.', 'det': 'det.', 'modal': 'modal', 'modal verb': 'modal',
+    'phrase': 'phrase',
 }
-POS_ORDER = ('prep.', 'phr. v.', 'v.', 'n.', 'adj.', 'adv.', 'NP', 'conj.', 'det.', 'modal')
+POS_ORDER = ('prep.', 'phr. v.', 'phrase', 'v.', 'n.', 'adj.', 'adv.', 'NP', 'conj.', 'det.', 'modal')
 WORD_TOKEN = re.compile(r"[A-Za-z]+(?:['-][A-Za-z]+)*")
 CANONICAL_WORD_TAG = re.compile(
     r'[a-z0-9]+(?: [a-z0-9]+)*(?: & [a-z0-9]+(?: [a-z0-9]+)*)*'
@@ -64,7 +65,7 @@ STOP_WORDS = frozenset({
     'which', 'who', 'will', 'with', 'would', 'you', 'your',
 })
 DEFAULT_CURATED_READINGS_RELATIVE_PATH = Path('curated/readings_001_100_curated_v2.json')
-WORDS_CANONICAL_FILENAME = 'passagetr_yds_words_canonical_7500_FINAL.csv'
+WORDS_CANONICAL_FILENAME = 'passagetr_yds_words_canonical_9000_FINAL_v2.csv'
 DERIVED_QUESTIONS_FILENAME = 'reading_questions_v1.json'
 INVALID_SPREADSHEET_TOKENS = (
     '#AD?', '#NAME?', '#N/A', '#VALUE!', '#REF!', '#DIV/0!', '#NUM!', '#NULL!',
@@ -129,7 +130,7 @@ def pack_id(name: str) -> str:
 
 def word_id(word: str, pos: str) -> str:
     return deterministic_id(
-        'word', f'passagetr canonical 7500|{normalized(word)}|{normalized(pos)}'
+        'word', f'passagetr canonical 9000|{normalized(word)}|{normalized(pos)}'
     )
 
 
@@ -579,13 +580,13 @@ def build(
         'synonyms_raw', 'antonyms_raw', 'level', 'tags_raw', 'notes',
     }
     word_rows = read_csv(words_source)
-    if len(word_rows) != 7500 or set(word_rows[0]) != expected_word_fields:
-        raise ValueError('Word canonical CSV must contain exactly 7,500 expected rows.')
+    if len(word_rows) != 9000 or set(word_rows[0]) != expected_word_fields:
+        raise ValueError('Word canonical CSV must contain exactly 9,000 expected rows.')
     required_word_fields = (
         'en_word', 'tr_meaning', 'pos', 'example_en', 'example_tr',
-        'level', 'tags_raw', 'notes',
+        'level', 'tags_raw',
     )
-    word_pack_name = 'YDS Canonical 7500'
+    word_pack_name = 'YDS Canonical 9000'
     words_by_pack: dict[str, list[dict[str, Any]]] = {word_pack_name: []}
     primary_word_ids: dict[str, list[str]] = defaultdict(list)
     seen_headwords: set[str] = set()
@@ -621,7 +622,7 @@ def build(
             'level': nullable(row.get('level')),
             'tags': tags,
         })
-    if len(seen_headwords) != 7500:
+    if len(seen_headwords) != 9000:
         raise ValueError('Canonical word headword coverage is invalid.')
 
     passage_rows = read_csv(passages_source)
@@ -820,7 +821,7 @@ def build(
         'generatedAt': datetime.now(UTC).isoformat(),
         'contentVersion': 'v1',
         'counts': {
-            'words': 7500,
+            'words': 9000,
             'readings': len(numbered_passages),
             'sentences': sentence_count,
             'dictionaryEntries': dictionary['recordCount'],

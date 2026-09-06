@@ -9,7 +9,7 @@ import '../../models/study_models.dart';
 import '../tts/student_tts_icon_button.dart';
 
 /// The vetted 02_Words / 03_Word_Items detail shown only when the Study
-/// headword has no exact entry in the shared 7,500-word canonical bank.
+/// headword has no exact entry in the shared 9,000-word canonical bank.
 class StudyWordDetailSheet extends ConsumerWidget {
   const StudyWordDetailSheet({super.key, required this.word});
 

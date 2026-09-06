@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('canonical word CSV is the sole 7,500-record production source',
+  test('canonical word CSV is the sole 9,000-record production source',
       () async {
     const script = r'''
 import sys
@@ -11,13 +11,12 @@ from pathlib import Path
 sys.path.insert(0, 'tools')
 import build_static_content as builder
 
-new_source = Path('source_data/canonical/words/passagetr_yds_words_canonical_7500_FINAL.csv')
-old_source = Path('source_data/canonical/words') / ('yds_words' + '_set_001.csv')
+new_source = Path('source_data/canonical/words/passagetr_yds_words_canonical_9000_FINAL_v2.csv')
 assert new_source.is_file()
-assert not old_source.exists()
+assert list(new_source.parent.glob('*.csv')) == [new_source]
 rows = builder.read_csv(new_source)
-assert len(rows) == 7500
-assert len({builder.normalized(row['en_word']) for row in rows}) == 7500
+assert len(rows) == 9000
+assert len({builder.normalized(row['en_word']) for row in rows}) == 9000
 tags = {tag for row in rows for tag in builder.parse_tag_list(row['tags_raw'])}
 assert len(tags) == 66
 assert all(builder.is_canonical_word_tag(tag) and '_' not in tag for tag in tags)
@@ -61,7 +60,7 @@ for entry in index:
     expected = sorted(by_title[builder.normalized(entry['title'])], key=lambda value: value['index'])
     assert item['sentences'] == expected
 allowed = {
-    (source.parent / 'words' / 'passagetr_yds_words_canonical_7500_FINAL.csv').resolve(),
+    (source.parent / 'words' / 'passagetr_yds_words_canonical_9000_FINAL_v2.csv').resolve(),
     (source / 'reading_passages.csv').resolve(),
     (source / 'reading_sentences.csv').resolve(),
     (source / 'reading_questions_v1.json').resolve(),

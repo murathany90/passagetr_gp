@@ -5,7 +5,7 @@ void main() {
   test('deterministic word shuffle paginates without duplicates or omissions',
       () {
     final words = List<String>.generate(
-      7500,
+      9000,
       (index) => 'word-${index.toString().padLeft(4, '0')}',
     );
     final first = orderForPresentation<String>(

@@ -41,7 +41,7 @@ class LandingPage extends StatelessWidget {
                               height: 1.15)),
                       SizedBox(height: 10),
                       Text(
-                          '7.500 kelime · 678 okuma · kaynaklı çalışma modülleri',
+                          '9.000 kelime · 678 okuma · kaynaklı çalışma modülleri',
                           style: TextStyle(
                               color: Colors.white70,
                               fontWeight: FontWeight.w700)),
@@ -58,7 +58,7 @@ class LandingPage extends StatelessWidget {
                               icon: Icons.style_rounded,
                               title: 'Kelime',
                               description:
-                                  '7.500 gerçek kelime, kartlar ve mini test.',
+                                  '9.000 gerçek kelime, kartlar ve mini test.',
                               color: tokens.hero,
                               onTap: () => context.go('/words'))),
                       SizedBox(

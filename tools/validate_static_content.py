@@ -27,7 +27,6 @@ import build_static_content as builder  # noqa: E402
 SOURCE = ROOT / 'source_data'
 CONTENT = ROOT / 'assets' / 'content' / 'v1'
 WORDS_SOURCE = SOURCE / 'canonical' / 'words' / builder.WORDS_CANONICAL_FILENAME
-OLD_WORDS_SOURCE = SOURCE / 'canonical' / 'words' / ('yds_words' + '_set_001.csv')
 PASSAGES_SOURCE = SOURCE / 'canonical' / 'readings' / 'reading_passages.csv'
 SENTENCES_SOURCE = SOURCE / 'canonical' / 'readings' / 'reading_sentences.csv'
 QUESTIONS_SOURCE = SOURCE / 'canonical' / 'readings' / builder.DERIVED_QUESTIONS_FILENAME
@@ -35,7 +34,7 @@ CURATED_SOURCE = SOURCE / builder.DEFAULT_CURATED_READINGS_RELATIVE_PATH
 DICTIONARY_SOURCE = SOURCE / 'canonical' / 'dictionary' / 'dictionary_tr_en.xlsx'
 STUDY_SOURCE = SOURCE / 'canonical' / 'study' / 'PASSAGETR_YDS_Study_Canonical_v2_Module_01-30.xlsx'
 
-EXPECTED_WORDS = 7500
+EXPECTED_WORDS = 9000
 EXPECTED_READINGS = 678
 EXPECTED_SENTENCES = 6275
 EXPECTED_WORD_TAGS = 66
@@ -47,9 +46,8 @@ WORD_FIELDS = {
 }
 REQUIRED_WORD_FIELDS = (
     'en_word', 'tr_meaning', 'pos', 'example_en', 'example_tr',
-    'level', 'tags_raw', 'notes',
+    'level', 'tags_raw',
 )
-TEXT_FILE_SUFFIXES = {'.dart', '.json', '.md', '.py', '.yaml', '.yml'}
 
 
 def fail(message: str) -> None:
@@ -131,8 +129,9 @@ def canonical_readings() -> tuple[dict[int, dict[str, Any]], int, list[int]]:
 
 
 def validate_words() -> dict[str, int]:
-    if OLD_WORDS_SOURCE.exists():
-        fail('Obsolete previous word source still exists.')
+    canonical_sources = sorted(WORDS_SOURCE.parent.glob('*.csv'))
+    if canonical_sources != [WORDS_SOURCE]:
+        fail('Canonical words directory must contain only the active CSV source.')
     rows = builder.read_csv(WORDS_SOURCE)
     if len(rows) != EXPECTED_WORDS:
         fail(f'Expected {EXPECTED_WORDS} canonical word rows, got {len(rows)}')
@@ -183,22 +182,9 @@ def validate_words() -> dict[str, int]:
 
 
 def validate_no_stale_reference() -> int:
-    needle = 'yds_words' + '_set_001.csv'
-    matches: list[Path] = []
-    excluded = {'.git', '.dart_tool', '.migration_tmp', 'build'}
-    for path in ROOT.rglob('*'):
-        if not path.is_file() or excluded.intersection(path.parts):
-            continue
-        if path.suffix.lower() not in TEXT_FILE_SUFFIXES:
-            continue
-        try:
-            if needle in path.read_text(encoding='utf-8', errors='ignore'):
-                matches.append(path)
-        except OSError:
-            continue
-    if matches:
-        relative = ', '.join(str(path.relative_to(ROOT)) for path in matches)
-        fail(f'Stale old word-source references: {relative}')
+    canonical_sources = sorted(WORDS_SOURCE.parent.glob('*.csv'))
+    if canonical_sources != [WORDS_SOURCE]:
+        fail('Stale canonical word-source files remain.')
     return 0
 
 
