@@ -235,6 +235,51 @@ void main() {
     expect(controller.state.studyQuestionContentVersion, 'new-workbook');
   });
 
+  test('Study content revision safely removes deleted question ids', () async {
+    final controller = LocalProgressController(
+      _MemoryProgress(
+        initial: const LocalProgressSnapshot(
+          isLoaded: true,
+          favoriteWordIds: {'word-keep'},
+          studyQuestionAnswers: {'study-0001-yq-retired': 'C'},
+          studyQuestionCorrectness: {'study-0001-yq-retired': false},
+          studyQuestionContentVersion: 'old-workbook',
+          // Older installs can have an answer record without a fingerprint.
+          studyQuestionFingerprints: <String, String>{},
+        ),
+      ),
+    );
+    addTearDown(controller.dispose);
+
+    await controller.reconcileStudyQuestionContent(
+      version: 'new-workbook',
+      fingerprints: const {'study-0001-yq01': 'current-question'},
+    );
+
+    expect(controller.state.studyQuestionAnswers, isEmpty);
+    expect(controller.state.studyQuestionCorrectness, isEmpty);
+    expect(controller.state.studyQuestionFingerprints, isEmpty);
+    expect(controller.state.favoriteWordIds, {'word-keep'});
+  });
+
+  test('Study builder rejects an alias whose canonical target is missing',
+      () async {
+    const probe = '''
+import sys
+sys.path.insert(0, 'tools')
+import build_study_content as study
+refs = study._canonical_word_refs()
+study.WORD_REF_ALIASES['test-morphological-variant'] = 'not-in-canonical'
+try:
+    study.validate_alias_targets(refs)
+except ValueError:
+    raise SystemExit(0)
+raise SystemExit(1)
+''';
+    final result = await Process.run('python', <String>['-c', probe]);
+    expect(result.exitCode, 0, reason: result.stderr.toString());
+  });
+
   testWidgets('Study home opens at a 390 px viewport without overflow',
       (tester) async {
     await tester.binding.setSurfaceSize(const Size(390, 844));

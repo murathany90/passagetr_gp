@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import csv
 import hashlib
 import json
 import re
@@ -303,8 +304,37 @@ def _unique(records: list[dict[str, str]], field: str, label: str) -> None:
         raise ValueError(f'Duplicate {field} in {label}')
 
 
-def resolved_word_ref(value: str) -> str:
-    return WORD_REF_ALIASES.get(normalized(value), normalized(value))
+def _canonical_word_refs() -> set[str]:
+    path = (
+        ROOT / 'source_data' / 'canonical' / 'words'
+        / content.WORDS_CANONICAL_FILENAME
+    )
+    with path.open(encoding='utf-8-sig', newline='') as stream:
+        return {
+            normalized(row['en_word'])
+            for row in csv.DictReader(stream, delimiter=';')
+            if clean(row.get('en_word'))
+        }
+
+
+def validate_alias_targets(canonical_refs: set[str]) -> None:
+    invalid = sorted(
+        target for target in set(WORD_REF_ALIASES.values())
+        if target not in canonical_refs
+    )
+    if invalid:
+        raise ValueError(
+            'Study word alias targets absent from canonical words: '
+            f'{invalid}'
+        )
+
+
+def resolved_word_ref(value: str, canonical_refs: set[str]) -> str:
+    source = normalized(value)
+    # A literal canonical target must never be redirected through an alias.
+    if source in canonical_refs:
+        return source
+    return WORD_REF_ALIASES.get(source, source)
 
 
 def module_filename(module_id: str) -> str:
@@ -333,6 +363,8 @@ def validate_workbook(workbook: dict[str, list[dict[str, str]]]) -> dict[str, An
     translations = workbook['08_Translations']
     structures = workbook['09_Structures']
     review = workbook['10_Review']
+    canonical_refs = _canonical_word_refs()
+    validate_alias_targets(canonical_refs)
     if not modules:
         raise ValueError('Study workbook must have at least one module.')
     expected_module_ids = {
@@ -528,7 +560,13 @@ def validate_workbook(workbook: dict[str, list[dict[str, str]]]) -> dict[str, An
             'translations': dict(direction_counts), 'testQuestions': len(test_questions),
             'structures': len(module_structures), 'reviewItems': len(module_review),
             'manualWordRefBindings': sum(
-                normalized(item['word_ref']) != resolved_word_ref(item['word_ref'])
+                normalized(item['word_ref']) not in canonical_refs and
+                normalized(item['word_ref']) in WORD_REF_ALIASES
+                for item in module_words
+            ),
+            'studyWordFallbacks': sum(
+                normalized(item['word_ref']) not in canonical_refs and
+                normalized(item['word_ref']) not in WORD_REF_ALIASES
                 for item in module_words
             ),
         })
@@ -562,6 +600,7 @@ def build_payloads(
     workbook: dict[str, list[dict[str, str]]], source: Path,
 ) -> tuple[dict[str, Any], dict[str, dict[str, Any]]]:
     summary = validate_workbook(workbook)
+    canonical_refs = _canonical_word_refs()
     options_by_question: dict[str, list[dict[str, str]]] = defaultdict(list)
     for option in workbook['07_Question_Options']:
         options_by_question[option['question_id']].append(option)
@@ -579,7 +618,7 @@ def build_payloads(
             {
                 **word,
                 'source_word_ref': word['word_ref'],
-                'word_ref': resolved_word_ref(word['word_ref']),
+                'word_ref': resolved_word_ref(word['word_ref'], canonical_refs),
                 'items': _sort(word_items_by_word[word['word_id']], 'item_order'),
             }
             for word in module_words

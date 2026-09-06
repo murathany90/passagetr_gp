@@ -25,6 +25,8 @@ class _WordsPageState extends ConsumerState<WordsPage> {
   String _query = '';
   String? _tag;
   String? _level;
+  bool _favoritesOnly = false;
+  bool _showTranslations = true;
   int _page = 0;
   bool _filtersRestored = false;
   late final TextEditingController _searchController;
@@ -92,17 +94,23 @@ class _WordsPageState extends ConsumerState<WordsPage> {
           message: error.toString(),
           onRetry: () => ref.invalidate(wordsProvider)),
       data: (items) {
-        final allTags = canonicalWordTags(items);
-        final allLevels = canonicalWordLevels(items);
+        final filterBase = items
+            .where(
+              (word) =>
+                  !_favoritesOnly || progress.favoriteWordIds.contains(word.id),
+            )
+            .toList(growable: false);
+        final allTags = canonicalWordTags(filterBase);
+        final allLevels = canonicalWordLevels(filterBase);
         var validTag = allTags.contains(_tag) ? _tag : null;
         var validLevel = allLevels.contains(_level) ? _level : null;
         final tags = canonicalWordTags(
-          items.where(
+          filterBase.where(
             (word) => validLevel == null || word.level == validLevel,
           ),
         );
         final levels = canonicalWordLevels(
-          items.where(
+          filterBase.where(
             (word) => validTag == null || word.tags.contains(validTag),
           ),
         );
@@ -123,7 +131,7 @@ class _WordsPageState extends ConsumerState<WordsPage> {
                 .setWordFilters(tag: validTag, level: validLevel);
           });
         }
-        final filtered = items.where((word) {
+        final filtered = filterBase.where((word) {
           final text =
               '${word.enWord} ${word.trMeaning} ${word.pos}'.toLowerCase();
           return matchesWordFilters(word, level: validLevel, tag: validTag) &&
@@ -195,7 +203,7 @@ class _WordsPageState extends ConsumerState<WordsPage> {
                     selected: validTag,
                     onChanged: (value) {
                       final availableLevels = canonicalWordLevels(
-                        items.where(
+                        filterBase.where(
                           (word) => value == null || word.tags.contains(value),
                         ),
                       );
@@ -231,7 +239,7 @@ class _WordsPageState extends ConsumerState<WordsPage> {
                   ],
                   onChanged: (value) {
                     final availableTags = canonicalWordTags(
-                      items.where(
+                      filterBase.where(
                         (word) => value == null || word.level == value,
                       ),
                     );
@@ -276,7 +284,70 @@ class _WordsPageState extends ConsumerState<WordsPage> {
                       icon: const Icon(Icons.shuffle_rounded, size: 18),
                       label: const Text('Karıştır'),
                     ),
+                    OutlinedButton.icon(
+                      key: const ValueKey<String>('word-translation-toggle'),
+                      onPressed: () => setState(
+                        () => _showTranslations = !_showTranslations,
+                      ),
+                      icon: Icon(
+                        _showTranslations
+                            ? Icons.visibility_off_outlined
+                            : Icons.visibility_outlined,
+                        size: 18,
+                      ),
+                      label: Text(
+                        _showTranslations
+                            ? 'Çeviriyi gizle'
+                            : 'Çeviriyi göster',
+                      ),
+                    ),
                   ],
+                ),
+                const SizedBox(height: 10),
+                FilterChip(
+                  key: const ValueKey<String>('word-favorites-filter'),
+                  avatar: Icon(
+                    _favoritesOnly
+                        ? Icons.favorite_rounded
+                        : Icons.favorite_border_rounded,
+                    size: 18,
+                  ),
+                  label: const Text('Favoriler'),
+                  selected: _favoritesOnly,
+                  onSelected: (selected) {
+                    final nextBase = items
+                        .where(
+                          (word) =>
+                              !selected ||
+                              progress.favoriteWordIds.contains(word.id),
+                        )
+                        .toList(growable: false);
+                    var nextTag = validTag;
+                    var nextLevel = validLevel;
+                    final nextTags = canonicalWordTags(
+                      nextBase.where(
+                        (word) => nextLevel == null || word.level == nextLevel,
+                      ),
+                    );
+                    if (!nextTags.contains(nextTag)) nextTag = null;
+                    final nextLevels = canonicalWordLevels(
+                      nextBase.where(
+                        (word) =>
+                            nextTag == null || word.tags.contains(nextTag),
+                      ),
+                    );
+                    if (!nextLevels.contains(nextLevel)) nextLevel = null;
+                    setState(() {
+                      _favoritesOnly = selected;
+                      _tag = nextTag;
+                      _level = nextLevel;
+                      _page = 0;
+                    });
+                    ref.read(localProgressProvider.notifier).setWordFilters(
+                          tag: nextTag,
+                          level: nextLevel,
+                        );
+                  },
                 ),
                 const SizedBox(height: 10),
                 Row(children: <Widget>[
@@ -284,12 +355,13 @@ class _WordsPageState extends ConsumerState<WordsPage> {
                     child: Text('${filtered.length} sonuç',
                         style: Theme.of(context).textTheme.titleMedium),
                   ),
-                  if (validTag != null || validLevel != null)
+                  if (validTag != null || validLevel != null || _favoritesOnly)
                     TextButton.icon(
                       onPressed: () {
                         setState(() {
                           _tag = null;
                           _level = null;
+                          _favoritesOnly = false;
                           _page = 0;
                         });
                         ref
@@ -314,7 +386,10 @@ class _WordsPageState extends ConsumerState<WordsPage> {
                       : () => setState(() => _page = page + 1),
                 ),
                 const SizedBox(height: 8),
-                _WordGrid(words: visible),
+                _WordGrid(
+                  words: visible,
+                  showTranslations: _showTranslations,
+                ),
               ]),
         );
       },
@@ -374,8 +449,9 @@ class _TagFilter extends StatelessWidget {
 }
 
 class _WordGrid extends StatelessWidget {
-  const _WordGrid({required this.words});
+  const _WordGrid({required this.words, required this.showTranslations});
   final List<WordEntry> words;
+  final bool showTranslations;
   @override
   Widget build(BuildContext context) {
     if (words.isEmpty) {
@@ -396,68 +472,91 @@ class _WordGrid extends StatelessWidget {
             crossAxisSpacing: 12,
             mainAxisSpacing: 12,
             mainAxisExtent: 156),
-        itemBuilder: (context, index) => _WordCard(word: words[index]),
+        itemBuilder: (context, index) => _WordCard(
+          word: words[index],
+          showTranslations: showTranslations,
+        ),
       );
     });
   }
 }
 
-class _WordCard extends ConsumerWidget {
-  const _WordCard({required this.word});
+class _WordCard extends ConsumerStatefulWidget {
+  const _WordCard({required this.word, required this.showTranslations});
   final WordEntry word;
+  final bool showTranslations;
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_WordCard> createState() => _WordCardState();
+}
+
+class _WordCardState extends ConsumerState<_WordCard> {
+  bool _hovering = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final word = widget.word;
     final tokens = AppThemeTokens.of(context);
     final tts = ref.watch(studentTtsControllerProvider);
     final speaking = tts.isSpeaking && tts.activeWordId == word.id;
-    return SurfaceCard(
-      onTap: () => showModalBottomSheet<void>(
-          context: context,
-          isScrollControlled: true,
-          showDragHandle: false,
-          builder: (_) => WordDetailSheet(word: word)),
-      child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Wrap(spacing: 8, children: <Widget>[
-              _Pill(label: word.pos, color: tokens.accentBlue),
-              if (word.level != null)
-                _Pill(label: word.level!, color: tokens.hero),
-            ]),
-            const Spacer(),
-            Text(word.enWord,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.titleLarge),
-            const SizedBox(height: 5),
-            Text(word.trMeaning,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.titleMedium),
-            const Spacer(),
-            Row(children: <Widget>[
-              Text('Detayı aç',
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodySmall
-                      ?.copyWith(color: tokens.accent)),
+    final translationVisible = widget.showTranslations || _hovering;
+    return MouseRegion(
+      onEnter: (_) {
+        if (!widget.showTranslations) setState(() => _hovering = true);
+      },
+      onExit: (_) {
+        if (_hovering) setState(() => _hovering = false);
+      },
+      child: SurfaceCard(
+        onTap: () => showModalBottomSheet<void>(
+            context: context,
+            isScrollControlled: true,
+            showDragHandle: false,
+            builder: (_) => WordDetailSheet(word: word)),
+        child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Wrap(spacing: 8, children: <Widget>[
+                _Pill(label: word.pos, color: tokens.accentBlue),
+                if (word.level != null)
+                  _Pill(label: word.level!, color: tokens.hero),
+              ]),
               const Spacer(),
-              StudentTtsIconButton(
-                tooltip: 'Kelimeyi dinle',
-                iconSize: 18,
-                visualDensity: VisualDensity.compact,
-                isSpeaking: speaking,
-                isInitializing:
-                    tts.isInitializing && tts.activeWordId == word.id,
-                isUnavailable: tts.isUnavailable,
-                onPlay: () => ref
-                    .read(studentTtsControllerProvider.notifier)
-                    .playWord(word: word),
-                onStop: () =>
-                    ref.read(studentTtsControllerProvider.notifier).stop(),
-              ),
+              Text(word.enWord,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.titleLarge),
+              const SizedBox(height: 5),
+              if (translationVisible)
+                Text(word.trMeaning,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.titleMedium),
+              const Spacer(),
+              Row(children: <Widget>[
+                Text('Detayı aç',
+                    style: Theme.of(context)
+                        .textTheme
+                        .bodySmall
+                        ?.copyWith(color: tokens.accent)),
+                const Spacer(),
+                StudentTtsIconButton(
+                  tooltip: 'Kelimeyi dinle',
+                  iconSize: 18,
+                  visualDensity: VisualDensity.compact,
+                  isSpeaking: speaking,
+                  isInitializing:
+                      tts.isInitializing && tts.activeWordId == word.id,
+                  isUnavailable: tts.isUnavailable,
+                  onPlay: () => ref
+                      .read(studentTtsControllerProvider.notifier)
+                      .playWord(word: word),
+                  onStop: () =>
+                      ref.read(studentTtsControllerProvider.notifier).stop(),
+                ),
+              ]),
             ]),
-          ]),
+      ),
     );
   }
 }

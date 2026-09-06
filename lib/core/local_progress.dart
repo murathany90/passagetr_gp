@@ -148,6 +148,7 @@ class LocalProgressController extends StateNotifier<LocalProgressSnapshot> {
     final answers = Map<String, String>.of(state.studyQuestionAnswers)
       ..removeWhere(
         (questionId, _) =>
+            fingerprints[questionId] == null ||
             previousFingerprints[questionId] != fingerprints[questionId],
       );
     final correctness = Map<String, bool>.of(state.studyQuestionCorrectness)

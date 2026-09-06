@@ -269,6 +269,7 @@ class _StudyWordItemsBlock extends StatelessWidget {
 
 String _studyWordItemLabel(String type) => switch (type) {
       'collocation' => 'Kalıplar',
+      'pattern' => 'Kalıp / edat',
       'synonym' => 'Eş anlamlılar',
       'antonym' => 'Zıt anlamlılar',
       'family' => 'Kelime ailesi',

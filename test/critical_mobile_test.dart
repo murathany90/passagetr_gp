@@ -105,12 +105,18 @@ void main() {
   );
   final dictionaryRepository = _FixtureDictionaryRepository();
 
-  Widget app(Widget child) => ProviderScope(
+  Widget app(
+    Widget child, {
+    LocalProgressRepository? progressRepository,
+  }) =>
+      ProviderScope(
         overrides: <Override>[
           staticContentRepositoryProvider.overrideWithValue(repository),
           staticDictionaryRepositoryProvider
               .overrideWithValue(dictionaryRepository),
-          localProgressRepositoryProvider.overrideWithValue(_MemoryProgress()),
+          localProgressRepositoryProvider.overrideWithValue(
+            progressRepository ?? _MemoryProgress(),
+          ),
           studentTtsEngineProvider.overrideWithValue(_SilentTtsEngine()),
         ],
         child: MaterialApp(
@@ -156,6 +162,53 @@ void main() {
     expect(find.text('ETİKETLER'), findsOneWidget);
     expect(find.text('technology & it'), findsOneWidget);
     expect(find.text('Not'), findsNothing);
+  });
+
+  testWidgets('Words combines favorites with filters and toggles translations',
+      (tester) async {
+    await _setPhoneSize(tester);
+    await tester.pumpWidget(
+      app(
+        const WordsPage(),
+        progressRepository: _MemoryProgress(
+          initial: const LocalProgressSnapshot(
+            isLoaded: true,
+            favoriteWordIds: {'word-a'},
+          ),
+        ),
+      ),
+    );
+    await _pumpContent(tester);
+
+    expect(find.text(firstWord.trMeaning), findsOneWidget);
+    await tester.tap(
+      find.byKey(const ValueKey<String>('word-translation-toggle')),
+    );
+    await tester.pump();
+    expect(find.text(firstWord.trMeaning), findsNothing);
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('word-favorites-filter')),
+    );
+    await tester.pump();
+    expect(find.text('1 sonuç'), findsOneWidget);
+    expect(find.text('access'), findsOneWidget);
+    expect(find.text('bridge'), findsNothing);
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('word-translation-toggle')),
+    );
+    await tester.pump();
+    expect(find.text(firstWord.trMeaning), findsOneWidget);
+
+    await tester.enterText(find.byType(TextField), 'bridge');
+    await tester.pump();
+    expect(find.text('0 sonuç'), findsOneWidget);
+    expect(find.text('Aramana uygun kelime bulunamadı.'), findsOneWidget);
+    await tester.enterText(find.byType(TextField), 'access');
+    await tester.pump();
+    expect(find.text('1 sonuç'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('390px Flashcard uses level and tag filters without overflow',
@@ -488,9 +541,12 @@ class _FixtureRepository extends StaticContentRepository {
 }
 
 class _MemoryProgress extends LocalProgressRepository {
+  _MemoryProgress({this.initial = const LocalProgressSnapshot(isLoaded: true)});
+
+  final LocalProgressSnapshot initial;
+
   @override
-  Future<LocalProgressSnapshot> load() async =>
-      const LocalProgressSnapshot(isLoaded: true);
+  Future<LocalProgressSnapshot> load() async => initial;
 
   @override
   Future<void> saveCompletedReadingIds(Set<String> ids) async {}
