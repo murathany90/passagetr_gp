@@ -1,6 +1,8 @@
 import 'dart:convert';
 
-import 'package:flutter/services.dart' show AssetBundle, rootBundle;
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/services.dart'
+    show AssetBundle, NetworkAssetBundle, rootBundle;
 
 import '../models/study_models.dart';
 import 'static_content_repository.dart';
@@ -63,8 +65,7 @@ class StaticStudyRepository {
 
   Future<Map<String, Object?>> _loadJson(String relativePath) async {
     try {
-      final decoded =
-          jsonDecode(await _bundle.loadString(_assetKey(relativePath)));
+      final decoded = jsonDecode(await _loadString(relativePath));
       if (decoded is! Map) {
         throw const FormatException('JSON object bekleniyordu.');
       }
@@ -80,6 +81,19 @@ class StaticStudyRepository {
     final key = '$root/$relativePath';
     if (!_versionAssetLoads || _appBuildSha.isEmpty) return key;
     return '$key?v=${Uri.encodeQueryComponent(_appBuildSha)}';
+  }
+
+  Future<String> _loadString(String relativePath) {
+    if (kIsWeb && _versionAssetLoads && _appBuildSha.isNotEmpty) {
+      // Flutter's rootBundle resolves logical asset keys, where a query string
+      // is treated as part of the filename. Load the physical web asset URL
+      // instead so each deployment gets its own cache key.
+      final cacheKey = Uri.encodeQueryComponent(_appBuildSha);
+      return NetworkAssetBundle(Uri.base).loadString(
+        'assets/$root/$relativePath?v=$cacheKey',
+      );
+    }
+    return _bundle.loadString(_assetKey(relativePath));
   }
 }
 
