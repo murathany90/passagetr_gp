@@ -6,12 +6,21 @@ import '../models/study_models.dart';
 import 'static_content_repository.dart';
 
 class StaticStudyRepository {
-  StaticStudyRepository(
-      {AssetBundle? bundle, this.root = 'assets/content/study'})
-      : _bundle = bundle ?? rootBundle;
+  StaticStudyRepository({
+    AssetBundle? bundle,
+    this.root = 'assets/content/study',
+    String? appBuildSha,
+    bool? versionAssetLoads,
+  })  : _bundle = bundle ?? rootBundle,
+        _appBuildSha =
+            (appBuildSha ?? const String.fromEnvironment('APP_BUILD_SHA'))
+                .trim(),
+        _versionAssetLoads = versionAssetLoads ?? bundle == null;
 
   final AssetBundle _bundle;
   final String root;
+  final String _appBuildSha;
+  final bool _versionAssetLoads;
   Future<List<StudyModuleSummary>>? _modulesFuture;
   final Map<String, Future<StudyModuleDetail>> _moduleCache =
       <String, Future<StudyModuleDetail>>{};
@@ -55,7 +64,7 @@ class StaticStudyRepository {
   Future<Map<String, Object?>> _loadJson(String relativePath) async {
     try {
       final decoded =
-          jsonDecode(await _bundle.loadString('$root/$relativePath'));
+          jsonDecode(await _bundle.loadString(_assetKey(relativePath)));
       if (decoded is! Map) {
         throw const FormatException('JSON object bekleniyordu.');
       }
@@ -65,6 +74,12 @@ class StaticStudyRepository {
       throw StaticContentException(
           'Çalışma asseti yüklenemedi: $relativePath', error);
     }
+  }
+
+  String _assetKey(String relativePath) {
+    final key = '$root/$relativePath';
+    if (!_versionAssetLoads || _appBuildSha.isEmpty) return key;
+    return '$key?v=${Uri.encodeQueryComponent(_appBuildSha)}';
   }
 }
 

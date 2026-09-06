@@ -106,6 +106,42 @@ void main() {
     expect(translationStrategyCount, 150);
   });
 
+  test('Study deploy versioning preserves injected AssetBundle paths',
+      () async {
+    final bundle = _VersionedFileAssetBundle();
+    final versionedRepository = StaticStudyRepository(
+      bundle: bundle,
+      appBuildSha: 'deploy-sha',
+      versionAssetLoads: true,
+    );
+
+    await versionedRepository.loadModule('study-0030');
+
+    expect(
+      bundle.loadedKeys,
+      contains('assets/content/study/study_manifest.json?v=deploy-sha'),
+    );
+    expect(
+      bundle.loadedKeys,
+      contains('assets/content/study/modules/study_0030.json?v=deploy-sha'),
+    );
+
+    final plainBundle = _VersionedFileAssetBundle();
+    final injectedRepository = StaticStudyRepository(
+      bundle: plainBundle,
+      appBuildSha: 'deploy-sha',
+    );
+    await injectedRepository.loadModules();
+    expect(
+      plainBundle.loadedKeys,
+      contains('assets/content/study/study_manifest.json'),
+    );
+    expect(
+      plainBundle.loadedKeys,
+      isNot(contains('assets/content/study/study_manifest.json?v=deploy-sha')),
+    );
+  });
+
   test('resetting one Study module preserves other module progress', () {
     final controller = LocalProgressController(_MemoryProgress());
     addTearDown(controller.dispose);
@@ -246,6 +282,18 @@ class _FileAssetBundle extends CachingAssetBundle {
   @override
   Future<ByteData> load(String key) async {
     final bytes = await File(key).readAsBytes();
+    return ByteData.sublistView(bytes);
+  }
+}
+
+class _VersionedFileAssetBundle extends CachingAssetBundle {
+  final List<String> loadedKeys = <String>[];
+
+  @override
+  Future<ByteData> load(String key) async {
+    loadedKeys.add(key);
+    final path = key.split('?').first;
+    final bytes = await File(path).readAsBytes();
     return ByteData.sublistView(bytes);
   }
 }

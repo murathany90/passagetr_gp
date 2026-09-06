@@ -39,7 +39,7 @@ jobs:
       - name: Validate study content
         run: python3 tools/validate_study_content.py
       - name: Build web
-        run: flutter build web --release --base-href "/passagetr_gp/"
+        run: flutter build web --release --base-href "/passagetr_gp/" --dart-define=APP_BUILD_SHA=${{ github.sha }}
       - name: Configure Pages
         uses: actions/configure-pages@v5
         with:
