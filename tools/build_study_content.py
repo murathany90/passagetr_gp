@@ -23,12 +23,15 @@ import build_static_content as content  # noqa: E402
 
 
 SOURCE_RELATIVE_PATH = Path(
-    'source_data/canonical/study/PASSAGETR_YDS_Study_Canonical_v1_Module_01-12.xlsx'
+    'source_data/canonical/study/PASSAGETR_YDS_Study_Canonical_v2_Module_01-30.xlsx'
 )
 DEFAULT_OUTPUT = ROOT / 'assets' / 'content' / 'study'
-# The supplied workbook includes three valid study headwords that are not
-# literal entries in the existing 7,500-word bank. These bindings preserve the
-# source workbook while linking detail actions to the nearest canonical entry.
+EXPECTED_MODULE_COUNT = 30
+# Study headwords remain verbatim in the supplied workbook.  Some are
+# inflected forms, lexical-family variants, or specialised terms that are not
+# literal entries in the existing 7,500-word bank.  These bindings preserve
+# the source workbook while keeping the shared canonical word-detail action
+# available for every target word.
 WORD_REF_ALIASES = {
     'threshold': 'boundary',
     'intermittent': 'episodic',
@@ -63,6 +66,88 @@ WORD_REF_ALIASES = {
     'barrier': 'obstacle',
     'bridge': 'reconcile',
     'prioritize': 'priority',
+    'acquit': 'acquittal',
+    'adaptation': 'adaption',
+    'algorithm': 'algorithmic',
+    'artifact': 'artefact',
+    'ascribe': 'ascribe to',
+    'asteroid': 'spacecraft',
+    'atone for': 'redress',
+    'biased': 'bias',
+    'bilingual': 'bilingualism',
+    'bioluminescent': 'fluorescence',
+    'biosecurity': 'protection',
+    'blight': 'disease',
+    'bring on': 'bring about',
+    'call into question': 'in question',
+    'celestial': 'universe',
+    'coexist': 'coexistence',
+    'cognizant': 'aware',
+    'contraction': 'contract',
+    'craving': 'desire',
+    'culminate in': 'result in',
+    'cultivar': 'cultivate',
+    'dataset': 'data provenance',
+    'deprive': 'deprive of',
+    'deterrent': 'deterrence',
+    'diplomacy': 'diplomatic',
+    'divergence': 'divergent',
+    'dopamine': 'neurotransmitter',
+    'dosage': 'dose',
+    'drive at': 'mean',
+    'dysfunction': 'function',
+    'elicit': 'prompt',
+    'emanate': 'emit',
+    'equity': 'equality',
+    'falsifiable': 'falsifiability',
+    'fend': 'fend for',
+    'fluency': 'fluent',
+    'framing': 'framework',
+    'fritter away': 'squander',
+    'harmonize': 'harmonization',
+    'hierarchy': 'rank',
+    'hinge on': 'hinge upon',
+    'hypothesis': 'hypothetical',
+    'impervious': 'resistant',
+    'incur': 'suffer',
+    'institution': 'institutionalization',
+    'inundate': 'submerge',
+    'irrational': 'aberrational',
+    'liberalize': 'liberalization',
+    'look back on': 'look back upon',
+    'loom': 'threatening',
+    'migration': 'migrant',
+    'nudge': 'encourage',
+    'oversight': 'supervision',
+    'paradigm': 'framework',
+    'pass down': 'hand down',
+    'preclude': 'obviate',
+    'precursor': 'predecessor',
+    'predisposed': 'prone',
+    'predisposition': 'disposition',
+    'propulsion': 'propel',
+    'proximity': 'adjacent',
+    'radiation': 'exposure',
+    'rationality': 'rational',
+    'reciprocate': 'reciprocal',
+    'refrain from': 'refrain',
+    'relapse': 'recurrence',
+    'retention': 'retention span',
+    'salience': 'salient',
+    'sanctuary': 'preserve',
+    'sift': 'scrutinize',
+    'sovereign': 'sovereignty',
+    'spring': 'stem from',
+    'statute': 'law',
+    'stave off': 'ward off',
+    'stumbling block': 'obstacle',
+    'syntax': 'syntactic',
+    'tolerant': 'tolerance',
+    'trajectory': 'course',
+    'tribunal': 'court',
+    'unparalleled': 'unique',
+    'vigorously': 'vigorous',
+    'wean': 'withdraw',
 }
 SHEET_HEADERS = {
     '01_Modules': (
@@ -336,8 +421,24 @@ def validate_workbook(workbook: dict[str, list[dict[str, str]]]) -> dict[str, An
     review = workbook['10_Review']
     if not modules:
         raise ValueError('Study workbook must have at least one module.')
+    expected_module_ids = {
+        f'study-{number:04d}' for number in range(1, EXPECTED_MODULE_COUNT + 1)
+    }
+    actual_module_ids = {record['module_id'] for record in modules}
+    if actual_module_ids != expected_module_ids:
+        raise ValueError(
+            f'Study workbook module IDs must be study-0001 through '
+            f'study-{EXPECTED_MODULE_COUNT:04d}.'
+        )
     _unique(modules, 'module_id', '01_Modules')
-    module_ids = {record['module_id'] for record in modules}
+    if {record['module_no'] for record in modules} != {
+        str(number) for number in range(1, EXPECTED_MODULE_COUNT + 1)
+    }:
+        raise ValueError(
+            f'Study workbook module_no values must be 1 through '
+            f'{EXPECTED_MODULE_COUNT}.'
+        )
+    module_ids = actual_module_ids
     for record in modules:
         _require(record, SHEET_HEADERS['01_Modules'], f"01_Modules/{record.get('module_id')}")
     for name, records, required in (

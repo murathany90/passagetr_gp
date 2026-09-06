@@ -16,8 +16,27 @@ class StudyPage extends ConsumerStatefulWidget {
 }
 
 class _StudyPageState extends ConsumerState<StudyPage> {
+  static const _pageSize = 10;
+
   String? _topic;
   String? _grammar;
+  int _page = 0;
+  final _moduleListKey = GlobalKey();
+
+  void _changePage(int page) {
+    if (_page == page) return;
+    setState(() => _page = page);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final target = _moduleListKey.currentContext;
+      if (target == null) return;
+      Scrollable.ensureVisible(
+        target,
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOut,
+        alignment: .05,
+      );
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -83,6 +102,18 @@ class _StudyPageState extends ConsumerState<StudyPage> {
                       module.grammarFocus == selectedGrammar),
             )
             .toList(growable: false);
+        final totalPages = (shown.length / _pageSize).ceil();
+        final currentPage =
+            totalPages == 0 ? 0 : _page.clamp(0, totalPages - 1).toInt();
+        if (_page != currentPage) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) setState(() => _page = currentPage);
+          });
+        }
+        final visibleModules = shown
+            .skip(currentPage * _pageSize)
+            .take(_pageSize)
+            .toList(growable: false);
         return PageFrame(
           title: 'Çalışma',
           subtitle: 'Kaynak tabanlı YDS çalışma modülleri.',
@@ -110,6 +141,7 @@ class _StudyPageState extends ConsumerState<StudyPage> {
                           values: topicValues,
                           onChanged: (value) => setState(() {
                             _topic = value;
+                            _page = 0;
                             final availableGrammar = allModules
                                 .where(
                                   (module) =>
@@ -128,14 +160,28 @@ class _StudyPageState extends ConsumerState<StudyPage> {
                           value: selectedGrammar,
                           width: width,
                           values: grammarValues,
-                          onChanged: (value) =>
-                              setState(() => _grammar = value),
+                          onChanged: (value) => setState(() {
+                            _grammar = value;
+                            _page = 0;
+                            final availableTopics = allModules
+                                .where(
+                                  (module) =>
+                                      value == null ||
+                                      module.grammarFocus == value,
+                                )
+                                .map((module) => module.mainTopic);
+                            if (_topic != null &&
+                                !availableTopics.contains(_topic)) {
+                              _topic = null;
+                            }
+                          }),
                         ),
                         if (_topic != null || _grammar != null)
                           TextButton.icon(
                             onPressed: () => setState(() {
                               _topic = null;
                               _grammar = null;
+                              _page = 0;
                             }),
                             icon: const Icon(Icons.clear_rounded),
                             label: const Text('Filtreleri temizle'),
@@ -150,34 +196,89 @@ class _StudyPageState extends ConsumerState<StudyPage> {
                 const SurfaceCard(
                   child: Text('Bu filtrelerle eşleşen modül yok.'),
                 ),
-              if (shown.isNotEmpty)
+              if (shown.isNotEmpty) ...<Widget>[
+                const SizedBox(height: 12),
+                _StudyPagination(
+                  currentPage: currentPage,
+                  totalPages: totalPages,
+                  totalItems: shown.length,
+                  pageSize: _pageSize,
+                  onChanged: _changePage,
+                ),
+                const SizedBox(height: 12),
                 LayoutBuilder(
                   builder: (context, constraints) {
                     final twoColumns = constraints.maxWidth >= 720;
                     final width = twoColumns
                         ? (constraints.maxWidth - 14) / 2
                         : constraints.maxWidth;
-                    return Wrap(
-                      spacing: 14,
-                      runSpacing: 14,
-                      children: shown
-                          .map(
-                            (module) => SizedBox(
-                              width: width,
-                              child: _StudyModuleCard(
-                                module: module,
-                                uniformHeight: twoColumns,
+                    return SizedBox(
+                      key: _moduleListKey,
+                      child: Wrap(
+                        spacing: 14,
+                        runSpacing: 14,
+                        children: visibleModules
+                            .map(
+                              (module) => SizedBox(
+                                width: width,
+                                child: _StudyModuleCard(
+                                  module: module,
+                                  uniformHeight: twoColumns,
+                                ),
                               ),
-                            ),
-                          )
-                          .toList(growable: false),
+                            )
+                            .toList(growable: false),
+                      ),
                     );
                   },
                 ),
+              ],
             ],
           ),
         );
       },
+    );
+  }
+}
+
+class _StudyPagination extends StatelessWidget {
+  const _StudyPagination({
+    required this.currentPage,
+    required this.totalPages,
+    required this.totalItems,
+    required this.pageSize,
+    required this.onChanged,
+  });
+
+  final int currentPage;
+  final int totalPages;
+  final int totalItems;
+  final int pageSize;
+  final ValueChanged<int> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final pages = List<int>.generate(totalPages, (index) => index);
+    return SurfaceCard(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      child: Wrap(
+        alignment: WrapAlignment.center,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: 6,
+        runSpacing: 6,
+        children: <Widget>[
+          for (final page in pages)
+            ChoiceChip(
+              label: Text(
+                '${page * pageSize + 1}\u2013'
+                '${((page + 1) * pageSize).clamp(0, totalItems)}',
+              ),
+              selected: page == currentPage,
+              visualDensity: VisualDensity.compact,
+              onSelected: (_) => onChanged(page),
+            ),
+        ],
+      ),
     );
   }
 }
@@ -310,12 +411,12 @@ class _StudyModuleCard extends ConsumerWidget {
     final continuing = finished > 0 && finished < 7;
     const total = 7;
     final content = Padding(
-      padding: const EdgeInsets.fromLTRB(18, 15, 18, 16),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           SizedBox(
-            height: 66,
+            height: 60,
             child: Text(
               _bilingualTitle(module.subtopic, module.subtopicTr),
               maxLines: 3,
@@ -323,15 +424,15 @@ class _StudyModuleCard extends ConsumerWidget {
               style: Theme.of(context).textTheme.titleMedium,
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 7),
           _CardLabel(label: 'Ana konu', value: module.mainTopic),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           _CardLabel(
             label: 'Gramer',
             value: module.grammarFocus,
             maxLines: 2,
           ),
-          if (uniformHeight) const Spacer() else const SizedBox(height: 18),
+          const SizedBox(height: 12),
           LinearProgressIndicator(value: finished / total),
           const SizedBox(height: 7),
           Text(
@@ -366,13 +467,13 @@ class _StudyModuleCard extends ConsumerWidget {
       padding: EdgeInsets.zero,
       onTap: () => context.go('/study/module/${module.id}'),
       child: SizedBox(
-        height: uniformHeight ? 372 : null,
+        height: uniformHeight ? 338 : null,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               decoration: BoxDecoration(
                 gradient: _moduleAccentGradient(module.number),
                 borderRadius: const BorderRadius.vertical(

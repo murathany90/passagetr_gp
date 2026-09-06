@@ -35,7 +35,10 @@ def main() -> int:
     if manifest != expected_manifest:
         raise ValueError('Study manifest does not match canonical workbook.')
     generated_ids = {module['module_id'] for module in manifest.get('modules', [])}
-    expected_ids = {f'study-{number:04d}' for number in range(1, 13)}
+    expected_ids = {
+        f'study-{number:04d}'
+        for number in range(1, study.EXPECTED_MODULE_COUNT + 1)
+    }
     if generated_ids != set(expected_payloads) or generated_ids != expected_ids:
         raise ValueError('Generated study module IDs are incomplete.')
     reading_sentence_pairs = 0

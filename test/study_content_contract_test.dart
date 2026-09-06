@@ -28,11 +28,11 @@ void main() {
   test('study repository loads all generated Study modules', () async {
     final modules = await repository.loadModules();
     final detail = await repository.loadModule('study-0001');
-    expect(modules, hasLength(12));
+    expect(modules, hasLength(30));
     expect(
       modules.map((item) => item.id),
       equals(<String>[
-        for (var number = 1; number <= 12; number++)
+        for (var number = 1; number <= 30; number++)
           'study-${number.toString().padLeft(4, '0')}',
       ]),
     );
@@ -66,6 +66,8 @@ void main() {
       ),
       isTrue,
     );
+    var usageNoteCount = 0;
+    var translationStrategyCount = 0;
     for (final module in modules) {
       final routeDetail = await repository.loadModule(module.id);
       expect(routeDetail.module.id, module.id);
@@ -90,7 +92,18 @@ void main() {
         ),
         isTrue,
       );
+      usageNoteCount += routeDetail.words
+          .expand((word) => word.items)
+          .where((item) => item.usageNote.isNotEmpty)
+          .length;
+      translationStrategyCount += routeDetail.sentences
+          .where(
+            (sentence) => sentence.analysis.containsKey('Çeviri stratejisi'),
+          )
+          .length;
     }
+    expect(usageNoteCount, 120);
+    expect(translationStrategyCount, 150);
   });
 
   test('resetting one Study module preserves other module progress', () {
@@ -162,6 +175,37 @@ void main() {
       ),
       findsOneWidget,
     );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Study home paginates 30 modules in groups of 10',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(ProviderScope(
+      overrides: <Override>[
+        staticStudyRepositoryProvider
+            .overrideWithValue(_ManyStudyFixtureRepository()),
+        localProgressRepositoryProvider.overrideWithValue(_MemoryProgress()),
+      ],
+      child: MaterialApp(
+        theme: AppTheme.light(),
+        home: const Scaffold(body: StudyPage()),
+      ),
+    ));
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.text('1–10'), findsOneWidget);
+    expect(find.text('11–20'), findsOneWidget);
+    expect(find.text('21–30'), findsOneWidget);
+    expect(find.text('Modül 01'), findsOneWidget);
+    expect(find.text('Modül 11'), findsNothing);
+
+    await tester.tap(find.text('11–20'));
+    await tester.pump();
+    expect(find.text('Modül 11'), findsOneWidget);
+    expect(find.text('Modül 01'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 
@@ -275,6 +319,64 @@ class _StudyFixtureRepository extends StaticStudyRepository {
   @override
   Future<StudyModuleDetail> loadModule(String moduleId) async {
     final module = (await loadModules()).single;
+    return StudyModuleDetail(
+      module: module,
+      words: const <StudyWord>[],
+      sentences: const <StudySentence>[],
+      reading: const StudyReading(
+        title: '',
+        titleTr: '',
+        textEn: '',
+        textTr: '',
+        sentencePairs: <StudyReadingSentence>[],
+        mainIdeaTr: '',
+        flowAnalysis: '',
+        importantWords: '',
+        connectorMap: '',
+        referenceAnalysis: '',
+        questions: <StudyQuestion>[],
+      ),
+      translations: const StudyTranslations(
+        enTr: <StudyTranslation>[],
+        trEn: <StudyTranslation>[],
+      ),
+      structures: const <StudyStructure>[],
+      testQuestions: const <StudyQuestion>[],
+      review: const <StudyReviewItem>[],
+    );
+  }
+}
+
+class _ManyStudyFixtureRepository extends _StudyFixtureRepository {
+  @override
+  Future<List<StudyModuleSummary>> loadModules() async => List.generate(
+        30,
+        (index) => StudyModuleSummary(
+          id: 'study-${(index + 1).toString().padLeft(4, '0')}',
+          number: index + 1,
+          mainTopic: index.isEven ? 'Bilim' : 'Toplum',
+          subtopic: 'Module ${index + 1}',
+          subtopicTr: 'Modül ${index + 1}',
+          grammarFocus: index.isEven ? 'Grammar A' : 'Grammar B',
+          grammarFocusTr: index.isEven ? 'Gramer A' : 'Gramer B',
+          levelProfile: 'B2',
+          status: 'example',
+          file: 'modules/study_${(index + 1).toString().padLeft(4, '0')}.json',
+          counts: const StudyModuleCounts(
+            words: 15,
+            sentences: 5,
+            readings: 1,
+            translations: 14,
+            testQuestions: 10,
+          ),
+        ),
+      );
+
+  @override
+  Future<StudyModuleDetail> loadModule(String moduleId) async {
+    final module = (await loadModules()).firstWhere(
+      (item) => item.id == moduleId,
+    );
     return StudyModuleDetail(
       module: module,
       words: const <StudyWord>[],
