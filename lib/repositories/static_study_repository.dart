@@ -28,8 +28,16 @@ class StaticStudyRepository {
   final Map<String, Future<StudyModuleDetail>> _moduleCache =
       <String, Future<StudyModuleDetail>>{};
 
-  Future<List<StudyModuleSummary>> loadModules() =>
-      _modulesFuture ??= _loadModules();
+  Future<List<StudyModuleSummary>> loadModules() {
+    final pending = _modulesFuture;
+    if (pending != null) return pending;
+    final future = _loadModules();
+    _modulesFuture = future;
+    future.then((_) {}, onError: (_) {
+      _modulesFuture = null;
+    });
+    return future;
+  }
 
   /// A stable content contract for safely retaining only answers that still
   /// belong to the current canonical Study questions after a workbook update.
@@ -52,18 +60,27 @@ class StaticStudyRepository {
   }
 
   Future<StudyModuleDetail> loadModule(String id) {
-    return _moduleCache.putIfAbsent(id, () async {
-      final module = (await loadModules()).where((item) => item.id == id);
-      if (module.isEmpty) {
-        throw StaticContentException('Çalışma modülü bulunamadı: $id');
-      }
-      final payload = await _loadJson(module.first.file);
-      final detail = StudyModuleDetail.fromJson(payload);
-      if (detail.module.id != id) {
-        throw StaticContentException('Çalışma modülü verisi geçersiz: $id');
-      }
-      return detail;
+    final pending = _moduleCache[id];
+    if (pending != null) return pending;
+    final future = _fetchModule(id);
+    _moduleCache[id] = future;
+    future.then((_) {}, onError: (_) {
+      _moduleCache.remove(id);
     });
+    return future;
+  }
+
+  Future<StudyModuleDetail> _fetchModule(String id) async {
+    final module = (await loadModules()).where((item) => item.id == id);
+    if (module.isEmpty) {
+      throw StaticContentException('Çalışma modülü bulunamadı: $id');
+    }
+    final payload = await _loadJson(module.first.file);
+    final detail = StudyModuleDetail.fromJson(payload);
+    if (detail.module.id != id) {
+      throw StaticContentException('Çalışma modülü verisi geçersiz: $id');
+    }
+    return detail;
   }
 
   Future<List<StudyModuleSummary>> _loadModules() async {
@@ -84,8 +101,16 @@ class StaticStudyRepository {
     return List<StudyModuleSummary>.unmodifiable(modules);
   }
 
-  Future<Map<String, Object?>> _loadManifest() =>
-      _manifestFuture ??= _loadJson('study_manifest.json');
+  Future<Map<String, Object?>> _loadManifest() {
+    final pending = _manifestFuture;
+    if (pending != null) return pending;
+    final future = _loadJson('study_manifest.json');
+    _manifestFuture = future;
+    future.then((_) {}, onError: (_) {
+      _manifestFuture = null;
+    });
+    return future;
+  }
 
   Future<Map<String, Object?>> _loadJson(String relativePath) async {
     try {

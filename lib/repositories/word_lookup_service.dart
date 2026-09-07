@@ -19,7 +19,7 @@ class WordLookupResult {
 }
 
 class WordLookupService {
-  const WordLookupService({
+  WordLookupService({
     required StaticContentRepository content,
     required StaticDictionaryRepository dictionary,
   })  : _content = content,
@@ -27,6 +27,8 @@ class WordLookupService {
 
   final StaticContentRepository _content;
   final StaticDictionaryRepository _dictionary;
+  Map<String, WordEntry>? _wordIndex;
+  int _indexedWordCount = -1;
 
   Future<WordLookupResult> find(String query) async {
     final normalized = normalizeDictionaryLookup(query);
@@ -34,9 +36,16 @@ class WordLookupService {
       return const WordLookupResult.notFound();
     }
     final words = await _content.loadWords();
-    final word = words
-        .where((entry) => normalizeDictionaryLookup(entry.enWord) == normalized)
-        .firstOrNull;
+    if (_wordIndex == null || _indexedWordCount != words.length) {
+      final index = <String, WordEntry>{};
+      for (final entry in words) {
+        index.putIfAbsent(
+            normalizeDictionaryLookup(entry.enWord), () => entry);
+      }
+      _wordIndex = index;
+      _indexedWordCount = words.length;
+    }
+    final word = _wordIndex![normalized];
     if (word != null) {
       return WordLookupResult.word(word);
     }

@@ -85,7 +85,7 @@ class LandingPage extends StatelessWidget {
                               icon: Icons.quiz_rounded,
                               title: 'Testler',
                               description:
-                                  'Canonical modüller, yapılar ve özgün testler.',
+                                  'Modüller, yapılar ve özgün testler.',
                               color: tokens.green,
                               onTap: () => context.go('/tests'))),
                     ])),

@@ -28,28 +28,56 @@ class StaticContentRepository {
 
   Future<List<ContentPack>> loadPacks() async => (await _catalog()).packs;
 
-  Future<List<WordEntry>> loadWords() => _wordsFuture ??= _loadWords();
+  Future<List<WordEntry>> loadWords() {
+    final pending = _wordsFuture;
+    if (pending != null) return pending;
+    final future = _loadWords();
+    _wordsFuture = future;
+    // Başarısız Future cache'de kalmasın; Tekrar dene yeniden yüklesin.
+    future.then((_) {}, onError: (_) {
+      _wordsFuture = null;
+    });
+    return future;
+  }
 
   Future<List<ReadingPassage>> loadReadings() async =>
       (await _catalog()).readings;
 
   Future<ReadingDetail> loadReading(String id) {
-    return _readingCache.putIfAbsent(id, () async {
-      final passage =
-          (await loadReadings()).where((item) => item.id == id).firstOrNull;
-      if (passage == null || passage.file == null) {
-        throw StaticContentException('Okuma kaydi bulunamadi: $id');
-      }
-      final payload = await _loadJson(passage.file!);
-      final detail = ReadingDetail.fromJson(payload);
-      if (detail.passage.id != id) {
-        throw StaticContentException('Okuma cümleleri geçersiz: $id');
-      }
-      return detail;
+    final pending = _readingCache[id];
+    if (pending != null) return pending;
+    final future = _loadReading(id);
+    _readingCache[id] = future;
+    future.then((_) {}, onError: (_) {
+      _readingCache.remove(id);
     });
+    return future;
   }
 
-  Future<_Catalog> _catalog() => _catalogFuture ??= _loadCatalog();
+  Future<ReadingDetail> _loadReading(String id) async {
+    final passage =
+        (await loadReadings()).where((item) => item.id == id).firstOrNull;
+    if (passage == null || passage.file == null) {
+      throw StaticContentException('Okuma kaydi bulunamadi: $id');
+    }
+    final payload = await _loadJson(passage.file!);
+    final detail = ReadingDetail.fromJson(payload);
+    if (detail.passage.id != id) {
+      throw StaticContentException('Okuma cümleleri geçersiz: $id');
+    }
+    return detail;
+  }
+
+  Future<_Catalog> _catalog() {
+    final pending = _catalogFuture;
+    if (pending != null) return pending;
+    final future = _loadCatalog();
+    _catalogFuture = future;
+    future.then((_) {}, onError: (_) {
+      _catalogFuture = null;
+    });
+    return future;
+  }
 
   Future<_Catalog> _loadCatalog() async {
     final manifest = await _loadJson('manifest.json');

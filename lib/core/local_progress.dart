@@ -21,23 +21,225 @@ class LocalProgressController extends StateNotifier<LocalProgressSnapshot> {
 
   final LocalProgressRepository _repository;
   late final Future<void> _restoreFuture;
-  bool _changedBeforeRestore = false;
+  bool _restoreDone = false;
+  final Set<String> _dirtyKeys = <String>{};
+
+  void _markDirty(String key) => _dirtyKeys.add(key);
+
+  Future<void> get restoreFuture => _restoreFuture;
+  bool get restoreDone => _restoreDone;
+
+  /// Restore bitmeden storage'a yazmak, henüz yüklenmemiş kayıtların
+  /// üzerine kısmi state yazıp veri kaybına yol açar. Bu yüzden restore
+  /// tamamlanmadan gelen yazmalar atlanır; restore birleştirilmiş state'i
+  /// kendisi persist eder.
+  void _save(Future<void> Function() write) {
+    if (_restoreDone) {
+      unawaited(write());
+    }
+  }
+
+  Future<void> _persistMerged(LocalProgressSnapshot merged) async {
+    if (_dirtyKeys.contains('wordFilters')) {
+      await _repository.saveWordFilters(
+          tag: merged.wordTag, level: merged.wordLevel);
+    }
+    if (_dirtyKeys.contains('readingFilters')) {
+      await _repository.saveReadingFilters(
+          level: merged.readingLevel, category: merged.readingCategory);
+    }
+    if (_dirtyKeys.contains('favWords')) {
+      await _repository.saveFavoriteWordIds(merged.favoriteWordIds);
+    }
+    if (_dirtyKeys.contains('knownWords')) {
+      await _repository.saveKnownWordIds(merged.knownWordIds);
+    }
+    if (_dirtyKeys.contains('completedReadings')) {
+      await _repository.saveCompletedReadingIds(merged.completedReadingIds);
+    }
+    if (_dirtyKeys.contains('studyLocation')) {
+      await _repository.saveStudyLocation(
+          moduleId: merged.studyLastModuleId, section: merged.studyLastSection);
+    }
+    if (_dirtyKeys.contains('studyAnswers')) {
+      await _repository.saveStudyQuestionAnswers(merged.studyQuestionAnswers);
+      await _repository
+          .saveStudyQuestionCorrectness(merged.studyQuestionCorrectness);
+      await _repository.saveStudyQuestionContent(
+        version: merged.studyQuestionContentVersion ?? '',
+        fingerprints: merged.studyQuestionFingerprints,
+      );
+    }
+    if (_dirtyKeys.contains('studySections')) {
+      await _repository
+          .saveCompletedStudySectionKeys(merged.completedStudySectionKeys);
+      await _repository
+          .saveCompletedStudyModuleIds(merged.completedStudyModuleIds);
+    }
+    if (_dirtyKeys.contains('testLastModule')) {
+      await _repository.saveTestLastModuleNo(merged.testLastModuleNo);
+    }
+    if (_dirtyKeys.contains('testFlashcards')) {
+      await _repository.saveTestFlashcardKnownIds(merged.testFlashcardKnownIds);
+    }
+    if (_dirtyKeys.contains('testMatching')) {
+      await _repository.saveCompletedTestMatchingModuleIds(
+          merged.completedTestMatchingModuleIds);
+    }
+    if (_dirtyKeys.contains('testAnswers')) {
+      await _repository.saveTestQuestionAnswers(merged.testQuestionAnswers);
+      await _repository
+          .saveTestQuestionCorrectness(merged.testQuestionCorrectness);
+      await _repository.saveTestQuestionContent(
+        version: merged.testQuestionContentVersion ?? '',
+        fingerprints: merged.testQuestionFingerprints,
+      );
+    }
+    if (_dirtyKeys.contains('examProgress')) {
+      await _repository
+          .saveTestExamLastQuestionIndexes(merged.testExamLastQuestionIndexes);
+      await _repository.saveTestExamBestScores(merged.testExamBestScores);
+    }
+  }
 
   Future<void> _restore() async {
     try {
       final restored = await _repository.load();
-      if (mounted && !_changedBeforeRestore) {
-        state = restored;
+      if (!mounted) return;
+      if (_dirtyKeys.isEmpty) {
+        state = restored.copyWith(isLoaded: true);
+      } else {
+        // Restore tamamlanmadan yapılan kullanıcı değişiklikleri korunur:
+        // set/map alanlar birleştirilir (çakışmada yeni değer kazanır),
+        // scalar alanlarda dokunulan değer korunur.
+        final current = state;
+        state = restored.copyWith(
+          isLoaded: true,
+          favoriteWordIds: _dirtyKeys.contains('favWords')
+              ? <String>{...restored.favoriteWordIds, ...current.favoriteWordIds}
+              : restored.favoriteWordIds,
+          knownWordIds: _dirtyKeys.contains('knownWords')
+              ? <String>{...restored.knownWordIds, ...current.knownWordIds}
+              : restored.knownWordIds,
+          completedReadingIds: _dirtyKeys.contains('completedReadings')
+              ? <String>{
+                  ...restored.completedReadingIds,
+                  ...current.completedReadingIds
+                }
+              : restored.completedReadingIds,
+          wordTag: _dirtyKeys.contains('wordFilters')
+              ? current.wordTag
+              : restored.wordTag,
+          wordLevel: _dirtyKeys.contains('wordFilters')
+              ? current.wordLevel
+              : restored.wordLevel,
+          readingLevel: _dirtyKeys.contains('readingFilters')
+              ? current.readingLevel
+              : restored.readingLevel,
+          readingCategory: _dirtyKeys.contains('readingFilters')
+              ? current.readingCategory
+              : restored.readingCategory,
+          completedStudyModuleIds: _dirtyKeys.contains('studySections')
+              ? <String>{
+                  ...restored.completedStudyModuleIds,
+                  ...current.completedStudyModuleIds
+                }
+              : restored.completedStudyModuleIds,
+          completedStudySectionKeys: _dirtyKeys.contains('studySections')
+              ? <String>{
+                  ...restored.completedStudySectionKeys,
+                  ...current.completedStudySectionKeys
+                }
+              : restored.completedStudySectionKeys,
+          studyLastModuleId: _dirtyKeys.contains('studyLocation')
+              ? current.studyLastModuleId
+              : restored.studyLastModuleId,
+          studyLastSection: _dirtyKeys.contains('studyLocation')
+              ? current.studyLastSection
+              : restored.studyLastSection,
+          studyQuestionAnswers: _dirtyKeys.contains('studyAnswers')
+              ? <String, String>{
+                  ...restored.studyQuestionAnswers,
+                  ...current.studyQuestionAnswers
+                }
+              : restored.studyQuestionAnswers,
+          studyQuestionCorrectness: _dirtyKeys.contains('studyAnswers')
+              ? <String, bool>{
+                  ...restored.studyQuestionCorrectness,
+                  ...current.studyQuestionCorrectness
+                }
+              : restored.studyQuestionCorrectness,
+          studyQuestionContentVersion: _dirtyKeys.contains('studyAnswers')
+              ? current.studyQuestionContentVersion
+              : restored.studyQuestionContentVersion,
+          studyQuestionFingerprints: _dirtyKeys.contains('studyAnswers')
+              ? <String, String>{
+                  ...restored.studyQuestionFingerprints,
+                  ...current.studyQuestionFingerprints
+                }
+              : restored.studyQuestionFingerprints,
+          testLastModuleNo: _dirtyKeys.contains('testLastModule')
+              ? current.testLastModuleNo
+              : restored.testLastModuleNo,
+          testFlashcardKnownIds: _dirtyKeys.contains('testFlashcards')
+              ? <String>{
+                  ...restored.testFlashcardKnownIds,
+                  ...current.testFlashcardKnownIds
+                }
+              : restored.testFlashcardKnownIds,
+          completedTestMatchingModuleIds: _dirtyKeys.contains('testMatching')
+              ? <String>{
+                  ...restored.completedTestMatchingModuleIds,
+                  ...current.completedTestMatchingModuleIds
+                }
+              : restored.completedTestMatchingModuleIds,
+          testQuestionAnswers: _dirtyKeys.contains('testAnswers')
+              ? <String, String>{
+                  ...restored.testQuestionAnswers,
+                  ...current.testQuestionAnswers
+                }
+              : restored.testQuestionAnswers,
+          testQuestionCorrectness: _dirtyKeys.contains('testAnswers')
+              ? <String, bool>{
+                  ...restored.testQuestionCorrectness,
+                  ...current.testQuestionCorrectness
+                }
+              : restored.testQuestionCorrectness,
+          testQuestionContentVersion: _dirtyKeys.contains('testAnswers')
+              ? current.testQuestionContentVersion
+              : restored.testQuestionContentVersion,
+          testQuestionFingerprints: _dirtyKeys.contains('testAnswers')
+              ? <String, String>{
+                  ...restored.testQuestionFingerprints,
+                  ...current.testQuestionFingerprints
+                }
+              : restored.testQuestionFingerprints,
+          testExamLastQuestionIndexes: _dirtyKeys.contains('examProgress')
+              ? <String, int>{
+                  ...restored.testExamLastQuestionIndexes,
+                  ...current.testExamLastQuestionIndexes
+                }
+              : restored.testExamLastQuestionIndexes,
+          testExamBestScores: _dirtyKeys.contains('examProgress')
+              ? <String, int>{
+                  ...restored.testExamBestScores,
+                  ...current.testExamBestScores
+                }
+              : restored.testExamBestScores,
+        );
+        await _persistMerged(state);
       }
     } catch (_) {
       if (mounted) {
         state = state.copyWith(isLoaded: true);
       }
+    } finally {
+      _restoreDone = true;
     }
   }
 
   void setWordFilters({String? tag, String? level}) {
-    _changedBeforeRestore = true;
+    _markDirty('wordFilters');
     state = state.copyWith(
       isLoaded: true,
       wordTag: tag,
@@ -45,11 +247,11 @@ class LocalProgressController extends StateNotifier<LocalProgressSnapshot> {
       wordLevel: level,
       clearWordLevel: level == null,
     );
-    unawaited(_repository.saveWordFilters(tag: tag, level: level));
+    _save(() => _repository.saveWordFilters(tag: tag, level: level));
   }
 
   void setReadingFilters({String? level, String? category}) {
-    _changedBeforeRestore = true;
+    _markDirty('readingFilters');
     state = state.copyWith(
       isLoaded: true,
       readingLevel: level,
@@ -57,45 +259,45 @@ class LocalProgressController extends StateNotifier<LocalProgressSnapshot> {
       readingCategory: category,
       clearReadingCategory: category == null,
     );
-    unawaited(_repository.saveReadingFilters(level: level, category: category));
+    _save(() => _repository.saveReadingFilters(level: level, category: category));
   }
 
   void toggleFavoriteWord(String wordId) {
-    _changedBeforeRestore = true;
+    _markDirty('favWords');
     final ids = Set<String>.of(state.favoriteWordIds);
     ids.contains(wordId) ? ids.remove(wordId) : ids.add(wordId);
     state =
         state.copyWith(isLoaded: true, favoriteWordIds: Set.unmodifiable(ids));
-    unawaited(_repository.saveFavoriteWordIds(ids));
+    _save(() => _repository.saveFavoriteWordIds(ids));
   }
 
   void markWordKnown(String wordId) {
     if (state.knownWordIds.contains(wordId)) {
       return;
     }
-    _changedBeforeRestore = true;
+    _markDirty('knownWords');
     final ids = Set<String>.of(state.knownWordIds)..add(wordId);
     state = state.copyWith(isLoaded: true, knownWordIds: Set.unmodifiable(ids));
-    unawaited(_repository.saveKnownWordIds(ids));
+    _save(() => _repository.saveKnownWordIds(ids));
   }
 
   void toggleReadingCompleted(String readingId) {
-    _changedBeforeRestore = true;
+    _markDirty('completedReadings');
     final ids = Set<String>.of(state.completedReadingIds);
     ids.contains(readingId) ? ids.remove(readingId) : ids.add(readingId);
     state = state.copyWith(
         isLoaded: true, completedReadingIds: Set.unmodifiable(ids));
-    unawaited(_repository.saveCompletedReadingIds(ids));
+    _save(() => _repository.saveCompletedReadingIds(ids));
   }
 
   void setStudyLocation({required String moduleId, required String section}) {
-    _changedBeforeRestore = true;
+    _markDirty('studyLocation');
     state = state.copyWith(
       isLoaded: true,
       studyLastModuleId: moduleId,
       studyLastSection: section,
     );
-    unawaited(_repository.saveStudyLocation(
+    _save(() => _repository.saveStudyLocation(
       moduleId: moduleId,
       section: section,
     ));
@@ -107,7 +309,7 @@ class LocalProgressController extends StateNotifier<LocalProgressSnapshot> {
     required bool isCorrect,
     String? contentFingerprint,
   }) {
-    _changedBeforeRestore = true;
+    _markDirty('studyAnswers');
     final answers = Map<String, String>.of(state.studyQuestionAnswers)
       ..[questionId] = answer;
     final correctness = Map<String, bool>.of(state.studyQuestionCorrectness)
@@ -123,9 +325,9 @@ class LocalProgressController extends StateNotifier<LocalProgressSnapshot> {
       studyQuestionCorrectness: Map<String, bool>.unmodifiable(correctness),
       studyQuestionFingerprints: Map<String, String>.unmodifiable(fingerprints),
     );
-    unawaited(_repository.saveStudyQuestionAnswers(answers));
-    unawaited(_repository.saveStudyQuestionCorrectness(correctness));
-    unawaited(_repository.saveStudyQuestionContent(
+    _save(() => _repository.saveStudyQuestionAnswers(answers));
+    _save(() => _repository.saveStudyQuestionCorrectness(correctness));
+    _save(() => _repository.saveStudyQuestionContent(
       version: state.studyQuestionContentVersion ?? '',
       fingerprints: fingerprints,
     ));
@@ -143,7 +345,7 @@ class LocalProgressController extends StateNotifier<LocalProgressSnapshot> {
     if (!mounted || version.isEmpty) return;
     if (state.studyQuestionContentVersion == version) return;
 
-    _changedBeforeRestore = true;
+    _markDirty('studyAnswers');
     final previousFingerprints = state.studyQuestionFingerprints;
     final answers = Map<String, String>.of(state.studyQuestionAnswers)
       ..removeWhere(
@@ -180,7 +382,7 @@ class LocalProgressController extends StateNotifier<LocalProgressSnapshot> {
     required String section,
     required int sectionCount,
   }) {
-    _changedBeforeRestore = true;
+    _markDirty('studySections');
     final key = '$moduleId:$section';
     final sections = Set<String>.of(state.completedStudySectionKeys)..add(key);
     final moduleSections =
@@ -194,8 +396,8 @@ class LocalProgressController extends StateNotifier<LocalProgressSnapshot> {
       completedStudySectionKeys: Set<String>.unmodifiable(sections),
       completedStudyModuleIds: Set<String>.unmodifiable(modules),
     );
-    unawaited(_repository.saveCompletedStudySectionKeys(sections));
-    unawaited(_repository.saveCompletedStudyModuleIds(modules));
+    _save(() => _repository.saveCompletedStudySectionKeys(sections));
+    _save(() => _repository.saveCompletedStudyModuleIds(modules));
   }
 
   /// Clears only the progress data that belongs to [moduleId].
@@ -204,7 +406,9 @@ class LocalProgressController extends StateNotifier<LocalProgressSnapshot> {
   /// this also removes the module's Reading and Test answers and scores while
   /// leaving the learner's favourites and every other module untouched.
   void resetStudyModuleProgress(String moduleId) {
-    _changedBeforeRestore = true;
+    _markDirty('studySections');
+    _markDirty('studyAnswers');
+    _markDirty('studyLocation');
     final sectionPrefix = '$moduleId:';
     final questionPrefix = '$moduleId-';
     final sections = Set<String>.of(state.completedStudySectionKeys)
@@ -229,44 +433,44 @@ class LocalProgressController extends StateNotifier<LocalProgressSnapshot> {
       clearStudyLastModuleId: isCurrentModule,
       clearStudyLastSection: isCurrentModule,
     );
-    unawaited(_repository.saveCompletedStudySectionKeys(sections));
-    unawaited(_repository.saveCompletedStudyModuleIds(modules));
-    unawaited(_repository.saveStudyQuestionAnswers(answers));
-    unawaited(_repository.saveStudyQuestionCorrectness(correctness));
-    unawaited(_repository.saveStudyQuestionContent(
+    _save(() => _repository.saveCompletedStudySectionKeys(sections));
+    _save(() => _repository.saveCompletedStudyModuleIds(modules));
+    _save(() => _repository.saveStudyQuestionAnswers(answers));
+    _save(() => _repository.saveStudyQuestionCorrectness(correctness));
+    _save(() => _repository.saveStudyQuestionContent(
       version: state.studyQuestionContentVersion ?? '',
       fingerprints: fingerprints,
     ));
     if (isCurrentModule) {
-      unawaited(_repository.saveStudyLocation());
+      _save(() => _repository.saveStudyLocation());
     }
   }
 
   void setTestLastModuleNo(int moduleNo) {
-    _changedBeforeRestore = true;
+    _markDirty('testLastModule');
     state = state.copyWith(isLoaded: true, testLastModuleNo: moduleNo);
-    unawaited(_repository.saveTestLastModuleNo(moduleNo));
+    _save(() => _repository.saveTestLastModuleNo(moduleNo));
   }
 
   void markTestFlashcardKnown(String wordId) {
-    _changedBeforeRestore = true;
+    _markDirty('testFlashcards');
     final ids = Set<String>.of(state.testFlashcardKnownIds)..add(wordId);
     state = state.copyWith(
       isLoaded: true,
       testFlashcardKnownIds: Set<String>.unmodifiable(ids),
     );
-    unawaited(_repository.saveTestFlashcardKnownIds(ids));
+    _save(() => _repository.saveTestFlashcardKnownIds(ids));
   }
 
   void markTestMatchingCompleted(int moduleNo) {
-    _changedBeforeRestore = true;
+    _markDirty('testMatching');
     final ids = Set<String>.of(state.completedTestMatchingModuleIds)
       ..add(moduleNo.toString());
     state = state.copyWith(
       isLoaded: true,
       completedTestMatchingModuleIds: Set<String>.unmodifiable(ids),
     );
-    unawaited(_repository.saveCompletedTestMatchingModuleIds(ids));
+    _save(() => _repository.saveCompletedTestMatchingModuleIds(ids));
   }
 
   void answerTestQuestion({
@@ -275,7 +479,7 @@ class LocalProgressController extends StateNotifier<LocalProgressSnapshot> {
     required bool isCorrect,
     String? contentFingerprint,
   }) {
-    _changedBeforeRestore = true;
+    _markDirty('testAnswers');
     final answers = Map<String, String>.of(state.testQuestionAnswers)
       ..[questionId] = answer;
     final correctness = Map<String, bool>.of(state.testQuestionCorrectness)
@@ -290,9 +494,9 @@ class LocalProgressController extends StateNotifier<LocalProgressSnapshot> {
       testQuestionCorrectness: Map<String, bool>.unmodifiable(correctness),
       testQuestionFingerprints: Map<String, String>.unmodifiable(fingerprints),
     );
-    unawaited(_repository.saveTestQuestionAnswers(answers));
-    unawaited(_repository.saveTestQuestionCorrectness(correctness));
-    unawaited(_repository.saveTestQuestionContent(
+    _save(() => _repository.saveTestQuestionAnswers(answers));
+    _save(() => _repository.saveTestQuestionCorrectness(correctness));
+    _save(() => _repository.saveTestQuestionContent(
       version: state.testQuestionContentVersion ?? '',
       fingerprints: fingerprints,
     ));
@@ -309,7 +513,7 @@ class LocalProgressController extends StateNotifier<LocalProgressSnapshot> {
     if (!mounted || version.isEmpty) return;
     if (state.testQuestionContentVersion == version) return;
 
-    _changedBeforeRestore = true;
+    _markDirty('testAnswers');
     final previousFingerprints = state.testQuestionFingerprints;
     final answers = Map<String, String>.of(state.testQuestionAnswers)
       ..removeWhere(
@@ -340,14 +544,14 @@ class LocalProgressController extends StateNotifier<LocalProgressSnapshot> {
   }
 
   void setTestExamLastQuestion({required int testNo, required int index}) {
-    _changedBeforeRestore = true;
+    _markDirty('examProgress');
     final indexes = Map<String, int>.of(state.testExamLastQuestionIndexes)
       ..[testNo.toString()] = index;
     state = state.copyWith(
       isLoaded: true,
       testExamLastQuestionIndexes: Map<String, int>.unmodifiable(indexes),
     );
-    unawaited(_repository.saveTestExamLastQuestionIndexes(indexes));
+    _save(() => _repository.saveTestExamLastQuestionIndexes(indexes));
   }
 
   void setTestExamBestScore({
@@ -356,7 +560,7 @@ class LocalProgressController extends StateNotifier<LocalProgressSnapshot> {
     required int total,
   }) {
     if (total == 0) return;
-    _changedBeforeRestore = true;
+    _markDirty('examProgress');
     final key = testNo.toString();
     final score = ((correct / total) * 100).round();
     final scores = Map<String, int>.of(state.testExamBestScores);
@@ -366,6 +570,6 @@ class LocalProgressController extends StateNotifier<LocalProgressSnapshot> {
       isLoaded: true,
       testExamBestScores: Map<String, int>.unmodifiable(scores),
     );
-    unawaited(_repository.saveTestExamBestScores(scores));
+    _save(() => _repository.saveTestExamBestScores(scores));
   }
 }

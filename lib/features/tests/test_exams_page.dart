@@ -13,12 +13,26 @@ class TestExamsPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final compatibility = ref.watch(testQuestionCompatibilityProvider);
+    if (compatibility.isLoading) {
+      return const PageFrame(
+        title: 'Özgün Testler',
+        subtitle: 'Cevaplar doğrulanıyor.',
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+    if (compatibility.hasError) {
+      return DataLoadErrorPage(
+        message: compatibility.error.toString(),
+        onRetry: () => ref.invalidate(testQuestionCompatibilityProvider),
+      );
+    }
     final exams = ref.watch(testExamsProvider);
     final progress = ref.watch(localProgressProvider);
     return exams.when(
       loading: () => const PageFrame(
           title: 'Özgün Testler',
-          subtitle: 'Canonical testler hazırlanıyor.',
+          subtitle: 'Testler hazırlanıyor.',
           child: Center(child: CircularProgressIndicator())),
       error: (error, _) => DataLoadErrorPage(
           message: error.toString(),
@@ -93,7 +107,7 @@ class _ExamCard extends StatelessWidget {
               Text('Test ${exam.testNo}',
                   style: Theme.of(context).textTheme.titleLarge),
               const SizedBox(height: 6),
-              Text('${exam.questionCount} canonical soru',
+              Text('${exam.questionCount} soru',
                   style: Theme.of(context).textTheme.bodyMedium),
               if (best != null) ...<Widget>[
                 const SizedBox(height: 6),
@@ -296,7 +310,7 @@ class _ExamOption extends StatelessWidget {
               children: <Widget>[
                 Text('${option.key}. ${option.textEn}',
                     textAlign: TextAlign.left),
-                if (option.textTr != null) ...<Widget>[
+                if (answerKnown && option.textTr != null) ...<Widget>[
                   const SizedBox(height: 4),
                   Text(option.textTr!,
                       textAlign: TextAlign.left,
@@ -307,58 +321,127 @@ class _ExamOption extends StatelessWidget {
   }
 }
 
-class TestWrongAnswersPage extends ConsumerWidget {
+class TestWrongAnswersPage extends ConsumerStatefulWidget {
   const TestWrongAnswersPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<TestWrongAnswersPage> createState() =>
+      _TestWrongAnswersPageState();
+}
+
+class _TestWrongAnswersPageState
+    extends ConsumerState<TestWrongAnswersPage> {
+  @override
+  Widget build(BuildContext context) {
+    final compatibility = ref.watch(testQuestionCompatibilityProvider);
+    if (compatibility.isLoading) {
+      return const PageFrame(
+        title: 'Yanlışlarım',
+        subtitle: 'Cevaplar doğrulanıyor.',
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+    if (compatibility.hasError) {
+      return DataLoadErrorPage(
+        message: compatibility.error.toString(),
+        onRetry: () => ref.invalidate(testQuestionCompatibilityProvider),
+      );
+    }
     final exams = ref.watch(testExamsProvider);
-    final progress = ref.watch(localProgressProvider);
     return exams.when(
       loading: () => const PageFrame(
           title: 'Yanlışlarım',
           subtitle: 'Sorular hazırlanıyor.',
           child: Center(child: CircularProgressIndicator())),
-      error: (error, _) => DataLoadErrorPage(message: error.toString()),
-      data: (summaries) => FutureBuilder<List<TestExam>>(
-        future: Future.wait(summaries.map((item) =>
-            ref.read(staticTestRepositoryProvider).loadExam(item.testNo))),
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) {
-            return const PageFrame(
-                title: 'Yanlışlarım',
-                subtitle: 'Sorular hazırlanıyor.',
-                child: Center(child: CircularProgressIndicator()));
-          }
-          final wrong = snapshot.data!
-              .expand((exam) => exam.questions)
-              .where((question) =>
-                  progress.testQuestionCorrectness[question.id] == false)
-              .toList(growable: false);
-          return PageFrame(
-            title: 'Yanlışlarım',
-            subtitle:
-                '${wrong.length} yanlış cevap · Canonical soru sırası korunur.',
-            actions: <Widget>[
-              OutlinedButton.icon(
-                  onPressed: () => context.go('/tests/exams'),
-                  icon: const Icon(Icons.arrow_back_rounded),
-                  label: const Text('Testlere dön'))
-            ],
-            child: wrong.isEmpty
-                ? const SurfaceCard(
-                    child: Text('Tekrar çözülecek yanlış cevap yok.'))
-                : Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: wrong
-                        .map((question) => Padding(
-                              padding: const EdgeInsets.only(bottom: 12),
-                              child: _WrongQuestion(question: question),
-                            ))
-                        .toList(growable: false)),
-          );
-        },
+      error: (error, _) => DataLoadErrorPage(
+        message: error.toString(),
+        onRetry: () => ref.invalidate(testExamsProvider),
       ),
+      data: (summaries) => _WrongListBody(summaries: summaries),
+    );
+  }
+}
+
+class _WrongListBody extends ConsumerStatefulWidget {
+  const _WrongListBody({required this.summaries});
+  final List<TestExamSummary> summaries;
+
+  @override
+  ConsumerState<_WrongListBody> createState() => _WrongListBodyState();
+}
+
+class _WrongListBodyState extends ConsumerState<_WrongListBody> {
+  Future<List<TestExam>>? _future;
+
+  @override
+  void initState() {
+    super.initState();
+    _future = _loadAll();
+  }
+
+  @override
+  void didUpdateWidget(covariant _WrongListBody oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!_sameSummaries(oldWidget.summaries, widget.summaries)) {
+      _future = _loadAll();
+    }
+  }
+
+  bool _sameSummaries(
+      List<TestExamSummary> left, List<TestExamSummary> right) {
+    if (left.length != right.length) return false;
+    for (var index = 0; index < left.length; index++) {
+      if (left[index].testNo != right[index].testNo) return false;
+    }
+    return true;
+  }
+
+  Future<List<TestExam>> _loadAll() {
+    final repository = ref.read(staticTestRepositoryProvider);
+    return Future.wait(widget.summaries
+        .map((item) => repository.loadExam(item.testNo))
+        .toList(growable: false));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<List<TestExam>>(
+      future: _future,
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return const PageFrame(
+              title: 'Yanlışlarım',
+              subtitle: 'Sorular hazırlanıyor.',
+              child: Center(child: CircularProgressIndicator()));
+        }
+        final progress = ref.watch(localProgressProvider);
+        final wrong = snapshot.data!
+            .expand((exam) => exam.questions)
+            .where((question) =>
+                progress.testQuestionCorrectness[question.id] == false)
+            .toList(growable: false);
+        return PageFrame(
+          title: 'Yanlışlarım',
+          subtitle: '${wrong.length} yanlış cevap · Soru sırası korunur.',
+          actions: <Widget>[
+            OutlinedButton.icon(
+                onPressed: () => context.go('/tests/exams'),
+                icon: const Icon(Icons.arrow_back_rounded),
+                label: const Text('Testlere dön'))
+          ],
+          child: wrong.isEmpty
+              ? const SurfaceCard(
+                  child: Text('Tekrar çözülecek yanlış cevap yok.'))
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: wrong
+                      .map((question) => Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: _WrongQuestion(question: question),
+                          ))
+                      .toList(growable: false)),
+        );
+      },
     );
   }
 }
@@ -368,15 +451,30 @@ class _WrongQuestion extends ConsumerWidget {
   final TestExamQuestion question;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) => SurfaceCard(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Text('${question.id} · ${question.question}',
-                style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 10),
-            for (final option in question.options) ...<Widget>[
-              SizedBox(
+  Widget build(BuildContext context, WidgetRef ref) {
+    final answer =
+        ref.watch(localProgressProvider).testQuestionAnswers[question.id];
+    final correctness =
+        ref.watch(localProgressProvider).testQuestionCorrectness[question.id];
+    final answered = answer != null;
+    return SurfaceCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text('${question.id} · ${question.question}',
+              style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 10),
+          for (final option in question.options) ...<Widget>[
+            Builder(builder: (context) {
+              final selected = answer == option.textEn;
+              final isCorrect = option.textEn == question.correctAnswer;
+              final tokens = AppThemeTokens.of(context);
+              final border = answered && isCorrect
+                  ? tokens.success
+                  : answered && selected
+                      ? tokens.warning
+                      : tokens.surfaceBorder;
+              return SizedBox(
                 width: double.infinity,
                 child: OutlinedButton(
                   onPressed: () => ref
@@ -390,13 +488,16 @@ class _WrongQuestion extends ConsumerWidget {
                   style: OutlinedButton.styleFrom(
                     alignment: Alignment.centerLeft,
                     padding: const EdgeInsets.all(13),
+                    side: BorderSide(
+                        color: border,
+                        width: answered && (isCorrect || selected) ? 1.5 : 1),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
                       Text('${option.key}. ${option.textEn}',
                           textAlign: TextAlign.left),
-                      if (option.textTr != null) ...<Widget>[
+                      if (answered && option.textTr != null) ...<Widget>[
                         const SizedBox(height: 3),
                         Text(option.textTr!,
                             textAlign: TextAlign.left,
@@ -405,10 +506,20 @@ class _WrongQuestion extends ConsumerWidget {
                     ],
                   ),
                 ),
-              ),
-              const SizedBox(height: 7),
-            ],
+              );
+            }),
+            const SizedBox(height: 7),
           ],
-        ),
-      );
+          if (answered) ...<Widget>[
+            Text(correctness == true ? 'Doğru cevap' : 'Yanlış cevap',
+                style: TextStyle(
+                    color: correctness == true
+                        ? AppThemeTokens.of(context).success
+                        : AppThemeTokens.of(context).warning,
+                    fontWeight: FontWeight.w800)),
+          ],
+        ],
+      ),
+    );
+  }
 }

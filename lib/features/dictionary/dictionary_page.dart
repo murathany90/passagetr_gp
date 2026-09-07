@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -29,6 +31,8 @@ class _DictionaryPageState extends ConsumerState<DictionaryPage> {
   Object? _randomError;
   var _request = 0;
   var _randomRequest = 0;
+  Timer? _searchDebounce;
+  String _lastQuery = '';
 
   @override
   void initState() {
@@ -66,6 +70,7 @@ class _DictionaryPageState extends ConsumerState<DictionaryPage> {
 
   @override
   void dispose() {
+    _searchDebounce?.cancel();
     _controller.dispose();
     super.dispose();
   }
@@ -116,8 +121,18 @@ class _DictionaryPageState extends ConsumerState<DictionaryPage> {
     }
   }
 
+  void _onSearchChanged(String value) {
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(const Duration(milliseconds: 220), () {
+      if (!mounted) return;
+      _search(value);
+    });
+  }
+
   Future<void> _search(String value) async {
     final query = normalizeDictionaryLookup(value);
+    if (query == _lastQuery && query.isNotEmpty) return;
+    _lastQuery = query;
     final request = ++_request;
     if (query.isEmpty) {
       setState(() {
@@ -187,13 +202,14 @@ class _DictionaryPageState extends ConsumerState<DictionaryPage> {
                     : IconButton(
                         tooltip: 'Aramayı temizle',
                         onPressed: () {
+                          _searchDebounce?.cancel();
                           _controller.clear();
                           _search('');
                         },
                         icon: const Icon(Icons.close_rounded),
                       ),
               ),
-              onChanged: _search,
+              onChanged: _onSearchChanged,
               onSubmitted: _search,
             ),
             const SizedBox(height: 14),

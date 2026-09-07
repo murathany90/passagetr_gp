@@ -75,19 +75,19 @@ final _routerProvider = Provider<GoRouter>((ref) => GoRouter(
             GoRoute(
               path: '/tests/module/:moduleNo',
               builder: (context, state) => TestModulePage(
-                moduleNo: int.parse(state.pathParameters['moduleNo']!),
+                moduleNo: _parseModuleNo(state.pathParameters['moduleNo']),
               ),
             ),
             GoRoute(
               path: '/tests/module/:moduleNo/flashcards',
               builder: (context, state) => TestFlashcardsPage(
-                moduleNo: int.parse(state.pathParameters['moduleNo']!),
+                moduleNo: _parseModuleNo(state.pathParameters['moduleNo']),
               ),
             ),
             GoRoute(
               path: '/tests/module/:moduleNo/matching',
               builder: (context, state) => TestMatchingPage(
-                moduleNo: int.parse(state.pathParameters['moduleNo']!),
+                moduleNo: _parseModuleNo(state.pathParameters['moduleNo']),
               ),
             ),
             GoRoute(
@@ -101,7 +101,7 @@ final _routerProvider = Provider<GoRouter>((ref) => GoRouter(
             GoRoute(
               path: '/tests/exam/:testNo',
               builder: (context, state) => TestExamPage(
-                testNo: int.parse(state.pathParameters['testNo']!),
+                testNo: _parseTestNo(state.pathParameters['testNo']),
               ),
             ),
             GoRoute(
@@ -119,6 +119,21 @@ final _routerProvider = Provider<GoRouter>((ref) => GoRouter(
       errorBuilder: (context, state) =>
           const DataLoadErrorPage(message: 'Sayfa bulunamadı.'),
     ));
+
+/// Geçersiz sayısal route parametreleri crash yerine güvenli sayfaya düşer.
+/// Modüller 1–110, özgün testler 1–9 aralığındadır; aralık dışı değerler
+/// repository'nin "bulunamadı" hatasına düşerek DataLoadErrorPage gösterir.
+int _parseModuleNo(String? raw) =>
+    _parseBounded(raw, min: 1, max: 110, fallback: 1);
+
+int _parseTestNo(String? raw) => _parseBounded(raw, min: 1, max: 9, fallback: 1);
+
+int _parseBounded(String? raw,
+    {required int min, required int max, required int fallback}) {
+  final parsed = int.tryParse((raw ?? '').trim());
+  if (parsed == null || parsed < min || parsed > max) return fallback;
+  return parsed;
+}
 
 class PassagetrApp extends ConsumerWidget {
   const PassagetrApp({super.key});

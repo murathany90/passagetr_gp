@@ -55,7 +55,7 @@ class _TestsPageState extends ConsumerState<TestsPage> {
 
   Widget _loading() => const PageFrame(
         title: 'Testler',
-        subtitle: 'Canonical içerik hazırlanıyor.',
+        subtitle: 'İçerik hazırlanıyor.',
         child: Center(
             child: Padding(
           padding: EdgeInsets.all(40),
@@ -77,13 +77,14 @@ class _TestsPageState extends ConsumerState<TestsPage> {
     List<TestModuleSummary> modules,
   ) {
     final totalPages = (modules.length / _pageSize).ceil();
-    final page = _page.clamp(0, totalPages - 1).toInt();
+    final page =
+        totalPages == 0 ? 0 : _page.clamp(0, totalPages - 1).toInt();
     final visible = modules.skip(page * _pageSize).take(_pageSize).toList();
     final progress = ref.watch(localProgressProvider);
     return PageFrame(
       title: 'Testler',
       subtitle:
-          'Yalnız canonical Test Bank içeriğiyle modül, yapı ve özgün test çalışması.',
+          'Test Bank içeriğiyle modül, yapı ve özgün test çalışması.',
       child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
@@ -101,7 +102,7 @@ class _TestsPageState extends ConsumerState<TestsPage> {
                     icon: Icons.account_tree_outlined,
                     title: 'Yapılar',
                     description:
-                        '${bank.counts.structures} canonical yapı · ${bank.counts.structureCategories} kategori',
+                        '${bank.counts.structures} yapı · ${bank.counts.structureCategories} kategori',
                     onTap: () => context.go('/tests/structures'),
                   ),
                 ),
@@ -269,7 +270,7 @@ class _ModuleCard extends StatelessWidget {
                   const Icon(Icons.play_circle_fill_rounded, size: 19),
               ]),
               const SizedBox(height: 6),
-              Text('${module.wordCount} canonical kelime',
+              Text('${module.wordCount} kelime',
                   style: Theme.of(context).textTheme.bodyMedium),
               const SizedBox(height: 8),
               Text(

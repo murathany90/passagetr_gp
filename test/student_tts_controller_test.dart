@@ -41,7 +41,7 @@ void main() {
     controller.dispose();
   });
 
-  test('passage playback remains an English passage target', () async {
+  test('passage playback uses a single English utterance', () async {
     final engine = _BlockingTtsEngine();
     final controller = StudentTtsController(engine: engine);
     final playback = controller.playPassage(
@@ -55,10 +55,11 @@ void main() {
     await _waitUntil(() => engine.languageCodes.length == 1);
     expect(controller.state.activeTarget, StudentTtsTarget.passage);
     expect(controller.state.activeLanguageCode, 'en-US');
-    engine.completeNext();
-    await _waitUntil(() => engine.languageCodes.length == 2);
+    expect(engine.spokenTexts.single,
+        'First sentence. Second sentence.');
     engine.completeNext();
     await playback;
+    expect(engine.languageCodes.length, 1);
     expect(controller.state.isSpeaking, isFalse);
     controller.dispose();
   });
@@ -75,6 +76,7 @@ Future<void> _waitUntil(bool Function() condition) async {
 class _BlockingTtsEngine implements StudentTtsEngine {
   final List<Completer<void>> _speaks = <Completer<void>>[];
   final List<String?> languageCodes = <String?>[];
+  final List<String> spokenTexts = <String>[];
   var stopCount = 0;
 
   @override
@@ -87,6 +89,7 @@ class _BlockingTtsEngine implements StudentTtsEngine {
   @override
   Future<void> speak(String text, {String? languageCode}) {
     languageCodes.add(languageCode);
+    spokenTexts.add(text);
     final completer = Completer<void>();
     _speaks.add(completer);
     return completer.future;

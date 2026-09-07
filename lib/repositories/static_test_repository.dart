@@ -30,47 +30,98 @@ class StaticTestRepository {
   final Map<int, Future<TestModuleDetail>> _moduleCache = {};
   final Map<int, Future<TestExam>> _examCache = {};
 
-  Future<TestBankManifest> loadManifest() =>
-      _manifestFuture ??= _loadManifest();
-
-  Future<List<TestModuleSummary>> loadModules() =>
-      _modulesFuture ??= _loadModules();
-
-  Future<TestModuleDetail> loadModule(int moduleNo) {
-    return _moduleCache.putIfAbsent(moduleNo, () async {
-      final summary = (await loadModules())
-          .where((item) => item.moduleNo == moduleNo)
-          .firstOrNull;
-      if (summary == null) {
-        throw StaticContentException('Testler modülü bulunamadı: $moduleNo');
-      }
-      final detail = TestModuleDetail.fromJson(await _loadJson(summary.file));
-      if (detail.moduleNo != moduleNo) {
-        throw const StaticContentException('Testler modül verisi geçersiz.');
-      }
-      return detail;
+  Future<TestBankManifest> loadManifest() {
+    final pending = _manifestFuture;
+    if (pending != null) return pending;
+    final future = _loadManifest();
+    _manifestFuture = future;
+    future.then((_) {}, onError: (_) {
+      _manifestFuture = null;
     });
+    return future;
   }
 
-  Future<TestStructureBank> loadStructures() =>
-      _structuresFuture ??= _loadStructures();
+  Future<List<TestModuleSummary>> loadModules() {
+    final pending = _modulesFuture;
+    if (pending != null) return pending;
+    final future = _loadModules();
+    _modulesFuture = future;
+    future.then((_) {}, onError: (_) {
+      _modulesFuture = null;
+    });
+    return future;
+  }
 
-  Future<List<TestExamSummary>> loadExams() => _examsFuture ??= _loadExams();
+  Future<TestModuleDetail> loadModule(int moduleNo) {
+    final pending = _moduleCache[moduleNo];
+    if (pending != null) return pending;
+    final future = _fetchModule(moduleNo);
+    _moduleCache[moduleNo] = future;
+    future.then((_) {}, onError: (_) {
+      _moduleCache.remove(moduleNo);
+    });
+    return future;
+  }
+
+  Future<TestModuleDetail> _fetchModule(int moduleNo) async {
+    final summary = (await loadModules())
+        .where((item) => item.moduleNo == moduleNo)
+        .firstOrNull;
+    if (summary == null) {
+      throw StaticContentException('Testler modülü bulunamadı: $moduleNo');
+    }
+    final detail = TestModuleDetail.fromJson(await _loadJson(summary.file));
+    if (detail.moduleNo != moduleNo) {
+      throw const StaticContentException('Testler modül verisi geçersiz.');
+    }
+    return detail;
+  }
+
+  Future<TestStructureBank> loadStructures() {
+    final pending = _structuresFuture;
+    if (pending != null) return pending;
+    final future = _loadStructures();
+    _structuresFuture = future;
+    future.then((_) {}, onError: (_) {
+      _structuresFuture = null;
+    });
+    return future;
+  }
+
+  Future<List<TestExamSummary>> loadExams() {
+    final pending = _examsFuture;
+    if (pending != null) return pending;
+    final future = _loadExams();
+    _examsFuture = future;
+    future.then((_) {}, onError: (_) {
+      _examsFuture = null;
+    });
+    return future;
+  }
 
   Future<TestExam> loadExam(int testNo) {
-    return _examCache.putIfAbsent(testNo, () async {
-      final summary = (await loadExams())
-          .where((item) => item.testNo == testNo)
-          .firstOrNull;
-      if (summary == null) {
-        throw StaticContentException('Özgün test bulunamadı: $testNo');
-      }
-      final exam = TestExam.fromJson(await _loadJson(summary.file));
-      if (exam.testNo != testNo) {
-        throw const StaticContentException('Özgün test verisi geçersiz.');
-      }
-      return exam;
+    final pending = _examCache[testNo];
+    if (pending != null) return pending;
+    final future = _fetchExam(testNo);
+    _examCache[testNo] = future;
+    future.then((_) {}, onError: (_) {
+      _examCache.remove(testNo);
     });
+    return future;
+  }
+
+  Future<TestExam> _fetchExam(int testNo) async {
+    final summary = (await loadExams())
+        .where((item) => item.testNo == testNo)
+        .firstOrNull;
+    if (summary == null) {
+      throw StaticContentException('Özgün test bulunamadı: $testNo');
+    }
+    final exam = TestExam.fromJson(await _loadJson(summary.file));
+    if (exam.testNo != testNo) {
+      throw const StaticContentException('Özgün test verisi geçersiz.');
+    }
+    return exam;
   }
 
   Future<TestQuestionContentContract> loadQuestionContentContract() async {

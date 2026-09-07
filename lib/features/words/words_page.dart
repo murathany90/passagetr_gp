@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -32,6 +34,7 @@ class _WordsPageState extends ConsumerState<WordsPage> {
   late final TextEditingController _searchController;
   late int _shuffleSeed;
   var _order = PresentationOrder.mixed;
+  Timer? _searchDebounce;
 
   @override
   void initState() {
@@ -43,15 +46,30 @@ class _WordsPageState extends ConsumerState<WordsPage> {
 
   @override
   void dispose() {
+    _searchDebounce?.cancel();
     _searchController.dispose();
     super.dispose();
   }
 
   void _clearSearch() {
+    _searchDebounce?.cancel();
     _searchController.clear();
     setState(() {
       _query = '';
       _page = 0;
+    });
+  }
+
+  void _onSearchChanged(String value) {
+    final trimmed = value.trim();
+    if (trimmed == _query) return;
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(const Duration(milliseconds: 220), () {
+      if (!mounted) return;
+      setState(() {
+        _query = trimmed;
+        _page = 0;
+      });
     });
   }
 
@@ -193,10 +211,7 @@ class _WordsPageState extends ConsumerState<WordsPage> {
                                 onPressed: _clearSearch,
                                 icon: const Icon(Icons.clear_rounded),
                               )),
-                    onChanged: (value) => setState(() {
-                          _query = value.trim();
-                          _page = 0;
-                        })),
+                    onChanged: _onSearchChanged),
                 const SizedBox(height: 14),
                 _TagFilter(
                     tags: tags,

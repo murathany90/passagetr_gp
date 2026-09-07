@@ -92,26 +92,25 @@ class StudentTtsController extends StateNotifier<StudentTtsState> {
     }
 
     final session = _sessionId;
+    // Web'de flutter_tts speak() hemen resolve olur; cümleleri tek tek
+    // speak() ile kuyruğa bindirmek üst üste binmeye yol açar. En küçük
+    // güvenilir çözüm: passage tek utterance olarak okutulur.
+    final passageText =
+        filteredSegments.map((segment) => segment.text.trim()).join(' ');
     try {
-      for (final segment in filteredSegments) {
-        if (!mounted) {
-          return StudentTtsActionResult.stopped;
-        }
-        if (session != _sessionId) {
-          return StudentTtsActionResult.stopped;
-        }
-
-        state = state.copyWith(
-          isInitializing: false,
-          isSpeaking: true,
-          activeTarget: StudentTtsTarget.passage,
-          activeReadingId: readingId,
-          activeSentenceIndex: segment.sentenceIndex,
-          activeLanguageCode: 'en-US',
-          clearError: true,
-        );
-        await _engine.speak(segment.text);
+      if (!mounted || session != _sessionId) {
+        return StudentTtsActionResult.stopped;
       }
+      state = state.copyWith(
+        isInitializing: false,
+        isSpeaking: true,
+        activeTarget: StudentTtsTarget.passage,
+        activeReadingId: readingId,
+        activeSentenceIndex: filteredSegments.first.sentenceIndex,
+        activeLanguageCode: 'en-US',
+        clearError: true,
+      );
+      await _engine.speak(passageText, languageCode: 'en-US');
     } catch (_) {
       if (mounted && session == _sessionId) {
         state = _idleState(errorMessage: 'Metin simdi okunamadi.');

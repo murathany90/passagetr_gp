@@ -29,7 +29,7 @@ class _TestStructuresPageState extends ConsumerState<TestStructuresPage> {
     return bank.when(
       loading: () => const PageFrame(
           title: 'Yapılar',
-          subtitle: 'Canonical yapılar hazırlanıyor.',
+          subtitle: 'Yapılar hazırlanıyor.',
           child: Center(child: CircularProgressIndicator())),
       error: (error, _) => DataLoadErrorPage(
           message: error.toString(),
@@ -45,7 +45,7 @@ class _TestStructuresPageState extends ConsumerState<TestStructuresPage> {
         return PageFrame(
           title: 'Yapılar',
           subtitle:
-              '${items.length} canonical yapı · Kaynakta olmayan örnek gösterilmez.',
+              '${items.length} yapı · Kaynakta olmayan örnek gösterilmez.',
           actions: <Widget>[
             OutlinedButton.icon(
                 onPressed: () => context.go('/tests'),
@@ -115,7 +115,7 @@ class _TestStructuresPageState extends ConsumerState<TestStructuresPage> {
                 const SizedBox(height: 16),
                 if (items.isEmpty)
                   const SurfaceCard(
-                      child: Text('Bu kategoride canonical yapı bulunmuyor.'))
+                      child: Text('Bu kategoride yapı bulunmuyor.'))
                 else
                   switch (_mode) {
                     _StructureMode.list => _StructureList(items: items),

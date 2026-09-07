@@ -144,7 +144,7 @@ void main() {
     await tester.pump();
     expect(find.text('1 sonuç'), findsOneWidget);
     await tester.enterText(find.byType(TextField), 'access');
-    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 250));
     expect(find.text('1 sonuç'), findsOneWidget);
     expect(find.text('erişim'), findsOneWidget);
     expect(tester.takeException(), isNull);
@@ -202,11 +202,11 @@ void main() {
     expect(find.text(firstWord.trMeaning), findsOneWidget);
 
     await tester.enterText(find.byType(TextField), 'bridge');
-    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 250));
     expect(find.text('0 sonuç'), findsOneWidget);
     expect(find.text('Aramana uygun kelime bulunamadı.'), findsOneWidget);
     await tester.enterText(find.byType(TextField), 'access');
-    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 250));
     expect(find.text('1 sonuç'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });

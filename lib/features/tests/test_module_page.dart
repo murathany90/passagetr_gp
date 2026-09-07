@@ -26,6 +26,7 @@ class _TestModulePageState extends ConsumerState<TestModulePage> {
   String? _selected;
   late List<TestBankWord> _quickWords;
   List<String> _options = const <String>[];
+  bool _showTranslations = true;
 
   @override
   void initState() {
@@ -80,7 +81,7 @@ class _TestModulePageState extends ConsumerState<TestModulePage> {
     return detail.when(
       loading: () => const PageFrame(
         title: 'Test modülü',
-        subtitle: 'Canonical kelimeler hazırlanıyor.',
+        subtitle: 'Kelimeler hazırlanıyor.',
         child: Center(
             child: Padding(
                 padding: EdgeInsets.all(40),
@@ -95,7 +96,7 @@ class _TestModulePageState extends ConsumerState<TestModulePage> {
         return PageFrame(
           title: 'Modül ${module.moduleNo}',
           subtitle:
-              '${module.words.length} canonical kelime · Test Bank kaynağı',
+              '${module.words.length} kelime · Test Bank kaynağı',
           actions: <Widget>[
             OutlinedButton.icon(
               onPressed: () => context.go('/tests'),
@@ -139,25 +140,49 @@ class _TestModulePageState extends ConsumerState<TestModulePage> {
                   ),
                 ],
                 const SizedBox(height: 22),
-                Text('Kelimeler',
-                    style: Theme.of(context).textTheme.titleLarge),
+                Row(children: <Widget>[
+                  Expanded(
+                    child: Text('Kelimeler',
+                        style: Theme.of(context).textTheme.titleLarge),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: () => setState(() =>
+                        _showTranslations = !_showTranslations),
+                    icon: Icon(
+                      _showTranslations
+                          ? Icons.visibility_off_outlined
+                          : Icons.visibility_outlined,
+                      size: 18,
+                    ),
+                    label: Text(_showTranslations
+                        ? 'Çeviriyi gizle'
+                        : 'Çeviriyi göster'),
+                  ),
+                ]),
                 const SizedBox(height: 10),
-                LayoutBuilder(builder: (context, constraints) {
-                  final twoColumns = constraints.maxWidth >= 720;
-                  final width = twoColumns
-                      ? (constraints.maxWidth - 12) / 2
-                      : constraints.maxWidth;
-                  return Wrap(
-                    spacing: 12,
-                    runSpacing: 12,
-                    children: module.words
-                        .map((word) => SizedBox(
-                              width: width,
-                              child: _TestWordCard(word: word),
-                            ))
-                        .toList(growable: false),
-                  );
-                }),
+                if (module.words.isEmpty)
+                  const SurfaceCard(
+                      child: Text('Bu modülde gösterilecek kelime yok.'))
+                else
+                  LayoutBuilder(builder: (context, constraints) {
+                    final twoColumns = constraints.maxWidth >= 720;
+                    final width = twoColumns
+                        ? (constraints.maxWidth - 12) / 2
+                        : constraints.maxWidth;
+                    return Wrap(
+                      spacing: 12,
+                      runSpacing: 12,
+                      children: module.words
+                          .map((word) => SizedBox(
+                                width: width,
+                                child: _TestWordCard(
+                                  word: word,
+                                  showTranslations: _showTranslations,
+                                ),
+                              ))
+                          .toList(growable: false),
+                    );
+                  }),
               ]),
         );
       },
@@ -165,48 +190,87 @@ class _TestModulePageState extends ConsumerState<TestModulePage> {
   }
 }
 
-class _TestWordCard extends StatelessWidget {
-  const _TestWordCard({required this.word});
+class _TestWordCard extends StatefulWidget {
+  const _TestWordCard({required this.word, required this.showTranslations});
   final TestBankWord word;
+  final bool showTranslations;
 
   @override
-  Widget build(BuildContext context) => SurfaceCard(
+  State<_TestWordCard> createState() => _TestWordCardState();
+}
+
+class _TestWordCardState extends State<_TestWordCard> {
+  bool _hovering = false;
+  bool _expanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final word = widget.word;
+    final detailsVisible =
+        widget.showTranslations || _hovering || _expanded;
+    return MouseRegion(
+      onEnter: (_) {
+        if (!widget.showTranslations) setState(() => _hovering = true);
+      },
+      onExit: (_) {
+        if (_hovering) setState(() => _hovering = false);
+      },
+      child: SurfaceCard(
+        onTap: widget.showTranslations
+            ? null
+            : () => setState(() => _expanded = !_expanded),
         padding: const EdgeInsets.all(16),
         child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              Text(word.headword,
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleMedium
-                      ?.copyWith(fontWeight: FontWeight.w700)),
+              Row(children: <Widget>[
+                Expanded(
+                  child: Text(word.headword,
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleMedium
+                          ?.copyWith(fontWeight: FontWeight.w700)),
+                ),
+                if (!widget.showTranslations)
+                  Icon(_expanded
+                      ? Icons.expand_less_rounded
+                      : Icons.expand_more_rounded),
+              ]),
               if (word.pos.isNotEmpty) ...<Widget>[
                 const SizedBox(height: 3),
                 Text(word.pos, style: Theme.of(context).textTheme.bodySmall)
               ],
-              const SizedBox(height: 8),
-              Text(word.meaningTr,
-                  style: Theme.of(context).textTheme.bodyLarge),
-              if (word.exampleEn.isNotEmpty) ...<Widget>[
-                const SizedBox(height: 10),
-                Text(word.exampleEn,
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodyMedium
-                        ?.copyWith(fontWeight: FontWeight.w600)),
-              ],
-              if (word.exampleTr.isNotEmpty) ...<Widget>[
-                const SizedBox(height: 3),
-                Text(word.exampleTr,
-                    style: Theme.of(context).textTheme.bodySmall),
-              ],
-              if (word.synonymsRaw != null) ...<Widget>[
+              if (detailsVisible) ...<Widget>[
                 const SizedBox(height: 8),
-                Text('İlişkili: ${word.synonymsRaw}',
+                Text(word.meaningTr,
+                    style: Theme.of(context).textTheme.bodyLarge),
+                if (word.exampleEn.isNotEmpty) ...<Widget>[
+                  const SizedBox(height: 10),
+                  Text(word.exampleEn,
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodyMedium
+                          ?.copyWith(fontWeight: FontWeight.w600)),
+                ],
+                if (word.exampleTr.isNotEmpty) ...<Widget>[
+                  const SizedBox(height: 3),
+                  Text(word.exampleTr,
+                      style: Theme.of(context).textTheme.bodySmall),
+                ],
+                if (word.synonymsRaw != null) ...<Widget>[
+                  const SizedBox(height: 8),
+                  Text('İlişkili: ${word.synonymsRaw}',
+                      style: Theme.of(context).textTheme.bodySmall),
+                ],
+              ] else ...<Widget>[
+                const SizedBox(height: 8),
+                Text('Ayrıntı için karta dokunun',
                     style: Theme.of(context).textTheme.bodySmall),
               ],
             ]),
-      );
+      ),
+    );
+  }
 }
 
 class _QuickTest extends StatelessWidget {
@@ -311,7 +375,23 @@ class _TestFlashcardsPageState extends ConsumerState<TestFlashcardsPage> {
       error: (error, _) => DataLoadErrorPage(message: error.toString()),
       data: (module) {
         final words = module.words;
-        final word = words[_index.clamp(0, words.length - 1)];
+        if (words.isEmpty) {
+          return PageFrame(
+            title: 'Modül ${module.moduleNo} · Flash Kart',
+            subtitle: 'Gösterilecek kelime yok.',
+            actions: <Widget>[
+              OutlinedButton.icon(
+                  onPressed: () =>
+                      context.go('/tests/module/${module.moduleNo}'),
+                  icon: const Icon(Icons.arrow_back_rounded),
+                  label: const Text('Modüle dön'))
+            ],
+            child: const SurfaceCard(
+                child: Text('Bu modülde gösterilecek kelime yok.')),
+          );
+        }
+        final safeIndex = _index.clamp(0, words.length - 1).toInt();
+        final word = words[safeIndex];
         return Focus(
           autofocus: true,
           onKeyEvent: (_, event) {
@@ -321,7 +401,7 @@ class _TestFlashcardsPageState extends ConsumerState<TestFlashcardsPage> {
               return KeyEventResult.handled;
             }
             if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
-              _move(-1);
+              _move(-1, words.length);
               return KeyEventResult.handled;
             }
             if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
@@ -333,7 +413,7 @@ class _TestFlashcardsPageState extends ConsumerState<TestFlashcardsPage> {
           child: PageFrame(
             title: 'Modül ${module.moduleNo} · Flash Kart',
             subtitle:
-                '${_index + 1} / ${words.length} · Space: çevir · ← tekrar · → bildim',
+                '${safeIndex + 1} / ${words.length} · Space: çevir · ← tekrar · → bildim',
             actions: <Widget>[
               OutlinedButton.icon(
                   onPressed: () =>
@@ -344,7 +424,8 @@ class _TestFlashcardsPageState extends ConsumerState<TestFlashcardsPage> {
             child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
-                  LinearProgressIndicator(value: (_index + 1) / words.length),
+                  LinearProgressIndicator(
+                      value: (safeIndex + 1) / words.length),
                   const SizedBox(height: 18),
                   SurfaceCard(
                     onTap: () => setState(() => _showBack = !_showBack),
@@ -415,11 +496,13 @@ class _TestFlashcardsPageState extends ConsumerState<TestFlashcardsPage> {
                   const SizedBox(height: 14),
                   Wrap(spacing: 8, runSpacing: 8, children: <Widget>[
                     OutlinedButton.icon(
-                        onPressed: _index == 0 ? null : () => _move(-1),
+                        onPressed: safeIndex == 0
+                            ? null
+                            : () => _move(-1, words.length),
                         icon: const Icon(Icons.arrow_back_rounded),
                         label: const Text('Önceki')),
                     OutlinedButton.icon(
-                        onPressed: () => _move(1),
+                        onPressed: () => _move(1, words.length),
                         icon: const Icon(Icons.replay_rounded),
                         label: const Text('Tekrar')),
                     FilledButton.icon(
@@ -434,17 +517,21 @@ class _TestFlashcardsPageState extends ConsumerState<TestFlashcardsPage> {
     );
   }
 
-  void _move(int step) => setState(() {
-        final next = (_index + step).clamp(0, 19);
-        _index = next;
-        _showBack = false;
-      });
+  void _move(int step, int itemCount) {
+    if (itemCount <= 0) return;
+    setState(() {
+      _index = (_index + step).clamp(0, itemCount - 1).toInt();
+      _showBack = false;
+    });
+  }
 
   void _know(List<TestBankWord> words) {
+    if (words.isEmpty) return;
+    final safeIndex = _index.clamp(0, words.length - 1).toInt();
     ref
         .read(localProgressProvider.notifier)
-        .markTestFlashcardKnown(words[_index].id);
-    _move(1);
+        .markTestFlashcardKnown(words[safeIndex].id);
+    _move(1, words.length);
   }
 }
 
@@ -463,6 +550,7 @@ class _TestMatchingPageState extends ConsumerState<TestMatchingPage> {
   int _wrong = 0;
   String? _selectedId;
   Set<String> _resolved = <String>{};
+  int? _completionSavedFor;
 
   void _prepare(List<TestBankWord> words) {
     if (_deck.isNotEmpty) return;
@@ -602,9 +690,15 @@ class _TestMatchingPageState extends ConsumerState<TestMatchingPage> {
   }
 
   Widget _complete(BuildContext context, TestModuleDetail module, int rounds) {
-    ref
-        .read(localProgressProvider.notifier)
-        .markTestMatchingCompleted(module.moduleNo);
+    if (_completionSavedFor != module.moduleNo) {
+      _completionSavedFor = module.moduleNo;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        ref
+            .read(localProgressProvider.notifier)
+            .markTestMatchingCompleted(module.moduleNo);
+      });
+    }
     final total = _correct + _wrong;
     final rate = total == 0 ? 0 : (_correct * 100 / total).round();
     return PageFrame(
@@ -625,6 +719,7 @@ class _TestMatchingPageState extends ConsumerState<TestMatchingPage> {
                         _correct = 0;
                         _wrong = 0;
                         _resolved = <String>{};
+                        _completionSavedFor = null;
                       }),
                   icon: const Icon(Icons.refresh_rounded),
                   label: const Text('Yeniden başla')),
