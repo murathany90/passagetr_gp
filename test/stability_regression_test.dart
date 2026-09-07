@@ -1,9 +1,13 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:passagetr_gp/core/content_providers.dart';
 import 'package:passagetr_gp/core/local_progress.dart';
+import 'package:passagetr_gp/features/common/page_parts.dart';
 import 'package:passagetr_gp/features/tts/student_tts_controller.dart';
 import 'package:passagetr_gp/features/tts/student_tts_engine.dart';
 import 'package:passagetr_gp/repositories/local_progress_repository.dart';
@@ -36,8 +40,7 @@ void main() {
   });
 
   test('eski TTS session statei değiştirmez ve stop gerçekten durdurur',
-      () async {
-    final engine = _BlockingTtsEngine();
+      () async {    final engine = _BlockingTtsEngine();
     final controller = StudentTtsController(engine: engine);
     final first = controller.playSentence(
       readingId: 'reading-1',
@@ -59,6 +62,54 @@ void main() {
     await Future.wait(<Future<StudentTtsActionResult>>[first, second]);
     expect(controller.state.isSpeaking, isFalse);
     controller.dispose();
+  });
+
+  testWidgets('route değişiminde konuşan TTS durur', (tester) async {
+    final engine = _CountingTtsEngine();
+    final location = ValueNotifier<String>('/readings/reading-1');
+    addTearDown(location.dispose);
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: <Override>[
+          studentTtsEngineProvider.overrideWithValue(engine),
+        ],
+        child: MaterialApp(
+          home: Scaffold(
+            body: ValueListenableBuilder<String>(
+              valueListenable: location,
+              builder: (context, value, _) => TtsRouteAutoStop(
+                location: value,
+                child: const SizedBox(),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    final context = tester.element(find.byType(TtsRouteAutoStop));
+    final container = ProviderScope.containerOf(context);
+    unawaited(
+      container.read(studentTtsControllerProvider.notifier).playSentence(
+            readingId: 'reading-1',
+            sentenceIndex: 1,
+            text: 'Hello.',
+          ),
+    );
+    await tester.pump();
+    expect(
+      container.read(studentTtsControllerProvider).isSpeaking,
+      isTrue,
+    );
+    final stopsBeforeNavigation = engine.stopCount;
+
+    location.value = '/words';
+    await tester.pump();
+    await tester.pump();
+    expect(engine.stopCount, stopsBeforeNavigation + 1);
+    expect(
+      container.read(studentTtsControllerProvider).isSpeaking,
+      isFalse,
+    );
   });
 }
 
@@ -99,8 +150,27 @@ class _BlockingTtsEngine implements StudentTtsEngine {
   }
 }
 
-class _FlakyBundle extends AssetBundle {
-  _FlakyBundle({required this.failures});
+class _CountingTtsEngine implements StudentTtsEngine {
+  var stopCount = 0;
+
+  @override
+  Future<void> dispose() async {}
+
+  @override
+  Future<StudentTtsAvailability> ensureInitialized() async =>
+      StudentTtsAvailability.available;
+
+  @override
+  Future<void> speak(String text, {String? languageCode}) =>
+      Completer<void>().future;
+
+  @override
+  Future<void> stop() async {
+    stopCount += 1;
+  }
+}
+
+class _FlakyBundle extends AssetBundle {  _FlakyBundle({required this.failures});
 
   int failures;
   final Map<String, int> calls = <String, int>{};

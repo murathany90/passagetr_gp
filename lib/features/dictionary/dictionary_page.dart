@@ -171,6 +171,8 @@ class _DictionaryPageState extends ConsumerState<DictionaryPage> {
       });
     } catch (error) {
       if (!mounted || request != _request) return;
+      // Geçici hata aynı sorgunun yeniden aranmasını engellemesin.
+      _lastQuery = '';
       setState(() {
         _error = error;
         _isLoading = false;

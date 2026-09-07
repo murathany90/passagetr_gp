@@ -4,9 +4,69 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/app_breakpoints.dart';
 import '../../core/app_theme_tokens.dart';
+import '../../core/content_providers.dart';
 import '../../core/theme_mode_controller.dart';
 
 enum PassagetrDestination { home, words, readings, study, tests, dictionary }
+
+/// Route veya sekme değişiminde önceki sayfanın TTS'ini mevcut
+/// [StudentTtsController.stop] mekanizmasıyla durdurur. Tarayıcı sekmesi
+/// arka plana alınırsa da okuma durur.
+class TtsRouteAutoStop extends ConsumerStatefulWidget {
+  const TtsRouteAutoStop(
+      {super.key, required this.location, required this.child});
+
+  final String location;
+  final Widget child;
+
+  @override
+  ConsumerState<TtsRouteAutoStop> createState() => _TtsRouteAutoStopState();
+}
+
+class _TtsRouteAutoStopState extends ConsumerState<TtsRouteAutoStop>
+    with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(covariant TtsRouteAutoStop oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.location != widget.location) {
+      _stop();
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.hidden ||
+        state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive) {
+      _stop();
+    }
+  }
+
+  void _stop() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final tts = ref.read(studentTtsControllerProvider);
+      if (tts.isSpeaking || tts.isInitializing) {
+        ref.read(studentTtsControllerProvider.notifier).stop();
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
+}
 
 class PassagetrShell extends ConsumerWidget {
   const PassagetrShell(
@@ -38,9 +98,11 @@ class PassagetrShell extends ConsumerWidget {
           child: wide
               ? Row(children: <Widget>[
                   _DesktopRail(destination: destination),
-                  Expanded(child: child),
+                  Expanded(
+                      child: TtsRouteAutoStop(
+                          location: location, child: child)),
                 ])
-              : child,
+              : TtsRouteAutoStop(location: location, child: child),
         ),
         bottomNavigationBar: wide || destination == PassagetrDestination.home
             ? null
@@ -164,11 +226,13 @@ class SurfaceCard extends StatelessWidget {
       {super.key,
       required this.child,
       this.padding = const EdgeInsets.all(20),
-      this.onTap});
+      this.onTap,
+      this.highlighted = false});
 
   final Widget child;
   final EdgeInsetsGeometry padding;
   final VoidCallback? onTap;
+  final bool highlighted;
 
   @override
   Widget build(BuildContext context) {
@@ -177,7 +241,11 @@ class SurfaceCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: tokens.surfaceElevated,
         borderRadius: BorderRadius.circular(tokens.cardRadius),
-        border: Border.all(color: tokens.surfaceBorder),
+        border: Border.all(
+            color: highlighted
+                ? Theme.of(context).colorScheme.primary
+                : tokens.surfaceBorder,
+            width: highlighted ? 1.5 : 1),
         boxShadow: <BoxShadow>[
           BoxShadow(
               color: tokens.surfaceShadow,

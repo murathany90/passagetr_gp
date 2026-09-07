@@ -74,21 +74,39 @@ final _routerProvider = Provider<GoRouter>((ref) => GoRouter(
             ),
             GoRoute(
               path: '/tests/module/:moduleNo',
-              builder: (context, state) => TestModulePage(
-                moduleNo: _parseModuleNo(state.pathParameters['moduleNo']),
-              ),
+              builder: (context, state) {
+                final moduleNo =
+                    _parseModuleNo(state.pathParameters['moduleNo']);
+                if (moduleNo == null) {
+                  return const DataLoadErrorPage(
+                      message: 'Sayfa bulunamadı.');
+                }
+                return TestModulePage(moduleNo: moduleNo);
+              },
             ),
             GoRoute(
               path: '/tests/module/:moduleNo/flashcards',
-              builder: (context, state) => TestFlashcardsPage(
-                moduleNo: _parseModuleNo(state.pathParameters['moduleNo']),
-              ),
+              builder: (context, state) {
+                final moduleNo =
+                    _parseModuleNo(state.pathParameters['moduleNo']);
+                if (moduleNo == null) {
+                  return const DataLoadErrorPage(
+                      message: 'Sayfa bulunamadı.');
+                }
+                return TestFlashcardsPage(moduleNo: moduleNo);
+              },
             ),
             GoRoute(
               path: '/tests/module/:moduleNo/matching',
-              builder: (context, state) => TestMatchingPage(
-                moduleNo: _parseModuleNo(state.pathParameters['moduleNo']),
-              ),
+              builder: (context, state) {
+                final moduleNo =
+                    _parseModuleNo(state.pathParameters['moduleNo']);
+                if (moduleNo == null) {
+                  return const DataLoadErrorPage(
+                      message: 'Sayfa bulunamadı.');
+                }
+                return TestMatchingPage(moduleNo: moduleNo);
+              },
             ),
             GoRoute(
               path: '/tests/structures',
@@ -100,9 +118,14 @@ final _routerProvider = Provider<GoRouter>((ref) => GoRouter(
             ),
             GoRoute(
               path: '/tests/exam/:testNo',
-              builder: (context, state) => TestExamPage(
-                testNo: _parseTestNo(state.pathParameters['testNo']),
-              ),
+              builder: (context, state) {
+                final testNo = _parseTestNo(state.pathParameters['testNo']);
+                if (testNo == null) {
+                  return const DataLoadErrorPage(
+                      message: 'Sayfa bulunamadı.');
+                }
+                return TestExamPage(testNo: testNo);
+              },
             ),
             GoRoute(
               path: '/tests/wrong',
@@ -120,18 +143,15 @@ final _routerProvider = Provider<GoRouter>((ref) => GoRouter(
           const DataLoadErrorPage(message: 'Sayfa bulunamadı.'),
     ));
 
-/// Geçersiz sayısal route parametreleri crash yerine güvenli sayfaya düşer.
-/// Modüller 1–110, özgün testler 1–9 aralığındadır; aralık dışı değerler
-/// repository'nin "bulunamadı" hatasına düşerek DataLoadErrorPage gösterir.
-int _parseModuleNo(String? raw) =>
-    _parseBounded(raw, min: 1, max: 110, fallback: 1);
+/// Geçersiz sayısal route parametreleri crash yerine "Sayfa bulunamadı"
+/// durumuna düşer. Modüller 1–110, özgün testler 1–9 aralığındadır.
+int? _parseModuleNo(String? raw) => _parseBounded(raw, min: 1, max: 110);
 
-int _parseTestNo(String? raw) => _parseBounded(raw, min: 1, max: 9, fallback: 1);
+int? _parseTestNo(String? raw) => _parseBounded(raw, min: 1, max: 9);
 
-int _parseBounded(String? raw,
-    {required int min, required int max, required int fallback}) {
+int? _parseBounded(String? raw, {required int min, required int max}) {
   final parsed = int.tryParse((raw ?? '').trim());
-  if (parsed == null || parsed < min || parsed > max) return fallback;
+  if (parsed == null || parsed < min || parsed > max) return null;
   return parsed;
 }
 

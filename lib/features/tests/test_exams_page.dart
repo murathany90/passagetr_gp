@@ -143,6 +143,12 @@ class _TestExamPageState extends ConsumerState<TestExamPage> {
           subtitle: 'Cevaplar doğrulanıyor.',
           child: Center(child: CircularProgressIndicator()));
     }
+    if (compatibility.hasError) {
+      return DataLoadErrorPage(
+        message: compatibility.error.toString(),
+        onRetry: () => ref.invalidate(testQuestionCompatibilityProvider),
+      );
+    }
     return exam.when(
       loading: () => const PageFrame(
           title: 'Özgün Test',

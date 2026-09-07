@@ -359,10 +359,13 @@ class _SentenceCard extends ConsumerWidget {
         tts.isInitializing &&
         tts.activeLanguageCode == 'tr-TR';
     final turkishText = section.turkishText;
+    final highlighted =
+        isActiveSentence && (tts.isSpeaking || tts.isInitializing);
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: SurfaceCard(
         key: ValueKey<String>('sentence-card-${section.lookupIndex}'),
+        highlighted: highlighted,
         onTap: onToggleTranslation,
         child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
