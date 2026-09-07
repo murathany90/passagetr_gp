@@ -170,7 +170,8 @@ class _CountingTtsEngine implements StudentTtsEngine {
   }
 }
 
-class _FlakyBundle extends AssetBundle {  _FlakyBundle({required this.failures});
+class _FlakyBundle extends AssetBundle {
+  _FlakyBundle({required this.failures});
 
   int failures;
   final Map<String, int> calls = <String, int>{};
@@ -180,8 +181,8 @@ class _FlakyBundle extends AssetBundle {  _FlakyBundle({required this.failures})
       return jsonEncode(<String, Object?>{
         'counts': <String, Object?>{
           'words': 9000,
-          'readings': 678,
-          'sentences': 6275,
+          'readings': 800,
+          'sentences': 7500,
         },
         'packs': <Object?>[],
         'readingsIndex': 'readings.json',
@@ -191,7 +192,7 @@ class _FlakyBundle extends AssetBundle {  _FlakyBundle({required this.failures})
     if (key.endsWith('readings.json')) {
       return jsonEncode(<String, Object?>{
         'readings': List<Object?>.generate(
-          678,
+          800,
           (index) => <String, Object?>{
             'id': 'reading-$index',
             'packId': 'pack',

@@ -9,7 +9,9 @@ import '../../core/local_progress.dart';
 import '../../core/presentation_order.dart';
 import '../../models/content_models.dart';
 import '../common/page_parts.dart';
+import '../words/word_filtering.dart';
 import 'reading_artwork.dart';
+import 'reading_models.dart';
 
 class ReadingsPage extends ConsumerStatefulWidget {
   const ReadingsPage({super.key});
@@ -61,6 +63,8 @@ class _ReadingsPageState extends ConsumerState<ReadingsPage> {
   Widget build(BuildContext context) {
     final readings = ref.watch(readingsProvider);
     final progress = ref.watch(localProgressProvider);
+    // Legacy (001–678) progress migration runs once in the background.
+    ref.watch(readingProgressMigrationProvider);
     if (!_filtersRestored && progress.isLoaded) {
       _filtersRestored = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -84,13 +88,7 @@ class _ReadingsPageState extends ConsumerState<ReadingsPage> {
           message: error.toString(),
           onRetry: () => ref.invalidate(readingsProvider)),
       data: (items) {
-        final allLevels = items
-            .map((item) => item.level)
-            .whereType<String>()
-            .where((value) => value.isNotEmpty)
-            .toSet()
-            .toList()
-          ..sort();
+        final allLevels = _canonicalLevelList(items.map((item) => item.level));
         final allCategories = items
             .map((item) => item.category)
             .whereType<String>()
@@ -101,16 +99,11 @@ class _ReadingsPageState extends ConsumerState<ReadingsPage> {
         var validLevel = allLevels.contains(_level) ? _level : null;
         var validCategory =
             allCategories.contains(_category) ? _category : null;
-        final levels = items
+        final levels = _canonicalLevelList(items
             .where(
               (item) => validCategory == null || item.category == validCategory,
             )
-            .map((item) => item.level)
-            .whereType<String>()
-            .where((value) => value.isNotEmpty)
-            .toSet()
-            .toList()
-          ..sort();
+            .map((item) => item.level));
         final categories = items
             .where((item) => validLevel == null || item.level == validLevel)
             .map((item) => item.category)
@@ -140,7 +133,7 @@ class _ReadingsPageState extends ConsumerState<ReadingsPage> {
         }
         final filtered = items.where((item) {
           final text =
-              '${item.title} ${item.displayTitle ?? ''} ${item.turkishTitle ?? ''} ${item.level ?? ''} ${item.category ?? ''} ${item.tags.join(' ')}'
+              '${item.sourceNumber ?? ''} ${item.title} ${item.displayTitle ?? ''} ${item.turkishTitle ?? ''} ${item.level ?? ''} ${item.category ?? ''} ${item.tags.join(' ')}'
                   .toLowerCase();
           return (validLevel == null || item.level == validLevel) &&
               (validCategory == null || item.category == validCategory) &&
@@ -350,6 +343,23 @@ class _ReadingsPageState extends ConsumerState<ReadingsPage> {
   }
 }
 
+/// Canonical CEFR order (A1 → C2) for every reading level list.
+List<String> _canonicalLevelList(Iterable<String?> levels) {
+  final ordered = levels
+      .whereType<String>()
+      .where((level) => level.isNotEmpty)
+      .toSet()
+      .toList();
+  ordered.sort((left, right) {
+    final leftRank = canonicalLevelOrder.indexOf(left);
+    final rightRank = canonicalLevelOrder.indexOf(right);
+    final rank = (leftRank < 0 ? canonicalLevelOrder.length : leftRank)
+        .compareTo(rightRank < 0 ? canonicalLevelOrder.length : rightRank);
+    return rank != 0 ? rank : left.compareTo(right);
+  });
+  return ordered;
+}
+
 class _ReadingPager extends StatelessWidget {
   const _ReadingPager({
     required this.page,
@@ -463,17 +473,10 @@ class _ReadingCard extends StatelessWidget {
                                   label: 'Tamamlandı', color: tokens.success),
                           ]),
                           const Spacer(),
-                          Text(passage.displayTitle ?? passage.title,
+                          Text(readingPassageDisplayTitle(passage),
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                               style: Theme.of(context).textTheme.titleLarge),
-                          if (passage.turkishTitle != null) ...<Widget>[
-                            const SizedBox(height: 3),
-                            Text(passage.turkishTitle!,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: Theme.of(context).textTheme.bodySmall),
-                          ],
                           const SizedBox(height: 7),
                           Text(_metadataFor(passage),
                               style: Theme.of(context).textTheme.bodySmall),

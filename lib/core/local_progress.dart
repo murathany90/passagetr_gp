@@ -543,6 +543,28 @@ class LocalProgressController extends StateNotifier<LocalProgressSnapshot> {
     );
   }
 
+  /// One-time 001–678 legacy passage-ID migration: completed readings stored
+  /// under old title-derived IDs are additionally recorded under the new
+  /// source-number IDs. Idempotent; legacy IDs are retained harmlessly.
+  Future<void> migrateLegacyReadingIds(Map<String, String> mapping) async {
+    await _restoreFuture;
+    if (!mounted || mapping.isEmpty) return;
+    final legacy = state.completedReadingIds
+        .where(mapping.containsKey)
+        .toList(growable: false);
+    if (legacy.isEmpty) return;
+    _markDirty('completedReadings');
+    final ids = Set<String>.of(state.completedReadingIds);
+    for (final oldId in legacy) {
+      ids.add(mapping[oldId]!);
+    }
+    state = state.copyWith(
+      isLoaded: true,
+      completedReadingIds: Set.unmodifiable(ids),
+    );
+    _save(() => _repository.saveCompletedReadingIds(ids));
+  }
+
   void setTestExamLastQuestion({required int testNo, required int index}) {
     _markDirty('examProgress');
     final indexes = Map<String, int>.of(state.testExamLastQuestionIndexes)

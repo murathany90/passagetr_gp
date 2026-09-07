@@ -54,6 +54,16 @@ final readingDetailProvider =
   return ref.watch(staticContentRepositoryProvider).loadReading(id);
 });
 
+/// Applies the one-time legacy (001–678) reading-progress migration before a
+/// reading screen shows completion state. New source-number IDs are added;
+/// nothing else in local progress is touched.
+final readingProgressMigrationProvider = FutureProvider<void>((ref) async {
+  final mapping = await ref
+      .watch(staticContentRepositoryProvider)
+      .loadLegacyReadingIdMap();
+  await ref.read(localProgressProvider.notifier).migrateLegacyReadingIds(mapping);
+});
+
 final studyModulesProvider = FutureProvider<List<StudyModuleSummary>>((ref) {
   return ref.watch(staticStudyRepositoryProvider).loadModules();
 });

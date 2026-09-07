@@ -1,6 +1,30 @@
 import '../../models/content_models.dart';
 import '../../repositories/static_dictionary_repository.dart';
 
+/// Canonical reading display title used everywhere:
+/// `001 - English Title (Türkçe Başlık)`.
+String readingDisplayTitle({
+  required String? sourceNumber,
+  required String displayTitle,
+  String? turkishTitle,
+}) {
+  final number = (sourceNumber ?? '').trim();
+  final english = displayTitle.trim();
+  final turkish = (turkishTitle ?? '').trim();
+  final head = number.isEmpty ? english : '$number - $english';
+  return turkish.isEmpty ? head : '$head ($turkish)';
+}
+
+/// Canonical display title for a [ReadingPassage] record.
+String readingPassageDisplayTitle(ReadingPassage passage) =>
+    readingDisplayTitle(
+      sourceNumber: passage.sourceNumber,
+      displayTitle: (passage.displayTitle ?? passage.title).trim().isEmpty
+          ? passage.title
+          : (passage.displayTitle ?? passage.title),
+      turkishTitle: passage.turkishTitle,
+    );
+
 class ReadingArticleSection {
   const ReadingArticleSection({
     required this.lookupIndex,

@@ -2,19 +2,15 @@
 """Validate the public PASSAGETR static-content contract.
 
 The production prose contract is intentionally small: word records come from
-one canonical CSV, and every generated reading sentence comes from one
-canonical CSV.  Question sources are checked separately because they are not
-part of the reading body.
+one canonical CSV, and every generated reading sentence and question comes
+from the single canonical 800-reading Excel workbook.
 """
 
 from __future__ import annotations
 
-import csv
 import hashlib
 import json
-import re
 import sys
-from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
@@ -27,17 +23,18 @@ import build_static_content as builder  # noqa: E402
 SOURCE = ROOT / 'source_data'
 CONTENT = ROOT / 'assets' / 'content' / 'v1'
 WORDS_SOURCE = SOURCE / 'canonical' / 'words' / builder.WORDS_CANONICAL_FILENAME
-PASSAGES_SOURCE = SOURCE / 'canonical' / 'readings' / 'reading_passages.csv'
-SENTENCES_SOURCE = SOURCE / 'canonical' / 'readings' / 'reading_sentences.csv'
-QUESTIONS_SOURCE = SOURCE / 'canonical' / 'readings' / builder.DERIVED_QUESTIONS_FILENAME
-CURATED_SOURCE = SOURCE / builder.DEFAULT_CURATED_READINGS_RELATIVE_PATH
+READINGS_WORKBOOK = (
+    SOURCE / 'canonical' / 'readings' / builder.READINGS_CANONICAL_FILENAME
+)
+LEGACY_MAP_SOURCE = SOURCE / builder.READINGS_LEGACY_MAP_RELATIVE_PATH
 DICTIONARY_SOURCE = SOURCE / 'canonical' / 'dictionary' / 'dictionary_tr_en.xlsx'
 STUDY_SOURCE = SOURCE / 'canonical' / 'study' / 'PASSAGETR_YDS_Study_Canonical_v2_Module_01-30.xlsx'
 TEST_BANK_SOURCE = SOURCE / 'canonical' / 'tests' / 'passagetr_test_bank.xlsx'
 
 EXPECTED_WORDS = 9000
-EXPECTED_READINGS = 678
-EXPECTED_SENTENCES = 6275
+EXPECTED_READINGS = 800
+EXPECTED_SENTENCES = 7500
+EXPECTED_QUESTIONS = 4000
 EXPECTED_WORD_TAGS = 66
 EXPECTED_DICTIONARY_ENTRIES = 121772
 EXPECTED_DICTIONARY_HEADWORDS = 121501
@@ -62,71 +59,19 @@ def load_json(path: Path) -> dict[str, Any]:
     return payload
 
 
-def source_number(title: str) -> int:
-    match = re.match(r'^\s*(\d+)\s*[-.)]', builder.clean(title))
-    if match is None:
-        fail(f'Invalid canonical passage title: {title!r}')
-    return int(match.group(1))
-
-
-def canonical_readings() -> tuple[dict[int, dict[str, Any]], int, list[int]]:
-    passage_rows = builder.read_csv(PASSAGES_SOURCE)
-    if len(passage_rows) != EXPECTED_READINGS:
-        fail(f'Expected {EXPECTED_READINGS} passage rows, got {len(passage_rows)}')
-    passages: dict[int, dict[str, Any]] = {}
-    titles: dict[str, int] = {}
-    for row in passage_rows:
-        title = builder.clean(row.get('title'))
-        number = source_number(title)
-        if number in passages or number < 1 or number > EXPECTED_READINGS:
-            fail(f'Duplicate/out-of-range passage number: {number}')
-        key = builder.normalized(title)
-        if not title or key in titles:
-            fail(f'Duplicate/blank passage title: {title!r}')
-        if not builder.clean(row.get('pack_name')):
-            fail(f'Blank pack name in reading {number:03d}')
-        passages[number] = {
-            'title': title,
-            'id': builder.passage_id(title),
-            'sentences': [],
-        }
-        titles[key] = number
-    if set(passages) != set(range(1, EXPECTED_READINGS + 1)):
-        fail('Passage CSV does not cover source numbers 001–678.')
-
-    sentence_rows = builder.read_csv(SENTENCES_SOURCE)
-    for row_number, row in enumerate(sentence_rows, start=2):
-        title = builder.clean(row.get('passage_title'))
-        english = builder.clean(row.get('sentence_en'))
-        turkish = builder.clean(row.get('sentence_tr'))
-        raw_index = builder.clean(row.get('idx'))
-        if not all((title, english, turkish, raw_index)):
-            fail(f'Blank canonical EN/TR sentence value at CSV row {row_number}.')
-        number = titles.get(builder.normalized(title))
-        if number is None:
-            fail(f'Sentence row {row_number} has no canonical passage.')
-        try:
-            index = int(raw_index)
-        except ValueError as error:
-            raise ValueError(f'Invalid sentence index at CSV row {row_number}.') from error
-        if index <= 0:
-            fail(f'Non-positive sentence index at CSV row {row_number}.')
-        passages[number]['sentences'].append({
-            'index': index,
-            'englishText': english,
-            'turkishText': turkish,
-        })
-    for number, passage in passages.items():
-        indexes = [sentence['index'] for sentence in passage['sentences']]
-        if len(indexes) != len(set(indexes)):
-            fail(f'Duplicate sentence index in reading {number:03d}.')
-        passage['sentences'].sort(key=lambda sentence: sentence['index'])
-    if len(sentence_rows) != EXPECTED_SENTENCES:
-        fail(f'Expected {EXPECTED_SENTENCES} canonical sentence rows, got {len(sentence_rows)}')
+def canonical_readings() -> tuple[dict[int, dict[str, Any]], int, int, list[int]]:
+    """Independently reload the workbook and return readings plus totals."""
+    readings = builder.load_reading_workbook(READINGS_WORKBOOK)
+    sentence_rows = sum(len(item['sentences']) for item in readings.values())
+    question_rows = sum(len(item['questions']) for item in readings.values())
+    if sentence_rows != EXPECTED_SENTENCES:
+        fail(f'Expected {EXPECTED_SENTENCES} workbook sentences, got {sentence_rows}')
+    if question_rows != EXPECTED_QUESTIONS:
+        fail(f'Expected {EXPECTED_QUESTIONS} workbook questions, got {question_rows}')
     source_missing = [
-        number for number, passage in passages.items() if not passage['sentences']
+        number for number, item in readings.items() if not item['sentences']
     ]
-    return passages, len(sentence_rows), source_missing
+    return readings, sentence_rows, question_rows, source_missing
 
 
 def validate_words() -> dict[str, int]:
@@ -155,6 +100,14 @@ def validate_words() -> dict[str, int]:
             builder.canonical_pos(row['pos'])
         except ValueError as error:
             raise ValueError(f'Invalid canonical POS at CSV row {row_number}.') from error
+        try:
+            level = builder.canonical_level(
+                row['level'], kind='word', where=f'CSV row {row_number}'
+            )
+        except ValueError as error:
+            raise ValueError(f'Invalid canonical word level at CSV row {row_number}.') from error
+        if level not in builder.CANONICAL_LEVELS:
+            fail(f'Non-canonical word level at CSV row {row_number}.')
         tags = builder.parse_tag_list(row['tags_raw'])
         if not tags or any(not builder.is_canonical_word_tag(tag) for tag in tags):
             invalid_tags += 1
@@ -191,10 +144,11 @@ def validate_no_stale_reference() -> int:
 
 def validate_no_sentence_overlay_sources() -> int:
     # The complete tracked source-data allowlist intentionally contains no
-    # repair/override layer.  Reading body is therefore unambiguously the CSV.
+    # repair/override layer.  The single reading source is the workbook, so a
+    # reappearing passage/sentence/question CSV or JSON fails the build.
     allowed = {
-        WORDS_SOURCE.resolve(), PASSAGES_SOURCE.resolve(), SENTENCES_SOURCE.resolve(),
-        QUESTIONS_SOURCE.resolve(), CURATED_SOURCE.resolve(), DICTIONARY_SOURCE.resolve(),
+        WORDS_SOURCE.resolve(), READINGS_WORKBOOK.resolve(),
+        LEGACY_MAP_SOURCE.resolve(), DICTIONARY_SOURCE.resolve(),
         STUDY_SOURCE.resolve(), TEST_BANK_SOURCE.resolve(),
     }
     files = {path.resolve() for path in SOURCE.rglob('*') if path.is_file()}
@@ -206,8 +160,9 @@ def validate_no_sentence_overlay_sources() -> int:
 
 
 def validate_generated_content(
-    passages: dict[int, dict[str, Any]],
+    readings: dict[int, dict[str, Any]],
     sentence_rows: int,
+    question_rows: int,
     source_missing: list[int],
 ) -> dict[str, Any]:
     manifest = load_json(CONTENT / 'manifest.json')
@@ -222,20 +177,19 @@ def validate_generated_content(
         fail(f'Unexpected manifest counts: {counts!r}')
     source = manifest.get('readingCanonicalSource')
     if source != {
-        'passages': 'canonical/readings/reading_passages.csv',
-        'sentences': 'canonical/readings/reading_sentences.csv',
+        'workbook': 'canonical/readings/PASSAGETR_READINGS_CANONICAL_800_FINAL.xlsx',
         'productionSentenceOverlays': 0,
         'sourceMissingReadingNumbers': source_missing,
     }:
         fail(f'Unexpected reading canonical source declaration: {source!r}')
+    integrity = manifest.get('readingQuestionIntegrity')
+    if not isinstance(integrity, dict) or integrity.get('schemaVersion') != 1:
+        fail('Reading question integrity declaration is invalid.')
     checksums = manifest.get('sourceChecksums')
     expected_checksums = {
         'words': builder.source_hash(WORDS_SOURCE),
-        'passages': builder.source_hash(PASSAGES_SOURCE),
-        'sentences': builder.source_hash(SENTENCES_SOURCE),
-        'derivedQuestions': builder.source_hash(QUESTIONS_SOURCE),
+        'readingsWorkbook': builder.source_hash(READINGS_WORKBOOK),
         'dictionary': builder.source_hash(DICTIONARY_SOURCE),
-        'curatedReadings': builder.source_hash(CURATED_SOURCE),
     }
     if checksums != expected_checksums:
         fail('Manifest source checksums do not describe the canonical inputs.')
@@ -262,37 +216,77 @@ def validate_generated_content(
         or any(not builder.is_canonical_word_tag(tag) for tag in generated_tags)
     ):
         fail('Generated word JSON does not preserve the canonical tag taxonomy.')
+    generated_levels = {
+        word.get('level') for word in generated_words if word.get('level')
+    }
+    if not generated_levels <= set(builder.CANONICAL_LEVELS):
+        fail(f'Generated word levels are not canonical: {sorted(generated_levels)}')
 
-    curated = builder.load_curated_readings(CURATED_SOURCE)
-    derived = builder.load_derived_questions(QUESTIONS_SOURCE)
     index = load_json(CONTENT / 'readings' / 'index.json').get('readings')
     if not isinstance(index, list) or len(index) != EXPECTED_READINGS:
         fail('Generated reading index is incomplete.')
     indexed_numbers: set[int] = set()
     total_sentences = 0
+    total_questions = 0
+    question_payload: list[dict[str, Any]] = []
     for entry in index:
         if not isinstance(entry, dict):
             fail('Generated reading index entry is invalid.')
         number = int(entry.get('sourceNumber'))
-        if number in indexed_numbers or number not in passages:
+        if number in indexed_numbers or number not in readings:
             fail('Generated reading index source-number coverage is invalid.')
         indexed_numbers.add(number)
+        expected_record = readings[number]
         item = load_json(CONTENT / str(entry['file']))
-        expected = passages[number]
-        if item.get('id') != expected['id']:
+        expected_id = builder.reading_id(number)
+        if item.get('id') != expected_id or entry.get('id') != expected_id:
             fail(f'Generated reading ID drift at {number:03d}.')
-        if item.get('sentences') != expected['sentences']:
-            fail(f'Generated EN/TR body is not canonical CSV text at {number:03d}.')
-        total_sentences += len(expected['sentences'])
-        questions = item.get('enrichment', {}).get('questions')
-        expected_questions = (
-            builder.curated_questions(curated[number])
-            if number <= 100 else derived[number]['questions']
+        expected_title = (
+            f'{number:03d} - {expected_record["title_en"]} '
+            f'({expected_record["title_tr"]})'
         )
-        if questions != expected_questions:
+        if item.get('title') != expected_title or entry.get('title') != expected_title:
+            fail(f'Generated reading title drift at {number:03d}.')
+        if entry.get('level') not in builder.CANONICAL_LEVELS:
+            fail(f'Non-canonical reading level at {number:03d}.')
+        expected_sentences = [
+            {'index': item['index'], 'englishText': item['englishText'],
+             'turkishText': item['turkishText']}
+            for item in expected_record['sentences']
+        ]
+        if item.get('sentences') != expected_sentences:
+            fail(f'Generated EN/TR body is not workbook text at {number:03d}.')
+        total_sentences += len(expected_sentences)
+        questions = item.get('enrichment', {}).get('questions')
+        if questions != expected_record['questions']:
             fail(f'Generated questions drifted at {number:03d}.')
-    if indexed_numbers != set(passages) or total_sentences != sentence_rows:
-        fail('Generated reading index/body coverage does not match canonical CSV.')
+        total_questions += len(questions)
+        question_payload.append({'sourceNumber': number, 'questions': questions})
+    if indexed_numbers != set(readings) or total_sentences != sentence_rows:
+        fail('Generated reading index/body coverage does not match the workbook.')
+    if total_questions != question_rows:
+        fail('Generated reading question coverage does not match the workbook.')
+    payload_hash = hashlib.sha256(
+        builder.json_bytes(question_payload)
+    ).hexdigest()
+    if integrity.get('payloadSha256') != payload_hash:
+        fail('Reading question integrity hash does not match generated questions.')
+    if integrity.get('readings') != EXPECTED_READINGS:
+        fail('Reading question integrity reading count is invalid.')
+    if integrity.get('questions') != EXPECTED_QUESTIONS:
+        fail('Reading question integrity question count is invalid.')
+
+    legacy_map_path = manifest.get('legacyReadingIdMap')
+    if legacy_map_path != 'readings/legacy_id_map.json':
+        fail('Legacy reading ID map declaration is invalid.')
+    legacy_map = load_json(CONTENT / str(legacy_map_path))
+    mapping = legacy_map.get('mapping')
+    if not isinstance(mapping, dict) or len(mapping) != 678:
+        fail('Legacy reading ID map must contain 678 entries.')
+    expected_mapping = builder.load_legacy_reading_id_map(LEGACY_MAP_SOURCE)
+    for old_id, number_text in expected_mapping.items():
+        if mapping.get(old_id) != builder.reading_id(int(number_text)):
+            fail('Legacy reading ID map drift detected.')
 
     dictionary = load_json(CONTENT / 'dictionary' / 'index.json')
     if (
@@ -311,21 +305,24 @@ def validate_generated_content(
 
 def main() -> int:
     for path in (
-        WORDS_SOURCE, PASSAGES_SOURCE, SENTENCES_SOURCE, QUESTIONS_SOURCE,
-        CURATED_SOURCE, DICTIONARY_SOURCE, STUDY_SOURCE, CONTENT / 'manifest.json',
+        WORDS_SOURCE, READINGS_WORKBOOK, LEGACY_MAP_SOURCE, DICTIONARY_SOURCE,
+        STUDY_SOURCE, CONTENT / 'manifest.json',
     ):
         if not path.is_file():
             fail(f'Missing required source/content file: {path.relative_to(ROOT)}')
     words = validate_words()
-    passages, sentence_rows, source_missing = canonical_readings()
+    readings, sentence_rows, question_rows, source_missing = canonical_readings()
     overlays = validate_no_sentence_overlay_sources()
     stale_references = validate_no_stale_reference()
-    generated = validate_generated_content(passages, sentence_rows, source_missing)
+    generated = validate_generated_content(
+        readings, sentence_rows, question_rows, source_missing
+    )
     print(json.dumps({
         'words': words,
         'readings': {
-            'records': len(passages),
+            'records': len(readings),
             'canonicalSentenceRows': sentence_rows,
+            'canonicalQuestions': question_rows,
             'blankEnglish': 0,
             'blankTurkish': 0,
             'sourceMissing': source_missing,

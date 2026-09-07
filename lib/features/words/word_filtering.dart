@@ -8,6 +8,20 @@ const matchingRoundSize = 10;
 String? migrateLegacyWordTag(String? tag) =>
     tag?.contains('_') ?? false ? tag!.replaceAll('_', ' & ') : tag;
 
+/// Canonical CEFR ladder used by every level filter in fixed order.
+const canonicalLevelOrder = <String>['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
+
+int _levelRank(String level) {
+  final rank = canonicalLevelOrder.indexOf(level);
+  return rank < 0 ? canonicalLevelOrder.length : rank;
+}
+
+List<String> _orderLevels(Set<String> levels) => levels.toList()
+  ..sort((left, right) {
+    final rank = _levelRank(left).compareTo(_levelRank(right));
+    return rank != 0 ? rank : left.compareTo(right);
+  });
+
 List<String> canonicalWordTags(Iterable<WordEntry> words) {
   final tags = <String>{
     for (final word in words) ...word.tags.where((tag) => tag.isNotEmpty),
@@ -17,14 +31,11 @@ List<String> canonicalWordTags(Iterable<WordEntry> words) {
 }
 
 List<String> canonicalWordLevels(Iterable<WordEntry> words) {
-  final levels = words
+  return _orderLevels(words
       .map((word) => word.level)
       .whereType<String>()
       .where((level) => level.isNotEmpty)
-      .toSet()
-      .toList()
-    ..sort();
-  return levels;
+      .toSet());
 }
 
 bool matchesWordFilters(

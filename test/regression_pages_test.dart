@@ -36,7 +36,7 @@ void main() {
     expect(packs, isNotEmpty);
     expect(words, hasLength(9000));
     expect(words.map((word) => word.id).toSet(), hasLength(9000));
-    expect(readings, hasLength(678));
+    expect(readings, hasLength(800));
     expect(detail.sentences, isNotEmpty);
     expect(detail.sentences.first.englishText, isNotEmpty);
   });
@@ -93,7 +93,7 @@ void main() {
   test('readings index and real EN/TR detail use bundled records', () async {
     final readings = await repository.loadReadings();
     final detail = await repository.loadReading(readings.first.id);
-    expect(readings, hasLength(678));
+    expect(readings, hasLength(800));
     expect(readings.first.title, isNotEmpty);
     expect(detail.sentences.first.englishText, isNotEmpty);
     expect(
@@ -101,6 +101,19 @@ void main() {
           .where((sentence) => sentence.turkishText?.isNotEmpty == true),
       isNotEmpty,
     );
+  });
+
+  test('reading 800 opens with workbook questions and resolvable focus words',
+      () async {
+    final readings = await repository.loadReadings();
+    final last = readings.firstWhere((item) => item.sourceNumber == '800');
+    final detail = await repository.loadReading(last.id);
+    expect(detail.questions, hasLength(5));
+    expect(detail.passage.title, startsWith('800 - '));
+    final words = await repository.loadWords();
+    final wordIds = {for (final word in words) word.id};
+    expect(detail.focusWordIds, isNotEmpty);
+    expect(detail.focusWordIds.every(wordIds.contains), isTrue);
   });
 }
 

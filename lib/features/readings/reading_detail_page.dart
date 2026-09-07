@@ -22,6 +22,8 @@ class ReadingDetailPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final detail = ref.watch(readingDetailProvider(readingId));
+    // Legacy (001–678) progress migration runs once in the background.
+    ref.watch(readingProgressMigrationProvider);
     return detail.when(
       loading: () => const PageFrame(
         title: 'Okuma açılıyor',
@@ -116,7 +118,7 @@ class _ReadingDetailBodyState extends ConsumerState<_ReadingDetailBody> {
         .where((question) => question.questionCategory == 'vocabulary_practice')
         .toList(growable: false);
     return PageFrame(
-      title: passage.displayTitle ?? passage.title,
+      title: readingPassageDisplayTitle(passage),
       subtitle: _subtitleFor(passage),
       maxWidth: 920,
       actions: <Widget>[
@@ -813,17 +815,11 @@ class _Meta extends StatelessWidget {
 }
 
 String _subtitleFor(ReadingPassage passage) {
-  if (passage.turkishTitle case final title? when title.isNotEmpty) {
-    return title;
-  }
-  return [passage.category, passage.level]
-          .whereType<String>()
-          .where((part) => part.isNotEmpty)
-          .join(' · ')
-          .isEmpty
-      ? 'Kaynak cümlelerle okuma pratiği'
-      : [passage.category, passage.level]
-          .whereType<String>()
-          .where((part) => part.isNotEmpty)
-          .join(' · ');
+  // The Turkish title already lives inside the canonical display title, so
+  // the subtitle only carries category/level metadata.
+  final meta = [passage.category, passage.level]
+      .whereType<String>()
+      .where((part) => part.isNotEmpty)
+      .join(' · ');
+  return meta.isEmpty ? 'Kaynak cümlelerle okuma pratiği' : meta;
 }

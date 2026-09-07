@@ -41,7 +41,7 @@ class LandingPage extends StatelessWidget {
                               height: 1.15)),
                       SizedBox(height: 10),
                       Text(
-                          '9.000 kelime · 678 okuma · kaynaklı çalışma ve test modülleri',
+                          '9.000 kelime · 800 okuma · kaynaklı çalışma ve test modülleri',
                           style: TextStyle(
                               color: Colors.white70,
                               fontWeight: FontWeight.w700)),
@@ -67,7 +67,7 @@ class LandingPage extends StatelessWidget {
                               icon: Icons.menu_book_rounded,
                               title: 'Okuma',
                               description:
-                                  '678 okuma ve kaynak cümleleriyle pratik.',
+                                  '800 okuma ve kaynak cümleleriyle pratik.',
                               color: tokens.purple,
                               onTap: () => context.go('/readings'))),
                       SizedBox(

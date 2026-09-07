@@ -26,6 +26,26 @@ void main() {
     expect(normalizeDictionaryQuery('“Ocean,”'), 'ocean');
   });
 
+  test('reading display title uses the canonical NNN - EN (TR) format', () {
+    expect(
+      readingDisplayTitle(
+        sourceNumber: '001',
+        displayTitle: 'Cinemas in the Age of Streaming',
+        turkishTitle: 'Dijital Yayın Çağında Sinemalar',
+      ),
+      '001 - Cinemas in the Age of Streaming '
+      '(Dijital Yayın Çağında Sinemalar)',
+    );
+    expect(
+      readingDisplayTitle(
+        sourceNumber: '800',
+        displayTitle: 'Only English',
+        turkishTitle: null,
+      ),
+      '800 - Only English',
+    );
+  });
+
   test('reading detail parses its separate enrichment layer', () {
     final detail = ReadingDetail.fromJson(<String, Object?>{
       'id': 'reading-1',

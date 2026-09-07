@@ -41,7 +41,7 @@ void main() {
       'deterministic reading shuffle paginates without duplicates or omissions',
       () {
     final readings = List<String>.generate(
-      678,
+      800,
       (index) => 'reading-${index.toString().padLeft(4, '0')}',
     );
     final first = orderForPresentation<String>(

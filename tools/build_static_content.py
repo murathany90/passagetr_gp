@@ -2,8 +2,9 @@
 """Build PASSAGETR public content from its canonical static sources.
 
 Words are read only from the 9,000-record canonical CSV.  Reading EN/TR body
-is read only from the canonical passage/sentence CSV pair; no repair,
-translation, or editorial JSON overlay participates in production builds.
+and questions are read only from the canonical 800-reading Excel workbook;
+no repair, translation, or editorial JSON overlay participates in production
+builds.
 """
 
 from __future__ import annotations
@@ -51,9 +52,31 @@ WORD_TOKEN = re.compile(r"[A-Za-z]+(?:['-][A-Za-z]+)*")
 CANONICAL_WORD_TAG = re.compile(
     r'[a-z0-9]+(?: [a-z0-9]+)*(?: & [a-z0-9]+(?: [a-z0-9]+)*)*'
 )
-TITLE_PATTERN = re.compile(
-    r'^\s*(?:(?P<number>\d+)\s*[-.)]\s*)?(?P<english>.*?)(?:\s*\((?P<turkish>[^()]*)\))?\s*$'
+CANONICAL_LEVELS = ('A1', 'A2', 'B1', 'B2', 'C1', 'C2')
+# Legacy word-level variants seen in source data map onto the canonical CEFR
+# ladder; anything else fails the build instead of being silently invented.
+WORD_LEVEL_NORMALIZATION = {
+    'A1+': 'A1', 'A2+': 'A2', 'B1+': 'B1', 'B2+': 'B2', 'C1+': 'C1',
+    'A1/A2': 'A2', 'A2/B1': 'B1', 'B1/B2': 'B2', 'B1+/B2': 'B2',
+    'B2/C1': 'C1', 'C1/C2': 'C2',
+}
+READINGS_CANONICAL_FILENAME = 'PASSAGETR_READINGS_CANONICAL_800_FINAL.xlsx'
+READINGS_LEGACY_MAP_RELATIVE_PATH = Path('mappings/reading_legacy_ids_001_678.json')
+EXPECTED_READINGS = 800
+EXPECTED_SENTENCES = 7500
+EXPECTED_QUESTIONS = 4000
+EXPECTED_QUESTIONS_PER_READING = 5
+EXPECTED_READING_SENTENCES_MIN = 6
+EXPECTED_READING_SENTENCES_MAX = 12
+MIN_SENTENCE_ENGLISH_WORDS = 10
+READING_QUESTION_TYPES = (
+    'main_idea', 'detail', 'relationship_analysis', 'inference',
+    'author_purpose',
 )
+READING_QUESTION_TYPE_LABELS = READING_QUESTION_TYPES
+READING_PACK_NAME = 'PASSAGETR Readings Canonical 800'
+CORRECT_OPTION_INDEX = {'A': 0, 'B': 1, 'C': 2, 'D': 3}
+EVIDENCE_RANGE = re.compile(r'^\s*(\d+)\s*-\s*(\d+)\s*$')
 STOP_WORDS = frozenset({
     'a', 'about', 'after', 'all', 'also', 'am', 'an', 'and', 'are', 'as', 'at',
     'be', 'been', 'being', 'by', 'can', 'could', 'did', 'do', 'does', 'for',
@@ -64,9 +87,7 @@ STOP_WORDS = frozenset({
     'they', 'this', 'those', 'to', 'too', 'was', 'we', 'were', 'what', 'when',
     'which', 'who', 'will', 'with', 'would', 'you', 'your',
 })
-DEFAULT_CURATED_READINGS_RELATIVE_PATH = Path('curated/readings_001_100_curated_v2.json')
 WORDS_CANONICAL_FILENAME = 'passagetr_yds_words_canonical_9000_FINAL_v2.csv'
-DERIVED_QUESTIONS_FILENAME = 'reading_questions_v1.json'
 INVALID_SPREADSHEET_TOKENS = (
     '#AD?', '#NAME?', '#N/A', '#VALUE!', '#REF!', '#DIV/0!', '#NUM!', '#NULL!',
     '#YOK', '#YOK?', '#DE\u011eER!', '#BA\u015eV!', '#SAYI!', '#B\u00d6L/0!',
@@ -134,8 +155,24 @@ def word_id(word: str, pos: str) -> str:
     )
 
 
+def canonical_level(raw: str | None, *, kind: str, where: str) -> str:
+    """Normalize a source level onto the canonical A1–C2 ladder or fail."""
+    value = clean(raw)
+    if value in CANONICAL_LEVELS:
+        return value
+    mapped = WORD_LEVEL_NORMALIZATION.get(value)
+    if mapped is not None:
+        return mapped
+    raise ValueError(f'Invalid {kind} level at {where}: {raw!r}')
+
+
 def passage_id(title: str) -> str:
     return deterministic_id('passage', title)
+
+
+def reading_id(number: int) -> str:
+    """Stable runtime ID derived only from the source number."""
+    return deterministic_id('reading', f'{number:03d}')
 
 
 def dictionary_entry_id(key: str, pos: str | None, meaning: str) -> str:
@@ -177,134 +214,9 @@ def is_canonical_word_tag(value: str) -> bool:
     return CANONICAL_WORD_TAG.fullmatch(value) is not None
 
 
-def curated_text(record: dict[str, Any], field: str) -> str:
-    value = record.get(field)
-    if not isinstance(value, str) or not value.strip():
-        raise ValueError(f'Curated reading lacks {field!r}')
-    return value
-
-
-def load_curated_readings(path: Path) -> dict[int, dict[str, Any]]:
-    """Load 001–100 curated metadata and questions, never reading body text."""
-    raw = json.loads(path.read_text(encoding='utf-8'))
-    records = raw.get('readings', raw) if isinstance(raw, dict) else raw
-    if not isinstance(records, list) or len(records) != 100:
-        raise ValueError('Curated package must contain exactly 100 readings.')
-    result: dict[int, dict[str, Any]] = {}
-    for record in records:
-        if not isinstance(record, dict):
-            raise ValueError('Curated reading must be an object.')
-        try:
-            number = int(record.get('source_number'))
-        except (TypeError, ValueError) as error:
-            raise ValueError('Curated reading has an invalid source_number.') from error
-        if not 1 <= number <= 100 or number in result:
-            raise ValueError(f'Invalid curated source number: {number}')
-        questions = record.get('questions')
-        if (
-            not isinstance(questions, list)
-            or len(questions) != 5
-        ):
-            raise ValueError(f'Invalid curated record {number:03d}')
-        for question in questions:
-            if not isinstance(question, dict):
-                raise ValueError(f'Invalid curated question in {number:03d}')
-            for field in (
-                'id', 'type', 'question_en', 'question_tr', 'answer_en',
-                'answer_tr', 'explanation_en', 'explanation_tr',
-            ):
-                curated_text(question, field)
-            if (
-                not isinstance(question.get('options_en'), list)
-                or not isinstance(question.get('options_tr'), list)
-                or len(question['options_en']) != 4
-                or len(question['options_tr']) != 4
-                or not isinstance(question.get('correct_option_index'), int)
-                or not 0 <= question['correct_option_index'] < 4
-                or not isinstance(question.get('evidence_sentence_indexes'), list)
-                or not question['evidence_sentence_indexes']
-            ):
-                raise ValueError(f'Invalid curated question options in {number:03d}')
-        result[number] = record
-    if set(result) != set(range(1, 101)):
-        raise ValueError('Curated package must cover source numbers 001–100.')
-    return result
-
-
-def load_derived_questions(path: Path) -> dict[int, dict[str, Any]]:
-    """Load the immutable 101–678 question snapshot without reading body text."""
-    payload = load_json_object(path, 'derived reading question snapshot')
-    records = payload.get('derivedQuestions')
-    if payload.get('schemaVersion') != 1 or not isinstance(records, list):
-        raise ValueError('Derived question snapshot has an invalid schema.')
-    result: dict[int, dict[str, Any]] = {}
-    for record in records:
-        if not isinstance(record, dict):
-            raise ValueError('Derived question snapshot entry must be an object.')
-        source_number = record.get('sourceNumber')
-        reading_id = clean(record.get('readingId'))
-        questions = record.get('questions')
-        if (
-            not isinstance(source_number, int)
-            or not 101 <= source_number <= 678
-            or source_number in result
-            or not reading_id
-            or not isinstance(questions, list)
-        ):
-            raise ValueError('Derived question snapshot entry is invalid.')
-        result[source_number] = {'readingId': reading_id, 'questions': questions}
-    if set(result) != set(range(101, 679)):
-        raise ValueError('Derived question snapshot must cover 101–678.')
-    return result
-
-
-def curated_questions(record: dict[str, Any]) -> list[dict[str, Any]]:
-    """Map every curated bilingual question field without generating content."""
-    return [
-        {
-            'id': curated_text(question, 'id'),
-            'sortOrder': order,
-            'type': curated_text(question, 'type'),
-            'questionCategory': 'comprehension',
-            'question': curated_text(question, 'question_en'),
-            'questionTr': curated_text(question, 'question_tr'),
-            'options': question['options_en'],
-            'optionsTr': question['options_tr'],
-            'correctOptionIndex': question['correct_option_index'],
-            'answerEn': curated_text(question, 'answer_en'),
-            'answerTr': curated_text(question, 'answer_tr'),
-            'explanation': curated_text(question, 'explanation_en'),
-            'explanationTr': curated_text(question, 'explanation_tr'),
-            'evidenceSentenceIndexes': question['evidence_sentence_indexes'],
-        }
-        for order, question in enumerate(record['questions'], start=1)
-    ]
-
-
 def english_tokens(value: str) -> list[str]:
     """Return normalized English tokens without changing the source text."""
     return [normalize_dictionary_key(match.group(0)) for match in WORD_TOKEN.finditer(value)]
-
-
-def display_titles(source_title: str) -> tuple[str | None, str, str | None]:
-    """Derive presentation labels while retaining the CSV title unchanged."""
-    match = TITLE_PATTERN.match(source_title)
-    if match is None:
-        return None, source_title, None
-    source_number = nullable(match.group('number'))
-    english = clean(match.group('english')) or source_title
-    turkish = nullable(match.group('turkish'))
-    return source_number, english, turkish
-
-
-def extractive_summary(sentences: list[dict[str, Any]]) -> str | None:
-    """Use up to two original English sentences; no paraphrase or new claim."""
-    source_sentences = [
-        sentence['englishText']
-        for sentence in sentences
-        if clean(sentence.get('englishText'))
-    ]
-    return ' '.join(source_sentences[:2]) or None
 
 
 def load_json_object(path: Path, label: str) -> dict[str, Any]:
@@ -317,21 +229,279 @@ def load_json_object(path: Path, label: str) -> dict[str, Any]:
     return payload
 
 
-def passages_by_source_number(
-    passages: dict[str, dict[str, Any]],
-) -> dict[int, dict[str, Any]]:
-    result: dict[int, dict[str, Any]] = {}
-    for passage in passages.values():
-        source_text, _, _ = display_titles(passage['title'])
-        if source_text is None:
-            raise ValueError(f'Passage source number is invalid: {passage["title"]!r}')
-        source_number = int(source_text)
-        if source_number in result:
-            raise ValueError(f'Duplicate passage source number: {source_number}')
-        result[source_number] = passage
-    if set(result) != set(range(1, 679)):
-        raise ValueError('Passage source-number coverage is invalid.')
-    return result
+def read_xlsx_sheet(path: Path, sheet_name: str) -> list[list[str]]:
+    """Read a named XLSX worksheet using only the standard library.
+
+    Resolves the sheet name through workbook relationships instead of
+    assuming it is the first worksheet.
+    """
+    with zipfile.ZipFile(path) as workbook:
+        workbook_root = ET.fromstring(workbook.read('xl/workbook.xml'))
+        namespaces = {
+            'main': 'http://schemas.openxmlformats.org/spreadsheetml/2006/main',
+            'rel': 'http://schemas.openxmlformats.org/officeDocument/2006/relationships',
+        }
+        target: str | None = None
+        for sheet in workbook_root.findall('main:sheets/main:sheet', namespaces):
+            if sheet.get('name') == sheet_name:
+                relationship = sheet.get('{http://schemas.openxmlformats.org/officeDocument/2006/relationships}id')
+                relationships = ET.fromstring(workbook.read('xl/_rels/workbook.xml.rels'))
+                for item in relationships:
+                    if item.get('Id') == relationship:
+                        target = (item.get('Target') or '').lstrip('/')
+                        break
+        if target is None:
+            raise ValueError(f'Workbook lacks sheet {sheet_name!r}: {path}')
+        if not target.startswith('xl/'):
+            target = f'xl/{target}'
+        shared = _shared_strings(workbook)
+        with workbook.open(target) as stream:
+            rows: list[list[str]] = []
+            for event, element in ET.iterparse(stream, events=('end',)):
+                if event != 'end' or _tag_name(element) != 'row':
+                    continue
+                cells = [child for child in element if _tag_name(child) == 'c']
+                width = max(
+                    (_column_index(cell.attrib.get('r')) for cell in cells),
+                    default=-1,
+                ) + 1
+                row = [''] * width
+                for cell in cells:
+                    row[_column_index(cell.attrib.get('r'))] = _cell_value(cell, shared)
+                element.clear()
+                rows.append(row)
+            return rows
+
+
+def _sheet_records(
+    path: Path, sheet_name: str, required_headers: tuple[str, ...]
+) -> list[dict[str, str]]:
+    rows = read_xlsx_sheet(path, sheet_name)
+    if not rows:
+        raise ValueError(f'Workbook sheet {sheet_name!r} is empty.')
+    headers = [clean(header) for header in rows[0]]
+    if headers != list(required_headers):
+        raise ValueError(
+            f'Workbook sheet {sheet_name!r} headers must be {list(required_headers)!r}, '
+            f'got {headers!r}.'
+        )
+    records: list[dict[str, str]] = []
+    for line_number, row in enumerate(rows[1:], start=2):
+        padded = list(row) + [''] * (len(headers) - len(row))
+        records.append({
+            header: clean(padded[index]) for index, header in enumerate(headers)
+        })
+    return records
+
+
+def _reading_number(raw: str, *, where: str) -> int:
+    text = clean(raw)
+    if text.isdigit():
+        number = int(text)
+    else:
+        raise ValueError(f'Invalid reading_no at {where}: {raw!r}')
+    if not 1 <= number <= EXPECTED_READINGS:
+        raise ValueError(f'Reading number out of range at {where}: {raw!r}')
+    return number
+
+
+def _positive_int(raw: str, *, where: str) -> int:
+    text = clean(raw)
+    if text.isdigit() and int(text) > 0:
+        return int(text)
+    raise ValueError(f'Invalid positive integer at {where}: {raw!r}')
+
+
+def parse_evidence_sentences(
+    raw: str, *, sentence_count: int, where: str
+) -> list[int]:
+    """Parse evidence formats like ``2``, ``2,3`` or ``1-6`` (inclusive)."""
+    text = clean(raw)
+    if not text:
+        raise ValueError(f'Blank evidence sentences at {where}.')
+    indexes: list[int] = []
+    for part in text.split(','):
+        part = part.strip()
+        if not part:
+            raise ValueError(f'Blank evidence entry at {where}.')
+        span = EVIDENCE_RANGE.match(part)
+        if span is not None:
+            start, end = int(span.group(1)), int(span.group(2))
+            if start > end:
+                raise ValueError(f'Inverted evidence range at {where}: {part!r}')
+            indexes.extend(range(start, end + 1))
+        elif part.isdigit():
+            indexes.append(int(part))
+        else:
+            raise ValueError(f'Invalid evidence entry at {where}: {part!r}')
+    unique = sorted(set(indexes))
+    if not unique or any(index < 1 or index > sentence_count for index in unique):
+        raise ValueError(f'Evidence sentences out of range at {where}: {raw!r}')
+    return unique
+
+
+def load_reading_workbook(path: Path) -> dict[int, dict[str, Any]]:
+    """Load and strictly validate the single canonical reading workbook."""
+    reading_rows = _sheet_records(path, 'Readings', (
+        'reading_no', 'title_en', 'title_tr', 'level', 'category', 'tags_raw',
+    ))
+    sentence_rows = _sheet_records(path, 'Sentences', (
+        'reading_no', 'sentence_no', 'sentence_en', 'sentence_tr',
+    ))
+    question_rows = _sheet_records(path, 'Questions', (
+        'reading_no', 'question_no', 'question_type', 'question_en',
+        'question_tr', 'option_a_en', 'option_a_tr', 'option_b_en',
+        'option_b_tr', 'option_c_en', 'option_c_tr', 'option_d_en',
+        'option_d_tr', 'correct_option', 'explanation_en', 'explanation_tr',
+        'evidence_sentence_no',
+    ))
+    if len(reading_rows) != EXPECTED_READINGS:
+        raise ValueError(
+            f'Readings sheet must contain {EXPECTED_READINGS} rows, '
+            f'got {len(reading_rows)}.'
+        )
+    if len(sentence_rows) != EXPECTED_SENTENCES:
+        raise ValueError(
+            f'Sentences sheet must contain {EXPECTED_SENTENCES} rows, '
+            f'got {len(sentence_rows)}.'
+        )
+    if len(question_rows) != EXPECTED_QUESTIONS:
+        raise ValueError(
+            f'Questions sheet must contain {EXPECTED_QUESTIONS} rows, '
+            f'got {len(question_rows)}.'
+        )
+
+    readings: dict[int, dict[str, Any]] = {}
+    seen_titles: set[str] = set()
+    for line_number, row in enumerate(reading_rows, start=2):
+        number = _reading_number(row['reading_no'], where=f'Readings row {line_number}')
+        if number in readings:
+            raise ValueError(f'Duplicate reading_no: {number:03d}')
+        title_en = clean(row['title_en'])
+        title_tr = clean(row['title_tr'])
+        if not title_en or not title_tr:
+            raise ValueError(f'Blank reading title at Readings row {line_number}.')
+        title_key = normalized(title_en)
+        if title_key in seen_titles:
+            raise ValueError(f'Duplicate English reading title: {title_en!r}')
+        seen_titles.add(title_key)
+        level = canonical_level(row['level'], kind='reading', where=f'reading {number:03d}')
+        for field in ('title_en', 'title_tr'):
+            if has_invalid_spreadsheet_token(row[field]):
+                raise ValueError(f'Spreadsheet token in reading {number:03d}.')
+        readings[number] = {
+            'sourceNumber': number,
+            'title_en': title_en,
+            'title_tr': title_tr,
+            'level': level,
+            'category': clean(row['category']) or None,
+            'tags': parse_tag_list(row['tags_raw']),
+            'sentences': [],
+            'questions': [],
+        }
+    if set(readings) != set(range(1, EXPECTED_READINGS + 1)):
+        raise ValueError('Readings sheet must cover reading numbers 001–800.')
+
+    seen_english_sentences: set[str] = set()
+    for line_number, row in enumerate(sentence_rows, start=2):
+        number = _reading_number(row['reading_no'], where=f'Sentences row {line_number}')
+        sentence_no = _positive_int(row['sentence_no'], where=f'Sentences row {line_number}')
+        english = clean(row['sentence_en'])
+        turkish = clean(row['sentence_tr'])
+        if not english or not turkish:
+            raise ValueError(f'Blank EN/TR sentence at Sentences row {line_number}.')
+        if has_invalid_spreadsheet_token(english) or has_invalid_spreadsheet_token(turkish):
+            raise ValueError(f'Spreadsheet token at Sentences row {line_number}.')
+        if english in seen_english_sentences:
+            raise ValueError(f'Duplicate English sentence at Sentences row {line_number}.')
+        seen_english_sentences.add(english)
+        if len(english_tokens(english)) < MIN_SENTENCE_ENGLISH_WORDS:
+            raise ValueError(
+                f'English sentence below {MIN_SENTENCE_ENGLISH_WORDS} words '
+                f'at Sentences row {line_number}.'
+            )
+        readings[number]['sentences'].append({
+            'index': sentence_no,
+            'englishText': english,
+            'turkishText': turkish,
+        })
+    for number, reading in readings.items():
+        sentences = sorted(reading['sentences'], key=lambda item: item['index'])
+        indexes = [item['index'] for item in sentences]
+        if [item + 1 for item in range(len(sentences))] != indexes:
+            raise ValueError(f'Sentence numbering is not contiguous in reading {number:03d}.')
+        if not EXPECTED_READING_SENTENCES_MIN <= len(sentences) <= EXPECTED_READING_SENTENCES_MAX:
+            raise ValueError(f'Sentence count out of range in reading {number:03d}.')
+        reading['sentences'] = sentences
+
+    correct_distribution: Counter[str] = Counter()
+    for line_number, row in enumerate(question_rows, start=2):
+        number = _reading_number(row['reading_no'], where=f'Questions row {line_number}')
+        question_no = _positive_int(row['question_no'], where=f'Questions row {line_number}')
+        if not 1 <= question_no <= EXPECTED_QUESTIONS_PER_READING:
+            raise ValueError(f'Question number out of range at Questions row {line_number}.')
+        question_type = clean(row['question_type'])
+        if question_type not in READING_QUESTION_TYPES:
+            raise ValueError(f'Invalid question type at Questions row {line_number}.')
+        options_en = [clean(row[f'option_{letter}_en']) for letter in 'abcd']
+        options_tr = [clean(row[f'option_{letter}_tr']) for letter in 'abcd']
+        if any(not option for option in (*options_en, *options_tr)):
+            raise ValueError(f'Blank question option at Questions row {line_number}.')
+        if len(set(options_en)) != 4 or len(set(options_tr)) != 4:
+            raise ValueError(f'Question options are not unique at Questions row {line_number}.')
+        correct = clean(row['correct_option']).upper()
+        if correct not in CORRECT_OPTION_INDEX:
+            raise ValueError(f'Invalid correct option at Questions row {line_number}.')
+        correct_index = CORRECT_OPTION_INDEX[correct]
+        correct_distribution[correct] += 1
+        question_en = clean(row['question_en'])
+        question_tr = clean(row['question_tr'])
+        if not question_en or not question_tr:
+            raise ValueError(f'Blank question text at Questions row {line_number}.')
+        for field in ('question_en', 'question_tr', 'explanation_en', 'explanation_tr',
+                      *options_en, *options_tr):
+            if has_invalid_spreadsheet_token(field):
+                raise ValueError(f'Spreadsheet token at Questions row {line_number}.')
+        sentence_count = len(readings[number]['sentences'])
+        evidence = parse_evidence_sentences(
+            row['evidence_sentence_no'],
+            sentence_count=sentence_count,
+            where=f'Questions row {line_number}',
+        )
+        readings[number]['questions'].append({
+            'id': f'{number:03d}-{question_no}',
+            'sortOrder': question_no,
+            'type': question_type,
+            'questionCategory': 'comprehension',
+            'question': question_en,
+            'questionTr': question_tr,
+            'options': options_en,
+            'optionsTr': options_tr,
+            'correctOptionIndex': correct_index,
+            'answerEn': options_en[correct_index],
+            'answerTr': options_tr[correct_index],
+            'explanation': clean(row['explanation_en']) or None,
+            'explanationTr': clean(row['explanation_tr']) or None,
+            'evidenceSentenceIndexes': evidence,
+        })
+    for number, reading in readings.items():
+        questions = sorted(reading['questions'], key=lambda item: item['sortOrder'])
+        if [item['sortOrder'] for item in questions] != [1, 2, 3, 4, 5]:
+            raise ValueError(f'Question numbers are not 1–5 in reading {number:03d}.')
+        if sorted(item['type'] for item in questions) != sorted(READING_QUESTION_TYPES):
+            raise ValueError(f'Question type coverage is invalid in reading {number:03d}.')
+        reading['questions'] = questions
+    if dict(sorted(correct_distribution.items())) != {letter: 1000 for letter in 'ABCD'}:
+        raise ValueError(f'Correct-option distribution is invalid: {dict(correct_distribution)}')
+    return readings
+
+
+def load_legacy_reading_id_map(path: Path) -> dict[str, str]:
+    """Load the one-time 001–678 legacy passage-ID migration map."""
+    payload = load_json_object(path, 'legacy reading ID map')
+    if len(payload) != 678 or set(payload.values()) != {f'{number:03d}' for number in range(1, 679)}:
+        raise ValueError('Legacy reading ID map must cover source numbers 001–678.')
+    return {str(key): str(value) for key, value in payload.items()}
 def focus_word_ids(
     sentences: list[dict[str, Any]],
     primary_word_ids: dict[str, list[str]],
@@ -553,24 +723,19 @@ def build_dictionary(dictionary_source: Path, output_dir: Path) -> dict[str, Any
 def build(
     source_dir: Path,
     output_dir: Path,
-    curated_package: Path | None = None,
 ) -> dict[str, Any]:
-    """Build public content from the canonical CSV pair and question sources.
+    """Build public content from the canonical word CSV and reading workbook.
 
-    Reading prose is deliberately read only from ``reading_sentences.csv``.
-    No JSON repair, translation, or editorial overlay participates in this path.
+    Reading prose and questions are read only from
+    ``PASSAGETR_READINGS_CANONICAL_800_FINAL.xlsx``.  No JSON repair,
+    translation, or editorial overlay participates in this path.
     """
     words_source = source_dir / 'canonical' / 'words' / WORDS_CANONICAL_FILENAME
-    passages_source = source_dir / 'canonical' / 'readings' / 'reading_passages.csv'
-    sentences_source = source_dir / 'canonical' / 'readings' / 'reading_sentences.csv'
-    questions_source = source_dir / 'canonical' / 'readings' / DERIVED_QUESTIONS_FILENAME
+    readings_source = source_dir / 'canonical' / 'readings' / READINGS_CANONICAL_FILENAME
+    legacy_map_source = source_dir / READINGS_LEGACY_MAP_RELATIVE_PATH
     dictionary_source = source_dir / 'canonical' / 'dictionary' / 'dictionary_tr_en.xlsx'
-    curated_package = curated_package or (
-        source_dir / DEFAULT_CURATED_READINGS_RELATIVE_PATH
-    )
     for source in (
-        words_source, passages_source, sentences_source, questions_source,
-        dictionary_source, curated_package,
+        words_source, readings_source, legacy_map_source, dictionary_source,
     ):
         if not source.is_file():
             raise FileNotFoundError(source)
@@ -619,74 +784,34 @@ def build(
             'synonymsRaw': nullable(row.get('synonyms_raw')),
             'antonymsRaw': nullable(row.get('antonyms_raw')),
             'notes': nullable(row.get('notes')),
-            'level': nullable(row.get('level')),
+            'level': canonical_level(row.get('level'), kind='word', where=f'word CSV row {row_number}'),
             'tags': tags,
         })
     if len(seen_headwords) != 9000:
         raise ValueError('Canonical word headword coverage is invalid.')
 
-    passage_rows = read_csv(passages_source)
-    if len(passage_rows) != 678:
-        raise ValueError('Reading passage CSV must contain exactly 678 rows.')
-    passages: dict[str, dict[str, Any]] = {}
-    for row in passage_rows:
-        title = clean(row.get('title'))
-        source_pack = clean(row.get('pack_name'))
-        if not title or not source_pack:
-            raise ValueError('Reading passage CSV has a blank required field.')
-        key = normalized(title)
-        if key in passages:
-            raise ValueError(f'Duplicate normalized passage title: {title!r}')
-        _, default_display_title, default_turkish_title = display_titles(title)
-        passages[key] = {
-            'id': passage_id(title),
-            'packId': pack_id(source_pack),
+    workbook = load_reading_workbook(readings_source)
+    legacy_number_map = load_legacy_reading_id_map(legacy_map_source)
+    numbered_passages: dict[int, dict[str, Any]] = {}
+    for source_number, record in workbook.items():
+        title = f'{source_number:03d} - {record["title_en"]} ({record["title_tr"]})'
+        numbered_passages[source_number] = {
+            'id': reading_id(source_number),
+            'packId': pack_id(READING_PACK_NAME),
             'title': title,
-            'level': nullable(row.get('level')),
-            'category': nullable(row.get('Category')),
-            'tags': parse_tag_list(row.get('tags_raw')),
+            'level': record['level'],
+            'category': record['category'],
+            'tags': record['tags'],
             'author': None,
             'durationMinutes': None,
             'coverAsset': None,
             'coverAltText': None,
-            'sentences': [],
+            'sentences': record['sentences'],
             'enrichment': {},
-            '_displayTitle': clean(row.get('display_title_en')) or default_display_title,
-            '_turkishTitle': nullable(row.get('display_title_tr')) or default_turkish_title,
+            '_displayTitle': record['title_en'],
+            '_turkishTitle': record['title_tr'],
+            '_questions': record['questions'],
         }
-    numbered_passages = passages_by_source_number(passages)
-
-    grouped_sentences: dict[str, list[dict[str, Any]]] = defaultdict(list)
-    for row_number, row in enumerate(read_csv(sentences_source), start=2):
-        title = clean(row.get('passage_title'))
-        english = clean(row.get('sentence_en'))
-        turkish = clean(row.get('sentence_tr'))
-        raw_index = clean(row.get('idx'))
-        if not all((title, english, turkish, raw_index)):
-            raise ValueError(f'Reading sentence CSV has a blank EN/TR field at row {row_number}.')
-        try:
-            index = int(raw_index)
-        except ValueError as error:
-            raise ValueError(f'Invalid sentence index for {title!r}: {raw_index!r}') from error
-        if index <= 0:
-            raise ValueError(f'Invalid positive sentence index for {title!r}.')
-        grouped_sentences[normalized(title)].append({
-            'index': index, 'englishText': english, 'turkishText': turkish,
-        })
-    for title_key, sentences in grouped_sentences.items():
-        passage = passages.get(title_key)
-        if passage is None:
-            raise ValueError(f'Sentence has no passage: {title_key!r}')
-        indexes = [item['index'] for item in sentences]
-        if len(indexes) != len(set(indexes)):
-            raise ValueError(f'Duplicate sentence index for {passage["title"]!r}.')
-        passage['sentences'] = sorted(sentences, key=lambda item: item['index'])
-
-    curated_readings = load_curated_readings(curated_package)
-    derived_questions = load_derived_questions(questions_source)
-    for source_number, snapshot in derived_questions.items():
-        if snapshot['readingId'] != numbered_passages[source_number]['id']:
-            raise ValueError('Derived question snapshot reading ID does not match passage CSV.')
 
     document_frequency: Counter[str] = Counter()
     for passage in numbered_passages.values():
@@ -706,10 +831,6 @@ def build(
         'questionReadings': 0,
         'totalQuestions': 0,
         'comprehensionQuestions': 0,
-        'vocabularyPracticeQuestions': 0,
-        'curatedReadings': 0,
-        'curatedQuestions': 0,
-        'derivedQuestionReadings': 0,
         'productionSentenceOverlays': 0,
     }
     source_missing_numbers: list[int] = []
@@ -718,22 +839,14 @@ def build(
         sentence_count += len(sentences)
         if not sentences:
             source_missing_numbers.append(source_number)
-        curated = curated_readings.get(source_number)
-        if curated is not None:
-            summary = curated_text(curated, 'summary_en')
-            summary_tr: str | None = curated_text(curated, 'summary_tr')
-            summary_type = 'curated'
-            questions = curated_questions(curated)
-            content_source = 'canonical_csv_curated_questions_v2'
-            enrichment_audit['curatedReadings'] += 1
-            enrichment_audit['curatedQuestions'] += len(questions)
-        else:
-            summary = extractive_summary(sentences)
-            summary_tr = None
-            summary_type = 'extractive'
-            questions = copy.deepcopy(derived_questions[source_number]['questions'])
-            content_source = 'canonical_csv_question_snapshot_v1'
-            enrichment_audit['derivedQuestionReadings'] += 1
+        meaningful = [item for item in sentences if clean(item.get('englishText'))]
+        summary = ' '.join(item['englishText'] for item in meaningful[:2]) or None
+        summary_tr = ' '.join(
+            clean(item.get('turkishText')) for item in meaningful[:2] if clean(item.get('turkishText'))
+        ) or None
+        summary_type = 'extractive'
+        questions = passage.pop('_questions')
+        content_source = 'canonical_xlsx_readings_800_v1'
         word_count = sum(len(english_tokens(sentence['englishText'])) for sentence in sentences)
         focus_ids = focus_word_ids(
             sentences, primary_word_ids, document_frequency, len(numbered_passages)
@@ -769,13 +882,12 @@ def build(
         enrichment_audit['comprehensionQuestions'] += sum(
             question.get('questionCategory') == 'comprehension' for question in questions
         )
-        enrichment_audit['vocabularyPracticeQuestions'] += sum(
-            question.get('questionCategory') == 'vocabulary_practice' for question in questions
+    if sentence_count != EXPECTED_SENTENCES:
+        raise ValueError(
+            f'Canonical reading sentence count must be {EXPECTED_SENTENCES:,}, got {sentence_count}.'
         )
-    if sentence_count != 6275:
-        raise ValueError(f'Canonical reading sentence count must be 6,275, got {sentence_count}.')
-    if enrichment_audit['curatedReadings'] != 100 or enrichment_audit['derivedQuestionReadings'] != 578:
-        raise ValueError('Reading question source coverage is invalid.')
+    if enrichment_audit['totalQuestions'] != EXPECTED_QUESTIONS:
+        raise ValueError('Reading question coverage is invalid.')
 
     if output_dir.exists():
         shutil.rmtree(output_dir)
@@ -814,6 +926,14 @@ def build(
         })
     write_json(output_dir / 'words' / 'index.json', {'packs': word_index})
     write_json(output_dir / 'readings' / 'index.json', {'readings': reading_index})
+    legacy_id_map = {
+        old_id: reading_id(int(number))
+        for old_id, number in legacy_number_map.items()
+    }
+    write_json(output_dir / 'readings' / 'legacy_id_map.json', {
+        'schemaVersion': 1,
+        'mapping': legacy_id_map,
+    })
     dictionary = build_dictionary(dictionary_source, output_dir)
     question_hash = hashlib.sha256(json_bytes(question_payload)).hexdigest()
     manifest = {
@@ -831,26 +951,23 @@ def build(
         'wordsIndex': 'words/index.json',
         'readingsIndex': 'readings/index.json',
         'dictionaryIndex': 'dictionary/index.json',
+        'legacyReadingIdMap': 'readings/legacy_id_map.json',
         'readingEnrichment': {'schemaVersion': 1, 'wordsPerMinute': READING_WORDS_PER_MINUTE, **enrichment_audit},
         'readingCanonicalSource': {
-            'passages': 'canonical/readings/reading_passages.csv',
-            'sentences': 'canonical/readings/reading_sentences.csv',
+            'workbook': 'canonical/readings/PASSAGETR_READINGS_CANONICAL_800_FINAL.xlsx',
             'productionSentenceOverlays': 0,
             'sourceMissingReadingNumbers': source_missing_numbers,
         },
         'readingQuestionIntegrity': {
             'schemaVersion': 1,
             'payloadSha256': question_hash,
-            'curatedReadings': 100,
-            'derivedReadings': 578,
+            'readings': len(numbered_passages),
+            'questions': enrichment_audit['totalQuestions'],
         },
         'sourceChecksums': {
             'words': source_hash(words_source),
-            'passages': source_hash(passages_source),
-            'sentences': source_hash(sentences_source),
-            'derivedQuestions': source_hash(questions_source),
+            'readingsWorkbook': source_hash(readings_source),
             'dictionary': source_hash(dictionary_source),
-            'curatedReadings': source_hash(curated_package),
         },
     }
     write_json(output_dir / 'manifest.json', manifest)
@@ -861,16 +978,10 @@ def main() -> int:
     parser = argparse.ArgumentParser(description='Build public PASSAGETR static content.')
     parser.add_argument('--source-dir', type=Path, default=ROOT / 'source_data')
     parser.add_argument('--output-dir', type=Path, default=ROOT / 'assets' / 'content' / 'v1')
-    parser.add_argument(
-        '--curated-package',
-        type=Path,
-        help='Optional curated reading package override. Defaults to source_data/curated.',
-    )
     args = parser.parse_args()
     manifest = build(
         args.source_dir.resolve(),
         args.output_dir.resolve(),
-        args.curated_package.resolve() if args.curated_package else None,
     )
     print(json.dumps({**manifest['counts'], 'dictionaryAudit': manifest['dictionaryAudit']}, ensure_ascii=False))
     return 0

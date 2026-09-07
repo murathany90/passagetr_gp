@@ -22,6 +22,7 @@ class StaticContentRepository {
   final AssetBundle _bundle;
   final String root;
   Future<_Catalog>? _catalogFuture;
+  Future<Map<String, String>>? _legacyMapFuture;
   Future<List<WordEntry>>? _wordsFuture;
   final Map<String, Future<ReadingDetail>> _readingCache =
       <String, Future<ReadingDetail>>{};
@@ -83,7 +84,8 @@ class StaticContentRepository {
     final manifest = await _loadJson('manifest.json');
     final counts = _jsonMap(manifest['counts']);
     if (counts['words'] != 9000 ||
-        counts['readings'] != 678 ||
+        counts['readings'] is! int ||
+        (counts['readings'] as int) < 1 ||
         counts['sentences'] is! int ||
         (counts['sentences'] as int) < 1) {
       throw StaticContentException('İçerik manifest sayıları doğrulanamadı.');
@@ -96,7 +98,7 @@ class StaticContentRepository {
         ((readingIndex['readings'] as List<Object?>?) ?? const <Object?>[])
             .map((item) => ReadingPassage.fromJson(_jsonMap(item)))
             .toList(growable: false);
-    if (readings.length != 678) {
+    if (readings.length != counts['readings']) {
       throw StaticContentException('Okuma indeksi eksik veya bozuk.');
     }
     return _Catalog(
@@ -104,6 +106,34 @@ class StaticContentRepository {
       readings: List<ReadingPassage>.unmodifiable(readings),
       wordsIndex: manifest['wordsIndex']! as String,
     );
+  }
+
+  /// Best-effort legacy (001–678) passage-ID migration map; missing file
+  /// simply means there is nothing to migrate.
+  Future<Map<String, String>> loadLegacyReadingIdMap() {
+    final pending = _legacyMapFuture;
+    if (pending != null) return pending;
+    final future = _loadLegacyReadingIdMap();
+    _legacyMapFuture = future;
+    future.then((_) {}, onError: (_) {
+      _legacyMapFuture = null;
+    });
+    return future;
+  }
+
+  Future<Map<String, String>> _loadLegacyReadingIdMap() async {
+    try {
+      final manifest = await _loadJson('manifest.json');
+      final file = manifest['legacyReadingIdMap'] as String?;
+      if (file == null || file.isEmpty) return const <String, String>{};
+      final payload = await _loadJson(file);
+      final mapping = (payload['mapping'] as Map?) ?? const <String, String>{};
+      return Map<String, String>.unmodifiable(
+        mapping.map((key, value) => MapEntry(key.toString(), value.toString())),
+      );
+    } catch (_) {
+      return const <String, String>{};
+    }
   }
 
   Future<List<WordEntry>> _loadWords() async {
