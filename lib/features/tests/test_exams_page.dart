@@ -6,6 +6,7 @@ import '../../core/app_theme_tokens.dart';
 import '../../core/content_providers.dart';
 import '../../core/local_progress.dart';
 import '../../models/test_models.dart';
+import '../../repositories/local_progress_repository.dart';
 import '../common/page_parts.dart';
 
 class TestExamsPage extends ConsumerWidget {
@@ -80,6 +81,8 @@ class TestExamsPage extends ConsumerWidget {
                                 width: width,
                                 child: _ExamCard(
                                     exam: exam,
+                                    answered: _answeredExamQuestions(
+                                        progress, exam.testNo),
                                     best: progress.testExamBestScores[
                                         exam.testNo.toString()]),
                               ))
@@ -93,8 +96,13 @@ class TestExamsPage extends ConsumerWidget {
 }
 
 class _ExamCard extends StatelessWidget {
-  const _ExamCard({required this.exam, required this.best});
+  const _ExamCard({
+    required this.exam,
+    required this.answered,
+    required this.best,
+  });
   final TestExamSummary exam;
+  final int answered;
   final int? best;
 
   @override
@@ -109,6 +117,14 @@ class _ExamCard extends StatelessWidget {
               const SizedBox(height: 6),
               Text('${exam.questionCount} soru',
                   style: Theme.of(context).textTheme.bodyMedium),
+              const SizedBox(height: 8),
+              LinearProgressIndicator(
+                value:
+                    answered.clamp(0, exam.questionCount) / exam.questionCount,
+              ),
+              const SizedBox(height: 6),
+              Text('$answered / ${exam.questionCount} cevaplandı',
+                  style: Theme.of(context).textTheme.bodySmall),
               if (best != null) ...<Widget>[
                 const SizedBox(height: 6),
                 Text('En iyi sonuç: %$best',
@@ -186,7 +202,12 @@ class _TestExamPageState extends ConsumerState<TestExamPage> {
             OutlinedButton.icon(
                 onPressed: () => context.go('/tests/exams'),
                 icon: const Icon(Icons.arrow_back_rounded),
-                label: const Text('Testlere dön'))
+                label: const Text('Testlere dön')),
+            OutlinedButton.icon(
+              onPressed: () => _confirmReset(data),
+              icon: const Icon(Icons.restart_alt_rounded),
+              label: const Text('İlerlemeyi sıfırla'),
+            ),
           ],
           child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -277,6 +298,42 @@ class _TestExamPageState extends ConsumerState<TestExamPage> {
       );
     }
   }
+
+  Future<void> _confirmReset(TestExam exam) async {
+    final approved = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Test ${exam.testNo} ilerlemesi sıfırlansın mı?'),
+        content: const Text(
+          'Bu testin cevapları, puanı ve kaldığınız soru temizlenir. '
+          'Diğer testler ve favoriler korunur.',
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Vazgeç'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Sıfırla'),
+          ),
+        ],
+      ),
+    );
+    if (approved != true || !mounted) return;
+    ref.read(localProgressProvider.notifier).resetTestExamProgress(
+          testNo: exam.testNo,
+          questionIds: exam.questions.map((question) => question.id),
+        );
+    setState(() => _index = 0);
+  }
+}
+
+int _answeredExamQuestions(LocalProgressSnapshot progress, int testNo) {
+  final prefix = 'test-${testNo.toString().padLeft(2, '0')}-q-';
+  return progress.testQuestionAnswers.keys
+      .where((questionId) => questionId.startsWith(prefix))
+      .length;
 }
 
 class _ExamOption extends StatelessWidget {

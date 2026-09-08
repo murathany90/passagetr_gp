@@ -111,6 +111,52 @@ void main() {
     expect(controller.state.favoriteWordIds, <String>{'keep-favorite'});
   });
 
+  test('Test module and exam reset keep unrelated local progress', () async {
+    final controller = LocalProgressController(_MemoryProgress(
+      initial: const LocalProgressSnapshot(
+        isLoaded: true,
+        favoriteWordIds: <String>{'keep-favorite'},
+        testLastModuleNo: 1,
+        testFlashcardKnownIds: <String>{'module-1-word', 'module-2-word'},
+        completedTestMatchingModuleIds: <String>{'1', '2'},
+        testQuestionAnswers: <String, String>{
+          'test-01-q-001': 'A',
+          'test-02-q-001': 'B',
+        },
+        testQuestionCorrectness: <String, bool>{
+          'test-01-q-001': true,
+          'test-02-q-001': false,
+        },
+        testQuestionFingerprints: <String, String>{
+          'test-01-q-001': 'one',
+          'test-02-q-001': 'two',
+        },
+        testExamLastQuestionIndexes: <String, int>{'1': 5, '2': 3},
+        testExamBestScores: <String, int>{'1': 80, '2': 60},
+      ),
+    ));
+    addTearDown(controller.dispose);
+    await controller.restoreFuture;
+
+    controller.resetTestModuleProgress(
+      moduleNo: 1,
+      wordIds: const <String>['module-1-word'],
+    );
+    controller.resetTestExamProgress(
+      testNo: 1,
+      questionIds: const <String>['test-01-q-001'],
+    );
+
+    expect(controller.state.favoriteWordIds, <String>{'keep-favorite'});
+    expect(controller.state.testFlashcardKnownIds, <String>{'module-2-word'});
+    expect(controller.state.completedTestMatchingModuleIds, <String>{'2'});
+    expect(controller.state.testLastModuleNo, isNull);
+    expect(
+        controller.state.testQuestionAnswers.keys, <String>['test-02-q-001']);
+    expect(controller.state.testExamLastQuestionIndexes, <String, int>{'2': 3});
+    expect(controller.state.testExamBestScores, <String, int>{'2': 60});
+  });
+
   testWidgets('Testler main page is compact at 360, 390 and 430 px',
       (tester) async {
     addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -186,6 +232,34 @@ class _MemoryProgress extends LocalProgressRepository {
       testQuestionContentVersion: version,
       testQuestionFingerprints: fingerprints,
     );
+  }
+
+  @override
+  Future<void> saveTestLastModuleNo(int? moduleNo) async {
+    _snapshot = _snapshot.copyWith(
+      testLastModuleNo: moduleNo,
+      clearTestLastModuleNo: moduleNo == null,
+    );
+  }
+
+  @override
+  Future<void> saveTestFlashcardKnownIds(Set<String> ids) async {
+    _snapshot = _snapshot.copyWith(testFlashcardKnownIds: ids);
+  }
+
+  @override
+  Future<void> saveCompletedTestMatchingModuleIds(Set<String> ids) async {
+    _snapshot = _snapshot.copyWith(completedTestMatchingModuleIds: ids);
+  }
+
+  @override
+  Future<void> saveTestExamLastQuestionIndexes(Map<String, int> indexes) async {
+    _snapshot = _snapshot.copyWith(testExamLastQuestionIndexes: indexes);
+  }
+
+  @override
+  Future<void> saveTestExamBestScores(Map<String, int> scores) async {
+    _snapshot = _snapshot.copyWith(testExamBestScores: scores);
   }
 }
 

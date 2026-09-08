@@ -473,6 +473,35 @@ class LocalProgressController extends StateNotifier<LocalProgressSnapshot> {
     _save(() => _repository.saveCompletedTestMatchingModuleIds(ids));
   }
 
+  /// Clears only the local learning state for one Testler module. Canonical
+  /// content, favourites and every other module remain intact.
+  void resetTestModuleProgress({
+    required int moduleNo,
+    required Iterable<String> wordIds,
+  }) {
+    _markDirty('testFlashcards');
+    _markDirty('testMatching');
+    final known = Set<String>.of(state.testFlashcardKnownIds)
+      ..removeAll(wordIds);
+    final matching = Set<String>.of(state.completedTestMatchingModuleIds)
+      ..remove(moduleNo.toString());
+    final isCurrentModule = state.testLastModuleNo == moduleNo;
+    if (isCurrentModule) {
+      _markDirty('testLastModule');
+    }
+    state = state.copyWith(
+      isLoaded: true,
+      testFlashcardKnownIds: Set<String>.unmodifiable(known),
+      completedTestMatchingModuleIds: Set<String>.unmodifiable(matching),
+      clearTestLastModuleNo: isCurrentModule,
+    );
+    _save(() => _repository.saveTestFlashcardKnownIds(known));
+    _save(() => _repository.saveCompletedTestMatchingModuleIds(matching));
+    if (isCurrentModule) {
+      _save(() => _repository.saveTestLastModuleNo(null));
+    }
+  }
+
   void answerTestQuestion({
     required String questionId,
     required String answer,
@@ -592,6 +621,43 @@ class LocalProgressController extends StateNotifier<LocalProgressSnapshot> {
       isLoaded: true,
       testExamBestScores: Map<String, int>.unmodifiable(scores),
     );
+    _save(() => _repository.saveTestExamBestScores(scores));
+  }
+
+  /// Removes answers, score and resume position for one original Test Bank
+  /// exam. Other exams, module progress and favourites are not affected.
+  void resetTestExamProgress({
+    required int testNo,
+    required Iterable<String> questionIds,
+  }) {
+    _markDirty('testAnswers');
+    _markDirty('examProgress');
+    final ids = questionIds.toSet();
+    final answers = Map<String, String>.of(state.testQuestionAnswers)
+      ..removeWhere((questionId, _) => ids.contains(questionId));
+    final correctness = Map<String, bool>.of(state.testQuestionCorrectness)
+      ..removeWhere((questionId, _) => ids.contains(questionId));
+    final fingerprints = Map<String, String>.of(state.testQuestionFingerprints)
+      ..removeWhere((questionId, _) => ids.contains(questionId));
+    final key = testNo.toString();
+    final indexes = Map<String, int>.of(state.testExamLastQuestionIndexes)
+      ..remove(key);
+    final scores = Map<String, int>.of(state.testExamBestScores)..remove(key);
+    state = state.copyWith(
+      isLoaded: true,
+      testQuestionAnswers: Map<String, String>.unmodifiable(answers),
+      testQuestionCorrectness: Map<String, bool>.unmodifiable(correctness),
+      testQuestionFingerprints: Map<String, String>.unmodifiable(fingerprints),
+      testExamLastQuestionIndexes: Map<String, int>.unmodifiable(indexes),
+      testExamBestScores: Map<String, int>.unmodifiable(scores),
+    );
+    _save(() => _repository.saveTestQuestionAnswers(answers));
+    _save(() => _repository.saveTestQuestionCorrectness(correctness));
+    _save(() => _repository.saveTestQuestionContent(
+          version: state.testQuestionContentVersion ?? '',
+          fingerprints: fingerprints,
+        ));
+    _save(() => _repository.saveTestExamLastQuestionIndexes(indexes));
     _save(() => _repository.saveTestExamBestScores(scores));
   }
 }

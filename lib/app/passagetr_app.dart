@@ -12,6 +12,7 @@ import '../features/readings/readings_page.dart';
 import '../features/study/study_module_page.dart';
 import '../features/study/study_page.dart';
 import '../features/tests/test_exams_page.dart';
+import '../features/tests/test_favorites_page.dart';
 import '../features/tests/test_module_page.dart';
 import '../features/tests/test_structures_page.dart';
 import '../features/tests/tests_page.dart';
@@ -71,6 +72,10 @@ final _routerProvider = Provider<GoRouter>((ref) => GoRouter(
             GoRoute(
               path: '/tests',
               builder: (context, state) => const TestsPage(),
+            ),
+            GoRoute(
+              path: '/tests/favorites',
+              builder: (context, state) => const TestFavoritesPage(),
             ),
             GoRoute(
               path: '/tests/module/:moduleNo',

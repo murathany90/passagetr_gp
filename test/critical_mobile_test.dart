@@ -159,6 +159,7 @@ void main() {
     await tester.ensureVisible(find.text('access').first);
     await tester.tap(find.text('access').first);
     await tester.pump();
+    expect(find.byTooltip('Tamamlandı'), findsOneWidget);
     expect(find.text('ETİKETLER'), findsOneWidget);
     expect(find.text('technology & it'), findsOneWidget);
     expect(find.text('Not'), findsNothing);

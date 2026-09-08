@@ -75,6 +75,41 @@ class _TestModulePageState extends ConsumerState<TestModulePage> {
     });
   }
 
+  Future<void> _confirmReset(TestModuleDetail module) async {
+    final approved = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Modül ${module.moduleNo} ilerlemesi sıfırlansın mı?'),
+        content: const Text(
+          'Bu modülün bilinen kartları ve eşleştirme tamamlanması silinir. '
+          'Favoriler ve diğer modüller korunur.',
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Vazgeç'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Sıfırla'),
+          ),
+        ],
+      ),
+    );
+    if (approved != true || !mounted) return;
+    ref.read(localProgressProvider.notifier).resetTestModuleProgress(
+          moduleNo: module.moduleNo,
+          wordIds: module.words.map((word) => word.id),
+        );
+    setState(() {
+      _quickStarted = false;
+      _quickIndex = 0;
+      _quickCorrect = 0;
+      _selected = null;
+      _options = const <String>[];
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final detail = ref.watch(testModuleDetailProvider(widget.moduleNo));
@@ -102,6 +137,11 @@ class _TestModulePageState extends ConsumerState<TestModulePage> {
               onPressed: () => context.go('/tests'),
               icon: const Icon(Icons.arrow_back_rounded),
               label: const Text('Testlere dön'),
+            ),
+            OutlinedButton.icon(
+              onPressed: () => _confirmReset(module),
+              icon: const Icon(Icons.restart_alt_rounded),
+              label: const Text('İlerlemeyi sıfırla'),
             ),
           ],
           child: Column(

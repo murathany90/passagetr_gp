@@ -6,6 +6,7 @@ import '../../core/app_theme_tokens.dart';
 import '../../core/content_providers.dart';
 import '../../core/local_progress.dart';
 import '../../models/test_models.dart';
+import '../../repositories/local_progress_repository.dart';
 import '../common/page_parts.dart';
 
 class TestsPage extends ConsumerStatefulWidget {
@@ -77,18 +78,27 @@ class _TestsPageState extends ConsumerState<TestsPage> {
     List<TestModuleSummary> modules,
   ) {
     final totalPages = (modules.length / _pageSize).ceil();
-    final page =
-        totalPages == 0 ? 0 : _page.clamp(0, totalPages - 1).toInt();
+    final page = totalPages == 0 ? 0 : _page.clamp(0, totalPages - 1).toInt();
     final visible = modules.skip(page * _pageSize).take(_pageSize).toList();
     final progress = ref.watch(localProgressProvider);
+    final completedExams = bank.exams
+        .where((exam) =>
+            _answeredExamQuestions(progress, exam.testNo) >= exam.questionCount)
+        .length;
+    final canonicalFavoriteCount = progress.favoriteWordIds
+        .where((id) => !id.startsWith('study-word:'))
+        .length;
     return PageFrame(
       title: 'Testler',
-      subtitle:
-          'Test Bank içeriğiyle modül, yapı ve özgün test çalışması.',
+      subtitle: 'Test Bank içeriğiyle modül, yapı ve özgün test çalışması.',
       child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            _SummaryCard(counts: bank.counts),
+            _SummaryCard(
+              counts: bank.counts,
+              knownCards: progress.testFlashcardKnownIds.length,
+              completedExams: completedExams,
+            ),
             const SizedBox(height: 16),
             LayoutBuilder(builder: (context, constraints) {
               final twoColumns = constraints.maxWidth >= 640;
@@ -112,8 +122,18 @@ class _TestsPageState extends ConsumerState<TestsPage> {
                     icon: Icons.quiz_outlined,
                     title: 'Özgün Testler',
                     description:
-                        '${bank.counts.exams} test · ${bank.counts.questions} soru',
+                        '$completedExams / ${bank.counts.exams} tamamlandı · ${bank.counts.questions} soru',
                     onTap: () => context.go('/tests/exams'),
+                  ),
+                ),
+                SizedBox(
+                  width: width,
+                  child: _FeatureCard(
+                    icon: Icons.favorite_outline_rounded,
+                    title: 'Favoriler',
+                    description:
+                        '$canonicalFavoriteCount canonical kelime · Liste ve flash kart',
+                    onTap: () => context.go('/tests/favorites'),
                   ),
                 ),
               ]);
@@ -160,23 +180,30 @@ class _TestsPageState extends ConsumerState<TestsPage> {
 }
 
 class _SummaryCard extends StatelessWidget {
-  const _SummaryCard({required this.counts});
+  const _SummaryCard({
+    required this.counts,
+    required this.knownCards,
+    required this.completedExams,
+  });
   final TestBankCounts counts;
+  final int knownCards;
+  final int completedExams;
 
   @override
   Widget build(BuildContext context) {
     final items = <(String, String)>[
       ('Modül', '${counts.modules}'),
       ('Kelime kaydı', '${counts.wordRows}'),
+      ('Kart ilerleme', '$knownCards / ${counts.wordRows}'),
       ('Yapı', '${counts.structures}'),
-      ('Özgün test', '${counts.exams}'),
+      ('Özgün test', '$completedExams / ${counts.exams}'),
       ('Soru', '${counts.questions}'),
     ];
     return SurfaceCard(
       padding: const EdgeInsets.all(16),
       child: LayoutBuilder(builder: (context, constraints) {
-        final width = constraints.maxWidth >= 660
-            ? (constraints.maxWidth - 32) / items.length
+        final width = constraints.maxWidth >= 860
+            ? (constraints.maxWidth - 48) / items.length
             : (constraints.maxWidth - 12) / 2;
         return Wrap(
           spacing: 8,
@@ -256,40 +283,52 @@ class _ModuleCard extends StatelessWidget {
   final bool matchingDone;
 
   @override
-  Widget build(BuildContext context) => SurfaceCard(
-        onTap: () => context.go('/tests/module/${module.moduleNo}'),
-        padding: const EdgeInsets.all(16),
-        child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Row(children: <Widget>[
-                Text('Modül ${module.moduleNo}',
-                    style: Theme.of(context).textTheme.titleMedium),
-                const Spacer(),
-                if (active)
-                  const Icon(Icons.play_circle_fill_rounded, size: 19),
-              ]),
-              const SizedBox(height: 6),
-              Text('${module.wordCount} kelime',
-                  style: Theme.of(context).textTheme.bodyMedium),
-              const SizedBox(height: 8),
-              Text(
-                matchingDone
-                    ? 'Eşleştirme tamamlandı · $known kart bilindi'
-                    : '$known kart bilindi',
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-              const SizedBox(height: 12),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: FilledButton.tonal(
-                  onPressed: () =>
-                      context.go('/tests/module/${module.moduleNo}'),
-                  child: Text(active ? 'Devam et' : 'Aç'),
-                ),
-              ),
+  Widget build(BuildContext context) {
+    final completedItems =
+        known.clamp(0, module.wordCount).toInt() + (matchingDone ? 1 : 0);
+    final totalItems = module.wordCount + 1;
+    return SurfaceCard(
+      onTap: () => context.go('/tests/module/${module.moduleNo}'),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Row(children: <Widget>[
+              Text('Modül ${module.moduleNo}',
+                  style: Theme.of(context).textTheme.titleMedium),
+              const Spacer(),
+              if (active) const Icon(Icons.play_circle_fill_rounded, size: 19),
             ]),
-      );
+            const SizedBox(height: 6),
+            Text('${module.wordCount} kelime',
+                style: Theme.of(context).textTheme.bodyMedium),
+            const SizedBox(height: 8),
+            LinearProgressIndicator(value: completedItems / totalItems),
+            const SizedBox(height: 7),
+            Text(
+              matchingDone
+                  ? '$completedItems / $totalItems adım · Eşleştirme tamamlandı'
+                  : '$completedItems / $totalItems adım · $known kart bilindi',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            const SizedBox(height: 12),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: FilledButton.tonal(
+                onPressed: () => context.go('/tests/module/${module.moduleNo}'),
+                child: Text(active ? 'Devam et' : 'Aç'),
+              ),
+            ),
+          ]),
+    );
+  }
+}
+
+int _answeredExamQuestions(LocalProgressSnapshot progress, int testNo) {
+  final prefix = 'test-${testNo.toString().padLeft(2, '0')}-q-';
+  return progress.testQuestionAnswers.keys
+      .where((questionId) => questionId.startsWith(prefix))
+      .length;
 }
 
 class _Pagination extends StatelessWidget {

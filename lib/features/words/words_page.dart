@@ -540,6 +540,8 @@ class _WordCardState extends ConsumerState<_WordCard> {
     final tts = ref.watch(studentTtsControllerProvider);
     final speaking = tts.isSpeaking && tts.activeWordId == word.id;
     final translationVisible = widget.showTranslations || _hovering;
+    final completed =
+        ref.watch(localProgressProvider).knownWordIds.contains(word.id);
     return MouseRegion(
       onEnter: (_) {
         if (!widget.showTranslations) setState(() => _hovering = true);
@@ -548,18 +550,38 @@ class _WordCardState extends ConsumerState<_WordCard> {
         if (_hovering) setState(() => _hovering = false);
       },
       child: SurfaceCard(
-        onTap: () => showModalBottomSheet<void>(
-            context: context,
-            isScrollControlled: true,
-            showDragHandle: false,
-            builder: (_) => WordDetailSheet(word: word)),
+        onTap: () {
+          ref.read(localProgressProvider.notifier).markWordKnown(word.id);
+          showModalBottomSheet<void>(
+              context: context,
+              isScrollControlled: true,
+              showDragHandle: false,
+              builder: (_) => WordDetailSheet(word: word));
+        },
         child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              Wrap(spacing: 8, children: <Widget>[
-                _Pill(label: word.pos, color: tokens.accentBlue),
-                if (word.level != null)
-                  _Pill(label: word.level!, color: tokens.hero),
+              Row(children: <Widget>[
+                Expanded(
+                  child: Wrap(spacing: 8, children: <Widget>[
+                    _Pill(label: word.pos, color: tokens.accentBlue),
+                    if (word.level != null)
+                      _Pill(label: word.level!, color: tokens.hero),
+                  ]),
+                ),
+                if (completed)
+                  Tooltip(
+                    message: 'Tamamlandı',
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: tokens.success.withValues(alpha: .14),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(Icons.check_rounded,
+                          size: 16, color: tokens.success),
+                    ),
+                  ),
               ]),
               const Spacer(),
               Text(word.enWord,

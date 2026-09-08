@@ -28,7 +28,7 @@ class _ReadingsPageState extends ConsumerState<ReadingsPage> {
   bool _filtersRestored = false;
   late final TextEditingController _searchController;
   late int _shuffleSeed;
-  var _order = PresentationOrder.mixed;
+  var _order = PresentationOrder.alphabetical;
 
   @override
   void initState() {
@@ -145,12 +145,13 @@ class _ReadingsPageState extends ConsumerState<ReadingsPage> {
           hasSearchQuery: _query.isNotEmpty,
           sessionSeed: _shuffleSeed,
           alphabeticalComparator: (left, right) {
-            final leftTitle = left.displayTitle ?? left.title;
-            final rightTitle = right.displayTitle ?? right.title;
-            final byTitle = leftTitle.toLowerCase().compareTo(
-                  rightTitle.toLowerCase(),
-                );
-            return byTitle != 0 ? byTitle : left.id.compareTo(right.id);
+            final bySourceNumber =
+                (int.tryParse(left.sourceNumber ?? '') ?? (1 << 30)).compareTo(
+              int.tryParse(right.sourceNumber ?? '') ?? (1 << 30),
+            );
+            return bySourceNumber != 0
+                ? bySourceNumber
+                : left.id.compareTo(right.id);
           },
         );
         final lastPage =
@@ -275,12 +276,12 @@ class _ReadingsPageState extends ConsumerState<ReadingsPage> {
                       showSelectedIcon: false,
                       segments: const <ButtonSegment<PresentationOrder>>[
                         ButtonSegment(
-                          value: PresentationOrder.mixed,
-                          label: Text('Karışık'),
+                          value: PresentationOrder.alphabetical,
+                          label: Text('Normal'),
                         ),
                         ButtonSegment(
-                          value: PresentationOrder.alphabetical,
-                          label: Text('A-Z'),
+                          value: PresentationOrder.mixed,
+                          label: Text('Karışık'),
                         ),
                       ],
                       selected: <PresentationOrder>{_order},
