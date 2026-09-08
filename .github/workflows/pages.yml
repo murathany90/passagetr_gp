@@ -43,7 +43,7 @@ jobs:
       - name: Test
         run: flutter test
       - name: Build web
-        run: flutter build web --release --base-href "/passagetr_gp/" --dart-define=APP_BUILD_SHA=${{ github.sha }}
+        run: flutter build web --release --base-href "/" --dart-define=APP_BUILD_SHA=${{ github.sha }}
       - name: Configure Pages
         uses: actions/configure-pages@v5
         with:
