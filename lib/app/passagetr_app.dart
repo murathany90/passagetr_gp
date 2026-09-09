@@ -83,8 +83,7 @@ final _routerProvider = Provider<GoRouter>((ref) => GoRouter(
                 final moduleNo =
                     _parseModuleNo(state.pathParameters['moduleNo']);
                 if (moduleNo == null) {
-                  return const DataLoadErrorPage(
-                      message: 'Sayfa bulunamadı.');
+                  return const DataLoadErrorPage(message: 'Sayfa bulunamadı.');
                 }
                 return TestModulePage(moduleNo: moduleNo);
               },
@@ -95,8 +94,7 @@ final _routerProvider = Provider<GoRouter>((ref) => GoRouter(
                 final moduleNo =
                     _parseModuleNo(state.pathParameters['moduleNo']);
                 if (moduleNo == null) {
-                  return const DataLoadErrorPage(
-                      message: 'Sayfa bulunamadı.');
+                  return const DataLoadErrorPage(message: 'Sayfa bulunamadı.');
                 }
                 return TestFlashcardsPage(moduleNo: moduleNo);
               },
@@ -107,8 +105,7 @@ final _routerProvider = Provider<GoRouter>((ref) => GoRouter(
                 final moduleNo =
                     _parseModuleNo(state.pathParameters['moduleNo']);
                 if (moduleNo == null) {
-                  return const DataLoadErrorPage(
-                      message: 'Sayfa bulunamadı.');
+                  return const DataLoadErrorPage(message: 'Sayfa bulunamadı.');
                 }
                 return TestMatchingPage(moduleNo: moduleNo);
               },
@@ -126,10 +123,12 @@ final _routerProvider = Provider<GoRouter>((ref) => GoRouter(
               builder: (context, state) {
                 final testNo = _parseTestNo(state.pathParameters['testNo']);
                 if (testNo == null) {
-                  return const DataLoadErrorPage(
-                      message: 'Sayfa bulunamadı.');
+                  return const DataLoadErrorPage(message: 'Sayfa bulunamadı.');
                 }
-                return TestExamPage(testNo: testNo);
+                return TestExamPage(
+                  testNo: testNo,
+                  restartRequested: state.uri.queryParameters['restart'] == '1',
+                );
               },
             ),
             GoRoute(

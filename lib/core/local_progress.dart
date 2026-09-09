@@ -517,6 +517,20 @@ class LocalProgressController extends StateNotifier<LocalProgressSnapshot> {
     _save(() => _repository.saveTestFlashcardKnownIds(ids));
   }
 
+  /// Keeps the card in the current module's review pool. This deliberately
+  /// affects only Test Bank flashcard progress; main Words progress and both
+  /// favourites collections remain untouched.
+  void markTestFlashcardForReview(String wordId) {
+    if (!state.testFlashcardKnownIds.contains(wordId)) return;
+    _markDirty('testFlashcards');
+    final ids = Set<String>.of(state.testFlashcardKnownIds)..remove(wordId);
+    state = state.copyWith(
+      isLoaded: true,
+      testFlashcardKnownIds: Set<String>.unmodifiable(ids),
+    );
+    _save(() => _repository.saveTestFlashcardKnownIds(ids));
+  }
+
   void markTestMatchingCompleted(int moduleNo) {
     _markDirty('testMatching');
     final ids = Set<String>.of(state.completedTestMatchingModuleIds)
@@ -570,6 +584,40 @@ class LocalProgressController extends StateNotifier<LocalProgressSnapshot> {
       testQuickTestBestScores: Map<String, int>.unmodifiable(scores),
     );
     _save(() => _repository.saveTestQuickTestBestScores(scores));
+  }
+
+  /// Marks the three module learning tracks as complete in one local action.
+  /// It is intentionally scoped to [moduleNo] and [wordIds]; Test Bank
+  /// favourites, Words favourites, structures, exams and other modules are
+  /// left as they are.
+  void completeTestModuleProgress({
+    required int moduleNo,
+    required Iterable<String> wordIds,
+  }) {
+    _markDirty('testFlashcards');
+    _markDirty('testMatching');
+    _markDirty('testQuickTests');
+    _markDirty('testLastModule');
+    final known = Set<String>.of(state.testFlashcardKnownIds)..addAll(wordIds);
+    final matching = Set<String>.of(state.completedTestMatchingModuleIds)
+      ..add(moduleNo.toString());
+    final matchingScores = Map<String, int>.of(state.testMatchingBestScores)
+      ..[moduleNo.toString()] = 100;
+    final quickScores = Map<String, int>.of(state.testQuickTestBestScores)
+      ..[moduleNo.toString()] = 100;
+    state = state.copyWith(
+      isLoaded: true,
+      testLastModuleNo: moduleNo,
+      testFlashcardKnownIds: Set<String>.unmodifiable(known),
+      completedTestMatchingModuleIds: Set<String>.unmodifiable(matching),
+      testMatchingBestScores: Map<String, int>.unmodifiable(matchingScores),
+      testQuickTestBestScores: Map<String, int>.unmodifiable(quickScores),
+    );
+    _save(() => _repository.saveTestLastModuleNo(moduleNo));
+    _save(() => _repository.saveTestFlashcardKnownIds(known));
+    _save(() => _repository.saveCompletedTestMatchingModuleIds(matching));
+    _save(() => _repository.saveTestMatchingBestScores(matchingScores));
+    _save(() => _repository.saveTestQuickTestBestScores(quickScores));
   }
 
   void markTestStructureKnown(String structureId) {

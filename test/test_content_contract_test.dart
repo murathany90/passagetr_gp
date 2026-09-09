@@ -199,12 +199,29 @@ void main() {
       total: 5,
     );
     controller.markTestStructureKnown('structure-001');
+    controller.markTestFlashcardKnown('test-module-001-word-01');
+    controller.markTestFlashcardForReview('test-module-001-word-01');
+
+    expect(controller.state.testFlashcardKnownIds, isEmpty);
+
+    controller.completeTestModuleProgress(
+      moduleNo: 1,
+      wordIds: const <String>[
+        'test-module-001-word-01',
+        'test-module-001-word-02',
+      ],
+    );
 
     expect(controller.state.favoriteWordIds, <String>{'main-word'});
     expect(controller.state.testFavoriteWordIds,
         <String>{'test-module-001-word-01'});
-    expect(controller.state.testMatchingBestScores, <String, int>{'1': 80});
-    expect(controller.state.testQuickTestBestScores, <String, int>{'1': 60});
+    expect(controller.state.testFlashcardKnownIds, <String>{
+      'test-module-001-word-01',
+      'test-module-001-word-02',
+    });
+    expect(controller.state.completedTestMatchingModuleIds, <String>{'1'});
+    expect(controller.state.testMatchingBestScores, <String, int>{'1': 100});
+    expect(controller.state.testQuickTestBestScores, <String, int>{'1': 100});
     expect(controller.state.testKnownStructureIds, <String>{'structure-001'});
   });
 

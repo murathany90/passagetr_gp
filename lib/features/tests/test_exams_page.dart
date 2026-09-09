@@ -144,7 +144,8 @@ class _ExamCard extends StatelessWidget {
                   child: const Text('Sonucu incele'),
                 ),
                 TextButton(
-                  onPressed: () => context.go('/tests/exam/${exam.testNo}'),
+                  onPressed: () =>
+                      context.go('/tests/exam/${exam.testNo}?restart=1'),
                   child: const Text('Tekrar çöz'),
                 ),
               ]),
@@ -154,8 +155,13 @@ class _ExamCard extends StatelessWidget {
 }
 
 class TestExamPage extends ConsumerStatefulWidget {
-  const TestExamPage({super.key, required this.testNo});
+  const TestExamPage({
+    super.key,
+    required this.testNo,
+    this.restartRequested = false,
+  });
   final int testNo;
+  final bool restartRequested;
 
   @override
   ConsumerState<TestExamPage> createState() => _TestExamPageState();
@@ -163,6 +169,7 @@ class TestExamPage extends ConsumerStatefulWidget {
 
 class _TestExamPageState extends ConsumerState<TestExamPage> {
   int? _index;
+  bool _restartStarted = false;
 
   @override
   Widget build(BuildContext context) {
@@ -189,6 +196,17 @@ class _TestExamPageState extends ConsumerState<TestExamPage> {
           message: error.toString(),
           onRetry: () => ref.invalidate(testExamProvider(widget.testNo))),
       data: (data) {
+        if (widget.restartRequested && !_restartStarted) {
+          _restartStarted = true;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) _restart(data);
+          });
+          return const PageFrame(
+            title: 'Özgün Test',
+            subtitle: 'Test yeniden başlatılıyor.',
+            child: Center(child: CircularProgressIndicator()),
+          );
+        }
         final progress = ref.watch(localProgressProvider);
         final restored =
             progress.testExamLastQuestionIndexes[widget.testNo.toString()] ?? 0;
@@ -228,7 +246,10 @@ class _TestExamPageState extends ConsumerState<TestExamPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 LinearProgressIndicator(
-                    value: (index + 1) / data.questions.length),
+                    value: answered / data.questions.length),
+                const SizedBox(height: 6),
+                Text('$answered / ${data.questions.length} cevaplandı',
+                    style: Theme.of(context).textTheme.bodySmall),
                 const SizedBox(height: 16),
                 SurfaceCard(
                     child: Column(
@@ -336,11 +357,21 @@ class _TestExamPageState extends ConsumerState<TestExamPage> {
       ),
     );
     if (approved != true || !mounted) return;
+    _resetProgress(exam);
+    setState(() => _index = 0);
+  }
+
+  void _restart(TestExam exam) {
+    _resetProgress(exam);
+    if (!mounted) return;
+    context.go('/tests/exam/${exam.testNo}');
+  }
+
+  void _resetProgress(TestExam exam) {
     ref.read(localProgressProvider.notifier).resetTestExamProgress(
           testNo: exam.testNo,
           questionIds: exam.questions.map((question) => question.id),
         );
-    setState(() => _index = 0);
   }
 }
 

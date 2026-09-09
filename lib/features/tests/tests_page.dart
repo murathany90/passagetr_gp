@@ -116,12 +116,15 @@ class _TestsPageState extends ConsumerState<TestsPage> {
               testFavorites: progress.testFavoriteWordIds.length,
               knownStructures: progress.testKnownStructureIds.length,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 14),
             LayoutBuilder(builder: (context, constraints) {
-              final twoColumns = constraints.maxWidth >= 640;
-              final width = twoColumns
-                  ? (constraints.maxWidth - 12) / 2
-                  : constraints.maxWidth;
+              final columns = constraints.maxWidth >= 1040
+                  ? 3
+                  : constraints.maxWidth >= 640
+                      ? 2
+                      : 1;
+              final width =
+                  (constraints.maxWidth - (12 * (columns - 1))) / columns;
               return Wrap(spacing: 12, runSpacing: 12, children: <Widget>[
                 SizedBox(
                   width: width,
@@ -155,9 +158,9 @@ class _TestsPageState extends ConsumerState<TestsPage> {
                 ),
               ]);
             }),
-            const SizedBox(height: 22),
+            const SizedBox(height: 18),
             Text('Modüller', style: Theme.of(context).textTheme.titleLarge),
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
             Wrap(spacing: 8, runSpacing: 8, children: <Widget>[
               for (final filter in _ModuleFilter.values)
                 ChoiceChip(
@@ -169,7 +172,7 @@ class _TestsPageState extends ConsumerState<TestsPage> {
                   }),
                 ),
             ]),
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
             _Pagination(
               currentPage: page,
               totalPages: totalPages,
@@ -234,42 +237,93 @@ class _SummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final items = <(String, String)>[
+    final primaryItems = <(String, String)>[
       ('Tamamlanan modül', '$completedModules / ${counts.modules}'),
       ('Öğrenilen kart', '$knownCards / ${counts.wordRows}'),
       ('Eşleştirme', '$completedMatching / ${counts.modules}'),
       ('Hızlı test', '$completedQuickTests / ${counts.modules}'),
-      ('Özgün test', '$completedExams / ${counts.exams}'),
-      ('Test favorileri', '$testFavorites'),
-      ('Yapı ilerlemesi', '$knownStructures / ${counts.structures}'),
     ];
     return SurfaceCard(
       padding: const EdgeInsets.all(16),
       child: LayoutBuilder(builder: (context, constraints) {
-        final width = constraints.maxWidth >= 960
-            ? (constraints.maxWidth - 48) / 4
+        final width = constraints.maxWidth >= 760
+            ? (constraints.maxWidth - 36) / 4
             : (constraints.maxWidth - 12) / 2;
-        return Wrap(
-          spacing: 8,
-          runSpacing: 12,
-          children: items
-              .map((item) => SizedBox(
-                    width: width,
-                    child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: <Widget>[
-                          Text(item.$2,
-                              style: Theme.of(context).textTheme.titleLarge),
-                          const SizedBox(height: 2),
-                          Text(item.$1,
-                              style: Theme.of(context).textTheme.bodySmall),
-                        ]),
-                  ))
-              .toList(growable: false),
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: primaryItems
+                  .map((item) => SizedBox(
+                        width: width,
+                        child: _SummaryMetric(value: item.$2, label: item.$1),
+                      ))
+                  .toList(growable: false),
+            ),
+            const SizedBox(height: 12),
+            Divider(color: AppThemeTokens.of(context).surfaceBorder),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 14,
+              runSpacing: 6,
+              children: <Widget>[
+                _InlineSummary(
+                  label: 'Özgün test',
+                  value: '$completedExams / ${counts.exams}',
+                ),
+                _InlineSummary(
+                  label: 'Test favorileri',
+                  value: '$testFavorites',
+                ),
+                _InlineSummary(
+                  label: 'Yapı ilerlemesi',
+                  value: '$knownStructures / ${counts.structures}',
+                ),
+              ],
+            ),
+          ],
         );
       }),
     );
   }
+}
+
+class _SummaryMetric extends StatelessWidget {
+  const _SummaryMetric({required this.value, required this.label});
+  final String value;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text(value, style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: 2),
+          Text(label, style: Theme.of(context).textTheme.bodySmall),
+        ],
+      );
+}
+
+class _InlineSummary extends StatelessWidget {
+  const _InlineSummary({required this.label, required this.value});
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) => RichText(
+        text: TextSpan(
+          style: Theme.of(context).textTheme.bodySmall,
+          children: <InlineSpan>[
+            TextSpan(
+              text: '$value ',
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
+            TextSpan(text: label),
+          ],
+        ),
+      );
 }
 
 class _FeatureCard extends StatelessWidget {
@@ -290,26 +344,29 @@ class _FeatureCard extends StatelessWidget {
     return SurfaceCard(
       onTap: onTap,
       padding: const EdgeInsets.all(16),
-      child: Row(children: <Widget>[
-        Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: tokens.accentSoft,
-            borderRadius: BorderRadius.circular(14),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: 56),
+        child: Row(children: <Widget>[
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: tokens.accentSoft,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(icon, color: tokens.accent),
           ),
-          child: Icon(icon, color: tokens.accent),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-            child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-              Text(title, style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: 3),
-              Text(description, style: Theme.of(context).textTheme.bodySmall),
-            ])),
-        const Icon(Icons.chevron_right_rounded),
-      ]),
+          const SizedBox(width: 12),
+          Expanded(
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                Text(title, style: Theme.of(context).textTheme.titleMedium),
+                const SizedBox(height: 3),
+                Text(description, style: Theme.of(context).textTheme.bodySmall),
+              ])),
+          const Icon(Icons.chevron_right_rounded),
+        ]),
+      ),
     );
   }
 }
@@ -339,48 +396,52 @@ class _ModuleCard extends StatelessWidget {
     return SurfaceCard(
       onTap: () => context.go('/tests/module/${module.moduleNo}'),
       padding: const EdgeInsets.all(16),
-      child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Row(children: <Widget>[
-              Text('Modül ${module.moduleNo}',
-                  style: Theme.of(context).textTheme.titleMedium),
-              const Spacer(),
-              _StatusPill(state: state),
-            ]),
-            const SizedBox(height: 6),
-            Text('${module.wordCount} kelime',
-                style: Theme.of(context).textTheme.bodyMedium),
-            const SizedBox(height: 8),
-            LinearProgressIndicator(value: completedItems / totalItems),
-            const SizedBox(height: 7),
-            Text(
-              '$completedItems / $totalItems adım · $known / ${module.wordCount} kart bilindi',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-            if (matchingBest != null || quickBest != null) ...<Widget>[
-              const SizedBox(height: 5),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: 184),
+        child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Row(children: <Widget>[
+                Text('Modül ${module.moduleNo}',
+                    style: Theme.of(context).textTheme.titleMedium),
+                const Spacer(),
+                _StatusPill(state: state),
+              ]),
+              const SizedBox(height: 6),
+              Text('${module.wordCount} kelime',
+                  style: Theme.of(context).textTheme.bodyMedium),
+              const SizedBox(height: 8),
+              LinearProgressIndicator(value: completedItems / totalItems),
+              const SizedBox(height: 7),
               Text(
-                [
-                  if (matchingBest != null) 'Eşleştirme: %$matchingBest',
-                  if (quickBest != null) 'Hızlı test: %$quickBest',
-                ].join(' · '),
+                '$completedItems / $totalItems adım · $known / ${module.wordCount} kart bilindi',
                 style: Theme.of(context).textTheme.bodySmall,
               ),
-            ],
-            const SizedBox(height: 12),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: FilledButton.tonal(
-                onPressed: () => context.go('/tests/module/${module.moduleNo}'),
-                child: Text(switch (state) {
-                  _ModuleState.notStarted => 'Başla',
-                  _ModuleState.active => 'Devam et',
-                  _ModuleState.completed => 'Tekrar et',
-                }),
+              if (matchingBest != null || quickBest != null) ...<Widget>[
+                const SizedBox(height: 5),
+                Text(
+                  [
+                    if (matchingBest != null) 'Eşleştirme: %$matchingBest',
+                    if (quickBest != null) 'Hızlı test: %$quickBest',
+                  ].join(' · '),
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ],
+              const SizedBox(height: 12),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: FilledButton.tonal(
+                  onPressed: () =>
+                      context.go('/tests/module/${module.moduleNo}'),
+                  child: Text(switch (state) {
+                    _ModuleState.notStarted => 'Başla',
+                    _ModuleState.active => 'Devam et',
+                    _ModuleState.completed => 'Tekrar et',
+                  }),
+                ),
               ),
-            ),
-          ]),
+            ]),
+      ),
     );
   }
 }
@@ -482,22 +543,19 @@ class _Pagination extends StatelessWidget {
   final ValueChanged<int> onChanged;
 
   @override
-  Widget build(BuildContext context) => SurfaceCard(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-        child: Wrap(
-          spacing: 6,
-          runSpacing: 6,
-          alignment: WrapAlignment.center,
-          children: List<Widget>.generate(totalPages, (index) {
-            final from = index * 10 + 1;
-            final to = ((index + 1) * 10).clamp(0, totalItems);
-            return ChoiceChip(
-              label: Text('$from–$to'),
-              selected: currentPage == index,
-              visualDensity: VisualDensity.compact,
-              onSelected: (_) => onChanged(index),
-            );
-          }),
-        ),
+  Widget build(BuildContext context) => Wrap(
+        spacing: 6,
+        runSpacing: 6,
+        alignment: WrapAlignment.center,
+        children: List<Widget>.generate(totalPages, (index) {
+          final from = index * 10 + 1;
+          final to = ((index + 1) * 10).clamp(0, totalItems);
+          return ChoiceChip(
+            label: Text('$from–$to'),
+            selected: currentPage == index,
+            visualDensity: VisualDensity.compact,
+            onSelected: (_) => onChanged(index),
+          );
+        }),
       );
 }
