@@ -79,12 +79,24 @@ class LocalProgressController extends StateNotifier<LocalProgressSnapshot> {
     if (_dirtyKeys.contains('testLastModule')) {
       await _repository.saveTestLastModuleNo(merged.testLastModuleNo);
     }
+    if (_dirtyKeys.contains('testFavorites')) {
+      await _repository.saveTestFavoriteWordIds(merged.testFavoriteWordIds);
+    }
     if (_dirtyKeys.contains('testFlashcards')) {
       await _repository.saveTestFlashcardKnownIds(merged.testFlashcardKnownIds);
     }
     if (_dirtyKeys.contains('testMatching')) {
       await _repository.saveCompletedTestMatchingModuleIds(
           merged.completedTestMatchingModuleIds);
+      await _repository
+          .saveTestMatchingBestScores(merged.testMatchingBestScores);
+    }
+    if (_dirtyKeys.contains('testQuickTests')) {
+      await _repository
+          .saveTestQuickTestBestScores(merged.testQuickTestBestScores);
+    }
+    if (_dirtyKeys.contains('testStructures')) {
+      await _repository.saveTestKnownStructureIds(merged.testKnownStructureIds);
     }
     if (_dirtyKeys.contains('testAnswers')) {
       await _repository.saveTestQuestionAnswers(merged.testQuestionAnswers);
@@ -116,7 +128,10 @@ class LocalProgressController extends StateNotifier<LocalProgressSnapshot> {
         state = restored.copyWith(
           isLoaded: true,
           favoriteWordIds: _dirtyKeys.contains('favWords')
-              ? <String>{...restored.favoriteWordIds, ...current.favoriteWordIds}
+              ? <String>{
+                  ...restored.favoriteWordIds,
+                  ...current.favoriteWordIds
+                }
               : restored.favoriteWordIds,
           knownWordIds: _dirtyKeys.contains('knownWords')
               ? <String>{...restored.knownWordIds, ...current.knownWordIds}
@@ -181,6 +196,12 @@ class LocalProgressController extends StateNotifier<LocalProgressSnapshot> {
           testLastModuleNo: _dirtyKeys.contains('testLastModule')
               ? current.testLastModuleNo
               : restored.testLastModuleNo,
+          testFavoriteWordIds: _dirtyKeys.contains('testFavorites')
+              ? <String>{
+                  ...restored.testFavoriteWordIds,
+                  ...current.testFavoriteWordIds
+                }
+              : restored.testFavoriteWordIds,
           testFlashcardKnownIds: _dirtyKeys.contains('testFlashcards')
               ? <String>{
                   ...restored.testFlashcardKnownIds,
@@ -193,6 +214,24 @@ class LocalProgressController extends StateNotifier<LocalProgressSnapshot> {
                   ...current.completedTestMatchingModuleIds
                 }
               : restored.completedTestMatchingModuleIds,
+          testMatchingBestScores: _dirtyKeys.contains('testMatching')
+              ? <String, int>{
+                  ...restored.testMatchingBestScores,
+                  ...current.testMatchingBestScores
+                }
+              : restored.testMatchingBestScores,
+          testQuickTestBestScores: _dirtyKeys.contains('testQuickTests')
+              ? <String, int>{
+                  ...restored.testQuickTestBestScores,
+                  ...current.testQuickTestBestScores
+                }
+              : restored.testQuickTestBestScores,
+          testKnownStructureIds: _dirtyKeys.contains('testStructures')
+              ? <String>{
+                  ...restored.testKnownStructureIds,
+                  ...current.testKnownStructureIds
+                }
+              : restored.testKnownStructureIds,
           testQuestionAnswers: _dirtyKeys.contains('testAnswers')
               ? <String, String>{
                   ...restored.testQuestionAnswers,
@@ -259,7 +298,8 @@ class LocalProgressController extends StateNotifier<LocalProgressSnapshot> {
       readingCategory: category,
       clearReadingCategory: category == null,
     );
-    _save(() => _repository.saveReadingFilters(level: level, category: category));
+    _save(
+        () => _repository.saveReadingFilters(level: level, category: category));
   }
 
   void toggleFavoriteWord(String wordId) {
@@ -298,9 +338,9 @@ class LocalProgressController extends StateNotifier<LocalProgressSnapshot> {
       studyLastSection: section,
     );
     _save(() => _repository.saveStudyLocation(
-      moduleId: moduleId,
-      section: section,
-    ));
+          moduleId: moduleId,
+          section: section,
+        ));
   }
 
   void answerStudyQuestion({
@@ -328,9 +368,9 @@ class LocalProgressController extends StateNotifier<LocalProgressSnapshot> {
     _save(() => _repository.saveStudyQuestionAnswers(answers));
     _save(() => _repository.saveStudyQuestionCorrectness(correctness));
     _save(() => _repository.saveStudyQuestionContent(
-      version: state.studyQuestionContentVersion ?? '',
-      fingerprints: fingerprints,
-    ));
+          version: state.studyQuestionContentVersion ?? '',
+          fingerprints: fingerprints,
+        ));
   }
 
   /// Keeps answers only when the exact canonical question payload is still
@@ -438,9 +478,9 @@ class LocalProgressController extends StateNotifier<LocalProgressSnapshot> {
     _save(() => _repository.saveStudyQuestionAnswers(answers));
     _save(() => _repository.saveStudyQuestionCorrectness(correctness));
     _save(() => _repository.saveStudyQuestionContent(
-      version: state.studyQuestionContentVersion ?? '',
-      fingerprints: fingerprints,
-    ));
+          version: state.studyQuestionContentVersion ?? '',
+          fingerprints: fingerprints,
+        ));
     if (isCurrentModule) {
       _save(() => _repository.saveStudyLocation());
     }
@@ -450,6 +490,21 @@ class LocalProgressController extends StateNotifier<LocalProgressSnapshot> {
     _markDirty('testLastModule');
     state = state.copyWith(isLoaded: true, testLastModuleNo: moduleNo);
     _save(() => _repository.saveTestLastModuleNo(moduleNo));
+  }
+
+  /// Test Bank favourites are intentionally isolated from the main Words
+  /// collection: their IDs and storage key belong only to Testler.
+  void toggleTestFavoriteWord(String wordId) {
+    _markDirty('testFavorites');
+    final ids = Set<String>.of(state.testFavoriteWordIds);
+    if (!ids.add(wordId)) {
+      ids.remove(wordId);
+    }
+    state = state.copyWith(
+      isLoaded: true,
+      testFavoriteWordIds: Set<String>.unmodifiable(ids),
+    );
+    _save(() => _repository.saveTestFavoriteWordIds(ids));
   }
 
   void markTestFlashcardKnown(String wordId) {
@@ -473,6 +528,60 @@ class LocalProgressController extends StateNotifier<LocalProgressSnapshot> {
     _save(() => _repository.saveCompletedTestMatchingModuleIds(ids));
   }
 
+  void recordTestMatchingResult({
+    required int moduleNo,
+    required int correct,
+    required int total,
+  }) {
+    if (total == 0) return;
+    _markDirty('testMatching');
+    final completed = Set<String>.of(state.completedTestMatchingModuleIds)
+      ..add(moduleNo.toString());
+    final scores = Map<String, int>.of(state.testMatchingBestScores);
+    final score = ((correct / total) * 100).round();
+    final key = moduleNo.toString();
+    if ((scores[key] ?? -1) < score) {
+      scores[key] = score;
+    }
+    state = state.copyWith(
+      isLoaded: true,
+      completedTestMatchingModuleIds: Set<String>.unmodifiable(completed),
+      testMatchingBestScores: Map<String, int>.unmodifiable(scores),
+    );
+    _save(() => _repository.saveCompletedTestMatchingModuleIds(completed));
+    _save(() => _repository.saveTestMatchingBestScores(scores));
+  }
+
+  void recordTestQuickTestResult({
+    required int moduleNo,
+    required int correct,
+    required int total,
+  }) {
+    if (total == 0) return;
+    _markDirty('testQuickTests');
+    final scores = Map<String, int>.of(state.testQuickTestBestScores);
+    final score = ((correct / total) * 100).round();
+    final key = moduleNo.toString();
+    if ((scores[key] ?? -1) < score) {
+      scores[key] = score;
+    }
+    state = state.copyWith(
+      isLoaded: true,
+      testQuickTestBestScores: Map<String, int>.unmodifiable(scores),
+    );
+    _save(() => _repository.saveTestQuickTestBestScores(scores));
+  }
+
+  void markTestStructureKnown(String structureId) {
+    _markDirty('testStructures');
+    final ids = Set<String>.of(state.testKnownStructureIds)..add(structureId);
+    state = state.copyWith(
+      isLoaded: true,
+      testKnownStructureIds: Set<String>.unmodifiable(ids),
+    );
+    _save(() => _repository.saveTestKnownStructureIds(ids));
+  }
+
   /// Clears only the local learning state for one Testler module. Canonical
   /// content, favourites and every other module remain intact.
   void resetTestModuleProgress({
@@ -481,9 +590,14 @@ class LocalProgressController extends StateNotifier<LocalProgressSnapshot> {
   }) {
     _markDirty('testFlashcards');
     _markDirty('testMatching');
+    _markDirty('testQuickTests');
     final known = Set<String>.of(state.testFlashcardKnownIds)
       ..removeAll(wordIds);
     final matching = Set<String>.of(state.completedTestMatchingModuleIds)
+      ..remove(moduleNo.toString());
+    final matchingScores = Map<String, int>.of(state.testMatchingBestScores)
+      ..remove(moduleNo.toString());
+    final quickScores = Map<String, int>.of(state.testQuickTestBestScores)
       ..remove(moduleNo.toString());
     final isCurrentModule = state.testLastModuleNo == moduleNo;
     if (isCurrentModule) {
@@ -493,10 +607,14 @@ class LocalProgressController extends StateNotifier<LocalProgressSnapshot> {
       isLoaded: true,
       testFlashcardKnownIds: Set<String>.unmodifiable(known),
       completedTestMatchingModuleIds: Set<String>.unmodifiable(matching),
+      testMatchingBestScores: Map<String, int>.unmodifiable(matchingScores),
+      testQuickTestBestScores: Map<String, int>.unmodifiable(quickScores),
       clearTestLastModuleNo: isCurrentModule,
     );
     _save(() => _repository.saveTestFlashcardKnownIds(known));
     _save(() => _repository.saveCompletedTestMatchingModuleIds(matching));
+    _save(() => _repository.saveTestMatchingBestScores(matchingScores));
+    _save(() => _repository.saveTestQuickTestBestScores(quickScores));
     if (isCurrentModule) {
       _save(() => _repository.saveTestLastModuleNo(null));
     }
@@ -526,9 +644,9 @@ class LocalProgressController extends StateNotifier<LocalProgressSnapshot> {
     _save(() => _repository.saveTestQuestionAnswers(answers));
     _save(() => _repository.saveTestQuestionCorrectness(correctness));
     _save(() => _repository.saveTestQuestionContent(
-      version: state.testQuestionContentVersion ?? '',
-      fingerprints: fingerprints,
-    ));
+          version: state.testQuestionContentVersion ?? '',
+          fingerprints: fingerprints,
+        ));
   }
 
   /// Test Bank revisions must never attach an old response to a different

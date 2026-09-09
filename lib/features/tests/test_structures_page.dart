@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/content_providers.dart';
+import '../../core/local_progress.dart';
 import '../../models/test_models.dart';
 import '../common/page_parts.dart';
 
@@ -41,11 +42,15 @@ class _TestStructuresPageState extends ConsumerState<TestStructuresPage> {
             .where((item) =>
                 validCategory == null || item.category == validCategory)
             .toList(growable: false);
+        final progress = ref.watch(localProgressProvider);
+        final knownCount = items
+            .where((item) => progress.testKnownStructureIds.contains(item.id))
+            .length;
         _ensureDeck(items, validCategory);
         return PageFrame(
           title: 'Yapılar',
           subtitle:
-              '${items.length} yapı · Kaynakta olmayan örnek gösterilmez.',
+              '$knownCount / ${items.length} yapı bilindi · Kaynakta olmayan örnek gösterilmez.',
           actions: <Widget>[
             OutlinedButton.icon(
                 onPressed: () => context.go('/tests'),
@@ -123,8 +128,13 @@ class _TestStructuresPageState extends ConsumerState<TestStructuresPage> {
                         items: _deck,
                         index: _index,
                         showMeaning: _showMeaning,
+                        known: progress.testKnownStructureIds
+                            .contains(_deck[_index].id),
                         onFlip: () =>
                             setState(() => _showMeaning = !_showMeaning),
+                        onKnow: () => ref
+                            .read(localProgressProvider.notifier)
+                            .markTestStructureKnown(_deck[_index].id),
                         onMove: (offset) => setState(() {
                           _index = (_index + offset)
                               .clamp(0, _deck.length - 1)
@@ -217,12 +227,16 @@ class _StructureFlashcard extends StatelessWidget {
       {required this.items,
       required this.index,
       required this.showMeaning,
+      required this.known,
       required this.onFlip,
+      required this.onKnow,
       required this.onMove});
   final List<TestStructure> items;
   final int index;
   final bool showMeaning;
+  final bool known;
   final VoidCallback onFlip;
+  final VoidCallback onKnow;
   final ValueChanged<int> onMove;
 
   @override
@@ -268,6 +282,11 @@ class _StructureFlashcard extends StatelessWidget {
             OutlinedButton(
                 onPressed: onFlip,
                 child: Text(showMeaning ? 'Gizle' : 'Anlamı göster')),
+            FilledButton.icon(
+                onPressed: onKnow,
+                icon: Icon(
+                    known ? Icons.check_circle_rounded : Icons.check_rounded),
+                label: const Text('Bildim')),
             FilledButton(
                 onPressed: index == items.length - 1 ? null : () => onMove(1),
                 child: const Text('Sonraki')),

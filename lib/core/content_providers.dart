@@ -58,10 +58,11 @@ final readingDetailProvider =
 /// reading screen shows completion state. New source-number IDs are added;
 /// nothing else in local progress is touched.
 final readingProgressMigrationProvider = FutureProvider<void>((ref) async {
-  final mapping = await ref
-      .watch(staticContentRepositoryProvider)
-      .loadLegacyReadingIdMap();
-  await ref.read(localProgressProvider.notifier).migrateLegacyReadingIds(mapping);
+  final mapping =
+      await ref.watch(staticContentRepositoryProvider).loadLegacyReadingIdMap();
+  await ref
+      .read(localProgressProvider.notifier)
+      .migrateLegacyReadingIds(mapping);
 });
 
 final studyModulesProvider = FutureProvider<List<StudyModuleSummary>>((ref) {
@@ -97,6 +98,13 @@ final testModulesProvider = FutureProvider<List<TestModuleSummary>>((ref) {
 final testModuleDetailProvider =
     FutureProvider.family<TestModuleDetail, int>((ref, moduleNo) {
   return ref.watch(staticTestRepositoryProvider).loadModule(moduleNo);
+});
+
+/// Test Bank favourites always resolve from Testler JSON assets, never from
+/// the main Words repository or `favoriteWordIds`.
+final testFavoriteWordsProvider = FutureProvider<List<TestBankWord>>((ref) {
+  final ids = ref.watch(localProgressProvider).testFavoriteWordIds;
+  return ref.watch(staticTestRepositoryProvider).loadWordsByIds(ids);
 });
 
 final testStructuresProvider = FutureProvider<TestStructureBank>((ref) {

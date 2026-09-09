@@ -21,8 +21,12 @@ class LocalProgressSnapshot {
     this.studyQuestionContentVersion,
     this.studyQuestionFingerprints = const <String, String>{},
     this.testLastModuleNo,
+    this.testFavoriteWordIds = const <String>{},
     this.testFlashcardKnownIds = const <String>{},
     this.completedTestMatchingModuleIds = const <String>{},
+    this.testMatchingBestScores = const <String, int>{},
+    this.testQuickTestBestScores = const <String, int>{},
+    this.testKnownStructureIds = const <String>{},
     this.testQuestionAnswers = const <String, String>{},
     this.testQuestionCorrectness = const <String, bool>{},
     this.testQuestionContentVersion,
@@ -50,8 +54,12 @@ class LocalProgressSnapshot {
   final String? studyQuestionContentVersion;
   final Map<String, String> studyQuestionFingerprints;
   final int? testLastModuleNo;
+  final Set<String> testFavoriteWordIds;
   final Set<String> testFlashcardKnownIds;
   final Set<String> completedTestMatchingModuleIds;
+  final Map<String, int> testMatchingBestScores;
+  final Map<String, int> testQuickTestBestScores;
+  final Set<String> testKnownStructureIds;
   final Map<String, String> testQuestionAnswers;
   final Map<String, bool> testQuestionCorrectness;
   final String? testQuestionContentVersion;
@@ -85,8 +93,12 @@ class LocalProgressSnapshot {
     Map<String, String>? studyQuestionFingerprints,
     int? testLastModuleNo,
     bool clearTestLastModuleNo = false,
+    Set<String>? testFavoriteWordIds,
     Set<String>? testFlashcardKnownIds,
     Set<String>? completedTestMatchingModuleIds,
+    Map<String, int>? testMatchingBestScores,
+    Map<String, int>? testQuickTestBestScores,
+    Set<String>? testKnownStructureIds,
     Map<String, String>? testQuestionAnswers,
     Map<String, bool>? testQuestionCorrectness,
     String? testQuestionContentVersion,
@@ -128,10 +140,17 @@ class LocalProgressSnapshot {
         testLastModuleNo: clearTestLastModuleNo
             ? null
             : testLastModuleNo ?? this.testLastModuleNo,
+        testFavoriteWordIds: testFavoriteWordIds ?? this.testFavoriteWordIds,
         testFlashcardKnownIds:
             testFlashcardKnownIds ?? this.testFlashcardKnownIds,
         completedTestMatchingModuleIds: completedTestMatchingModuleIds ??
             this.completedTestMatchingModuleIds,
+        testMatchingBestScores:
+            testMatchingBestScores ?? this.testMatchingBestScores,
+        testQuickTestBestScores:
+            testQuickTestBestScores ?? this.testQuickTestBestScores,
+        testKnownStructureIds:
+            testKnownStructureIds ?? this.testKnownStructureIds,
         testQuestionAnswers: testQuestionAnswers ?? this.testQuestionAnswers,
         testQuestionCorrectness:
             testQuestionCorrectness ?? this.testQuestionCorrectness,
@@ -168,9 +187,15 @@ class LocalProgressRepository {
   static const _studyQuestionFingerprintsKey =
       'passagetr.studyQuestionFingerprints.v1';
   static const _testLastModuleKey = 'passagetr.testLastModuleNo.v1';
+  static const _testFavoriteWordsKey = 'passagetr.testFavoriteWordIds.v1';
   static const _testFlashcardKnownKey = 'passagetr.testFlashcardKnownIds.v1';
   static const _completedTestMatchingKey =
       'passagetr.completedTestMatchingModuleIds.v1';
+  static const _testMatchingBestScoresKey =
+      'passagetr.testMatchingBestScores.v1';
+  static const _testQuickTestBestScoresKey =
+      'passagetr.testQuickTestBestScores.v1';
+  static const _testKnownStructureIdsKey = 'passagetr.testKnownStructureIds.v1';
   static const _testQuestionAnswersKey = 'passagetr.testQuestionAnswers.v1';
   static const _testQuestionCorrectnessKey =
       'passagetr.testQuestionCorrectness.v1';
@@ -208,9 +233,15 @@ class LocalProgressRepository {
       studyQuestionFingerprints:
           _readMap(preferences, _studyQuestionFingerprintsKey),
       testLastModuleNo: preferences.getInt(_testLastModuleKey),
+      testFavoriteWordIds: _readSet(preferences, _testFavoriteWordsKey),
       testFlashcardKnownIds: _readSet(preferences, _testFlashcardKnownKey),
       completedTestMatchingModuleIds:
           _readSet(preferences, _completedTestMatchingKey),
+      testMatchingBestScores:
+          _readIntMap(preferences, _testMatchingBestScoresKey),
+      testQuickTestBestScores:
+          _readIntMap(preferences, _testQuickTestBestScoresKey),
+      testKnownStructureIds: _readSet(preferences, _testKnownStructureIdsKey),
       testQuestionAnswers: _readMap(preferences, _testQuestionAnswersKey),
       testQuestionCorrectness:
           _readBoolMap(preferences, _testQuestionCorrectnessKey),
@@ -291,11 +322,23 @@ class LocalProgressRepository {
     }
   }
 
+  Future<void> saveTestFavoriteWordIds(Set<String> ids) =>
+      _saveSet(_testFavoriteWordsKey, ids);
+
   Future<void> saveTestFlashcardKnownIds(Set<String> ids) =>
       _saveSet(_testFlashcardKnownKey, ids);
 
   Future<void> saveCompletedTestMatchingModuleIds(Set<String> ids) =>
       _saveSet(_completedTestMatchingKey, ids);
+
+  Future<void> saveTestMatchingBestScores(Map<String, int> scores) =>
+      _saveIntMap(_testMatchingBestScoresKey, scores);
+
+  Future<void> saveTestQuickTestBestScores(Map<String, int> scores) =>
+      _saveIntMap(_testQuickTestBestScoresKey, scores);
+
+  Future<void> saveTestKnownStructureIds(Set<String> ids) =>
+      _saveSet(_testKnownStructureIdsKey, ids);
 
   Future<void> saveTestQuestionAnswers(Map<String, String> answers) async {
     final preferences = await _preferences();

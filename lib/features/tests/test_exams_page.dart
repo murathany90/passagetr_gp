@@ -106,36 +106,51 @@ class _ExamCard extends StatelessWidget {
   final int? best;
 
   @override
-  Widget build(BuildContext context) => SurfaceCard(
-        onTap: () => context.go('/tests/exam/${exam.testNo}'),
-        padding: const EdgeInsets.all(16),
-        child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Text('Test ${exam.testNo}',
-                  style: Theme.of(context).textTheme.titleLarge),
+  Widget build(BuildContext context) {
+    final complete = answered >= exam.questionCount;
+    return SurfaceCard(
+      onTap: () => context.go('/tests/exam/${exam.testNo}'),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Text('Test ${exam.testNo}',
+                style: Theme.of(context).textTheme.titleLarge),
+            const SizedBox(height: 6),
+            Text('${exam.questionCount} soru',
+                style: Theme.of(context).textTheme.bodyMedium),
+            const SizedBox(height: 8),
+            LinearProgressIndicator(
+              value: answered.clamp(0, exam.questionCount) / exam.questionCount,
+            ),
+            const SizedBox(height: 6),
+            Text('$answered / ${exam.questionCount} cevaplandı',
+                style: Theme.of(context).textTheme.bodySmall),
+            if (best != null) ...<Widget>[
               const SizedBox(height: 6),
-              Text('${exam.questionCount} soru',
-                  style: Theme.of(context).textTheme.bodyMedium),
-              const SizedBox(height: 8),
-              LinearProgressIndicator(
-                value:
-                    answered.clamp(0, exam.questionCount) / exam.questionCount,
-              ),
-              const SizedBox(height: 6),
-              Text('$answered / ${exam.questionCount} cevaplandı',
-                  style: Theme.of(context).textTheme.bodySmall),
-              if (best != null) ...<Widget>[
-                const SizedBox(height: 6),
-                Text('En iyi sonuç: %$best',
-                    style: Theme.of(context).textTheme.bodySmall)
-              ],
-              const SizedBox(height: 12),
+              Text('En iyi sonuç: %$best',
+                  style: Theme.of(context).textTheme.bodySmall)
+            ],
+            const SizedBox(height: 12),
+            if (!complete)
               FilledButton.tonal(
+                onPressed: () => context.go('/tests/exam/${exam.testNo}'),
+                child: Text(answered == 0 ? 'Teste başla' : 'Devam et'),
+              )
+            else
+              Wrap(spacing: 8, runSpacing: 8, children: <Widget>[
+                FilledButton.tonal(
                   onPressed: () => context.go('/tests/exam/${exam.testNo}'),
-                  child: const Text('Teste başla')),
-            ]),
-      );
+                  child: const Text('Sonucu incele'),
+                ),
+                TextButton(
+                  onPressed: () => context.go('/tests/exam/${exam.testNo}'),
+                  child: const Text('Tekrar çöz'),
+                ),
+              ]),
+          ]),
+    );
+  }
 }
 
 class TestExamPage extends ConsumerStatefulWidget {
@@ -392,8 +407,7 @@ class TestWrongAnswersPage extends ConsumerStatefulWidget {
       _TestWrongAnswersPageState();
 }
 
-class _TestWrongAnswersPageState
-    extends ConsumerState<TestWrongAnswersPage> {
+class _TestWrongAnswersPageState extends ConsumerState<TestWrongAnswersPage> {
   @override
   Widget build(BuildContext context) {
     final compatibility = ref.watch(testQuestionCompatibilityProvider);
@@ -450,8 +464,7 @@ class _WrongListBodyState extends ConsumerState<_WrongListBody> {
     }
   }
 
-  bool _sameSummaries(
-      List<TestExamSummary> left, List<TestExamSummary> right) {
+  bool _sameSummaries(List<TestExamSummary> left, List<TestExamSummary> right) {
     if (left.length != right.length) return false;
     for (var index = 0; index < left.length; index++) {
       if (left[index].testNo != right[index].testNo) return false;

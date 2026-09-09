@@ -19,6 +19,7 @@ class TestsPage extends ConsumerStatefulWidget {
 class _TestsPageState extends ConsumerState<TestsPage> {
   static const _pageSize = 10;
   int _page = 0;
+  _ModuleFilter _filter = _ModuleFilter.all;
 
   @override
   Widget build(BuildContext context) {
@@ -77,16 +78,27 @@ class _TestsPageState extends ConsumerState<TestsPage> {
     TestBankManifest bank,
     List<TestModuleSummary> modules,
   ) {
-    final totalPages = (modules.length / _pageSize).ceil();
-    final page = totalPages == 0 ? 0 : _page.clamp(0, totalPages - 1).toInt();
-    final visible = modules.skip(page * _pageSize).take(_pageSize).toList();
     final progress = ref.watch(localProgressProvider);
+    final filteredModules = modules.where((module) {
+      final state = _moduleState(module, progress);
+      return switch (_filter) {
+        _ModuleFilter.all => true,
+        _ModuleFilter.active => state == _ModuleState.active,
+        _ModuleFilter.completed => state == _ModuleState.completed,
+      };
+    }).toList(growable: false);
+    final totalPages = (filteredModules.length / _pageSize).ceil();
+    final page = totalPages == 0 ? 0 : _page.clamp(0, totalPages - 1).toInt();
+    final visible =
+        filteredModules.skip(page * _pageSize).take(_pageSize).toList();
+    final states = <_ModuleState>[
+      for (final module in modules) _moduleState(module, progress),
+    ];
+    final completedModules =
+        states.where((state) => state == _ModuleState.completed).length;
     final completedExams = bank.exams
         .where((exam) =>
             _answeredExamQuestions(progress, exam.testNo) >= exam.questionCount)
-        .length;
-    final canonicalFavoriteCount = progress.favoriteWordIds
-        .where((id) => !id.startsWith('study-word:'))
         .length;
     return PageFrame(
       title: 'Testler',
@@ -96,8 +108,13 @@ class _TestsPageState extends ConsumerState<TestsPage> {
           children: <Widget>[
             _SummaryCard(
               counts: bank.counts,
+              completedModules: completedModules,
               knownCards: progress.testFlashcardKnownIds.length,
+              completedMatching: progress.completedTestMatchingModuleIds.length,
+              completedQuickTests: progress.testQuickTestBestScores.length,
               completedExams: completedExams,
+              testFavorites: progress.testFavoriteWordIds.length,
+              knownStructures: progress.testKnownStructureIds.length,
             ),
             const SizedBox(height: 16),
             LayoutBuilder(builder: (context, constraints) {
@@ -132,7 +149,7 @@ class _TestsPageState extends ConsumerState<TestsPage> {
                     icon: Icons.favorite_outline_rounded,
                     title: 'Favoriler',
                     description:
-                        '$canonicalFavoriteCount canonical kelime · Liste ve flash kart',
+                        '${progress.testFavoriteWordIds.length} Test Bank kelimesi · Liste ve flash kart',
                     onTap: () => context.go('/tests/favorites'),
                   ),
                 ),
@@ -141,10 +158,22 @@ class _TestsPageState extends ConsumerState<TestsPage> {
             const SizedBox(height: 22),
             Text('Modüller', style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 10),
+            Wrap(spacing: 8, runSpacing: 8, children: <Widget>[
+              for (final filter in _ModuleFilter.values)
+                ChoiceChip(
+                  label: Text(filter.label),
+                  selected: _filter == filter,
+                  onSelected: (_) => setState(() {
+                    _filter = filter;
+                    _page = 0;
+                  }),
+                ),
+            ]),
+            const SizedBox(height: 10),
             _Pagination(
               currentPage: page,
               totalPages: totalPages,
-              totalItems: modules.length,
+              totalItems: filteredModules.length,
               onChanged: (next) => setState(() => _page = next),
             ),
             const SizedBox(height: 12),
@@ -161,14 +190,18 @@ class _TestsPageState extends ConsumerState<TestsPage> {
                           width: width,
                           child: _ModuleCard(
                             module: module,
-                            active:
-                                progress.testLastModuleNo == module.moduleNo,
+                            state: _moduleState(module, progress),
                             known: progress.testFlashcardKnownIds
-                                .where((id) => id.startsWith('${module.id}:'))
+                                .where(
+                                    (id) => id.startsWith('${module.id}-word-'))
                                 .length,
                             matchingDone: progress
                                 .completedTestMatchingModuleIds
                                 .contains(module.moduleNo.toString()),
+                            matchingBest: progress.testMatchingBestScores[
+                                module.moduleNo.toString()],
+                            quickBest: progress.testQuickTestBestScores[
+                                module.moduleNo.toString()],
                           ),
                         ))
                     .toList(growable: false),
@@ -182,28 +215,39 @@ class _TestsPageState extends ConsumerState<TestsPage> {
 class _SummaryCard extends StatelessWidget {
   const _SummaryCard({
     required this.counts,
+    required this.completedModules,
     required this.knownCards,
+    required this.completedMatching,
+    required this.completedQuickTests,
     required this.completedExams,
+    required this.testFavorites,
+    required this.knownStructures,
   });
   final TestBankCounts counts;
+  final int completedModules;
   final int knownCards;
+  final int completedMatching;
+  final int completedQuickTests;
   final int completedExams;
+  final int testFavorites;
+  final int knownStructures;
 
   @override
   Widget build(BuildContext context) {
     final items = <(String, String)>[
-      ('Modül', '${counts.modules}'),
-      ('Kelime kaydı', '${counts.wordRows}'),
-      ('Kart ilerleme', '$knownCards / ${counts.wordRows}'),
-      ('Yapı', '${counts.structures}'),
+      ('Tamamlanan modül', '$completedModules / ${counts.modules}'),
+      ('Öğrenilen kart', '$knownCards / ${counts.wordRows}'),
+      ('Eşleştirme', '$completedMatching / ${counts.modules}'),
+      ('Hızlı test', '$completedQuickTests / ${counts.modules}'),
       ('Özgün test', '$completedExams / ${counts.exams}'),
-      ('Soru', '${counts.questions}'),
+      ('Test favorileri', '$testFavorites'),
+      ('Yapı ilerlemesi', '$knownStructures / ${counts.structures}'),
     ];
     return SurfaceCard(
       padding: const EdgeInsets.all(16),
       child: LayoutBuilder(builder: (context, constraints) {
-        final width = constraints.maxWidth >= 860
-            ? (constraints.maxWidth - 48) / items.length
+        final width = constraints.maxWidth >= 960
+            ? (constraints.maxWidth - 48) / 4
             : (constraints.maxWidth - 12) / 2;
         return Wrap(
           spacing: 8,
@@ -273,20 +317,25 @@ class _FeatureCard extends StatelessWidget {
 class _ModuleCard extends StatelessWidget {
   const _ModuleCard({
     required this.module,
-    required this.active,
+    required this.state,
     required this.known,
     required this.matchingDone,
+    required this.matchingBest,
+    required this.quickBest,
   });
   final TestModuleSummary module;
-  final bool active;
+  final _ModuleState state;
   final int known;
   final bool matchingDone;
+  final int? matchingBest;
+  final int? quickBest;
 
   @override
   Widget build(BuildContext context) {
-    final completedItems =
-        known.clamp(0, module.wordCount).toInt() + (matchingDone ? 1 : 0);
-    final totalItems = module.wordCount + 1;
+    final completedItems = known.clamp(0, module.wordCount).toInt() +
+        (matchingDone ? 1 : 0) +
+        (quickBest == null ? 0 : 1);
+    final totalItems = module.wordCount + 2;
     return SurfaceCard(
       onTap: () => context.go('/tests/module/${module.moduleNo}'),
       padding: const EdgeInsets.all(16),
@@ -297,7 +346,7 @@ class _ModuleCard extends StatelessWidget {
               Text('Modül ${module.moduleNo}',
                   style: Theme.of(context).textTheme.titleMedium),
               const Spacer(),
-              if (active) const Icon(Icons.play_circle_fill_rounded, size: 19),
+              _StatusPill(state: state),
             ]),
             const SizedBox(height: 6),
             Text('${module.wordCount} kelime',
@@ -306,20 +355,109 @@ class _ModuleCard extends StatelessWidget {
             LinearProgressIndicator(value: completedItems / totalItems),
             const SizedBox(height: 7),
             Text(
-              matchingDone
-                  ? '$completedItems / $totalItems adım · Eşleştirme tamamlandı'
-                  : '$completedItems / $totalItems adım · $known kart bilindi',
+              '$completedItems / $totalItems adım · $known / ${module.wordCount} kart bilindi',
               style: Theme.of(context).textTheme.bodySmall,
             ),
+            if (matchingBest != null || quickBest != null) ...<Widget>[
+              const SizedBox(height: 5),
+              Text(
+                [
+                  if (matchingBest != null) 'Eşleştirme: %$matchingBest',
+                  if (quickBest != null) 'Hızlı test: %$quickBest',
+                ].join(' · '),
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
             const SizedBox(height: 12),
             Align(
               alignment: Alignment.centerLeft,
               child: FilledButton.tonal(
                 onPressed: () => context.go('/tests/module/${module.moduleNo}'),
-                child: Text(active ? 'Devam et' : 'Aç'),
+                child: Text(switch (state) {
+                  _ModuleState.notStarted => 'Başla',
+                  _ModuleState.active => 'Devam et',
+                  _ModuleState.completed => 'Tekrar et',
+                }),
               ),
             ),
           ]),
+    );
+  }
+}
+
+enum _ModuleFilter {
+  all('Tümü'),
+  active('Devam Eden'),
+  completed('Tamamlanan');
+
+  const _ModuleFilter(this.label);
+  final String label;
+}
+
+enum _ModuleState { notStarted, active, completed }
+
+_ModuleState _moduleState(
+  TestModuleSummary module,
+  LocalProgressSnapshot progress,
+) {
+  final known = progress.testFlashcardKnownIds
+      .where((id) => id.startsWith('${module.id}-word-'))
+      .length;
+  final matching = progress.completedTestMatchingModuleIds
+      .contains(module.moduleNo.toString());
+  final quick =
+      progress.testQuickTestBestScores.containsKey(module.moduleNo.toString());
+  if (known >= module.wordCount && matching && quick) {
+    return _ModuleState.completed;
+  }
+  if (known > 0 ||
+      matching ||
+      quick ||
+      progress.testLastModuleNo == module.moduleNo) {
+    return _ModuleState.active;
+  }
+  return _ModuleState.notStarted;
+}
+
+class _StatusPill extends StatelessWidget {
+  const _StatusPill({required this.state});
+  final _ModuleState state;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = AppThemeTokens.of(context);
+    final (label, icon, color) = switch (state) {
+      _ModuleState.notStarted => (
+          'Başlanmadı',
+          Icons.circle_outlined,
+          tokens.secondaryText
+        ),
+      _ModuleState.active => (
+          'Devam ediyor',
+          Icons.play_circle_outline_rounded,
+          tokens.accent
+        ),
+      _ModuleState.completed => (
+          'Tamamlandı',
+          Icons.check_circle_outline_rounded,
+          tokens.success
+        ),
+    };
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: .12),
+        borderRadius: BorderRadius.circular(99),
+      ),
+      child: Row(mainAxisSize: MainAxisSize.min, children: <Widget>[
+        Icon(icon, color: color, size: 15),
+        const SizedBox(width: 4),
+        Text(label,
+            style: Theme.of(context)
+                .textTheme
+                .labelSmall
+                ?.copyWith(color: color, fontWeight: FontWeight.w700)),
+      ]),
     );
   }
 }

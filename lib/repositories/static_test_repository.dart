@@ -63,6 +63,24 @@ class StaticTestRepository {
     return future;
   }
 
+  /// Resolves only the Test Bank module assets that contain [wordIds]. This is
+  /// deliberately separate from the 9,000-word canonical repository.
+  Future<List<TestBankWord>> loadWordsByIds(Iterable<String> wordIds) async {
+    final ids = wordIds.toSet();
+    if (ids.isEmpty) return const <TestBankWord>[];
+    final moduleNos = ids
+        .map(_moduleNoFromWordId)
+        .whereType<int>()
+        .toSet()
+        .toList(growable: false);
+    final details = await Future.wait(moduleNos.map(loadModule));
+    final words = <TestBankWord>[
+      for (final detail in details)
+        ...detail.words.where((word) => ids.contains(word.id)),
+    ]..sort((left, right) => left.headword.compareTo(right.headword));
+    return List<TestBankWord>.unmodifiable(words);
+  }
+
   Future<TestModuleDetail> _fetchModule(int moduleNo) async {
     final summary = (await loadModules())
         .where((item) => item.moduleNo == moduleNo)
@@ -111,9 +129,8 @@ class StaticTestRepository {
   }
 
   Future<TestExam> _fetchExam(int testNo) async {
-    final summary = (await loadExams())
-        .where((item) => item.testNo == testNo)
-        .firstOrNull;
+    final summary =
+        (await loadExams()).where((item) => item.testNo == testNo).firstOrNull;
     if (summary == null) {
       throw StaticContentException('Özgün test bulunamadı: $testNo');
     }
@@ -219,3 +236,8 @@ Map<String, Object?> _map(Object? value) =>
     Map<String, Object?>.from(value! as Map);
 
 String _text(Object? value) => value?.toString().trim() ?? '';
+
+int? _moduleNoFromWordId(String id) {
+  final match = RegExp(r'^test-module-(\d+)-word-').firstMatch(id);
+  return match == null ? null : int.tryParse(match.group(1)!);
+}

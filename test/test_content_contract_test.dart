@@ -87,6 +87,16 @@ void main() {
     );
   });
 
+  test('Test favourites resolve only from Test Bank module assets', () async {
+    final module = await repository.loadModule(1);
+    final words = await repository.loadWordsByIds(<String>[
+      module.words.first.id,
+    ]);
+
+    expect(words, hasLength(1));
+    expect(words.single.id, module.words.first.id);
+  });
+
   test('Test content revision safely drops retired question progress',
       () async {
     final controller = LocalProgressController(_MemoryProgress(
@@ -116,9 +126,13 @@ void main() {
       initial: const LocalProgressSnapshot(
         isLoaded: true,
         favoriteWordIds: <String>{'keep-favorite'},
+        testFavoriteWordIds: <String>{'test-module-001-word-01'},
         testLastModuleNo: 1,
         testFlashcardKnownIds: <String>{'module-1-word', 'module-2-word'},
         completedTestMatchingModuleIds: <String>{'1', '2'},
+        testMatchingBestScores: <String, int>{'1': 80, '2': 60},
+        testQuickTestBestScores: <String, int>{'1': 70, '2': 90},
+        testKnownStructureIds: <String>{'structure-keep'},
         testQuestionAnswers: <String, String>{
           'test-01-q-001': 'A',
           'test-02-q-001': 'B',
@@ -148,13 +162,50 @@ void main() {
     );
 
     expect(controller.state.favoriteWordIds, <String>{'keep-favorite'});
+    expect(controller.state.testFavoriteWordIds,
+        <String>{'test-module-001-word-01'});
     expect(controller.state.testFlashcardKnownIds, <String>{'module-2-word'});
     expect(controller.state.completedTestMatchingModuleIds, <String>{'2'});
+    expect(controller.state.testMatchingBestScores, <String, int>{'2': 60});
+    expect(controller.state.testQuickTestBestScores, <String, int>{'2': 90});
+    expect(controller.state.testKnownStructureIds, <String>{'structure-keep'});
     expect(controller.state.testLastModuleNo, isNull);
     expect(
         controller.state.testQuestionAnswers.keys, <String>['test-02-q-001']);
     expect(controller.state.testExamLastQuestionIndexes, <String, int>{'2': 3});
     expect(controller.state.testExamBestScores, <String, int>{'2': 60});
+  });
+
+  test('Test favourites and activity records never mutate Words favourites',
+      () async {
+    final controller = LocalProgressController(_MemoryProgress(
+      initial: const LocalProgressSnapshot(
+        isLoaded: true,
+        favoriteWordIds: <String>{'main-word'},
+      ),
+    ));
+    addTearDown(controller.dispose);
+    await controller.restoreFuture;
+
+    controller.toggleTestFavoriteWord('test-module-001-word-01');
+    controller.recordTestMatchingResult(
+      moduleNo: 1,
+      correct: 4,
+      total: 5,
+    );
+    controller.recordTestQuickTestResult(
+      moduleNo: 1,
+      correct: 3,
+      total: 5,
+    );
+    controller.markTestStructureKnown('structure-001');
+
+    expect(controller.state.favoriteWordIds, <String>{'main-word'});
+    expect(controller.state.testFavoriteWordIds,
+        <String>{'test-module-001-word-01'});
+    expect(controller.state.testMatchingBestScores, <String, int>{'1': 80});
+    expect(controller.state.testQuickTestBestScores, <String, int>{'1': 60});
+    expect(controller.state.testKnownStructureIds, <String>{'structure-001'});
   });
 
   testWidgets('Testler main page is compact at 360, 390 and 430 px',
@@ -250,6 +301,26 @@ class _MemoryProgress extends LocalProgressRepository {
   @override
   Future<void> saveCompletedTestMatchingModuleIds(Set<String> ids) async {
     _snapshot = _snapshot.copyWith(completedTestMatchingModuleIds: ids);
+  }
+
+  @override
+  Future<void> saveTestFavoriteWordIds(Set<String> ids) async {
+    _snapshot = _snapshot.copyWith(testFavoriteWordIds: ids);
+  }
+
+  @override
+  Future<void> saveTestMatchingBestScores(Map<String, int> scores) async {
+    _snapshot = _snapshot.copyWith(testMatchingBestScores: scores);
+  }
+
+  @override
+  Future<void> saveTestQuickTestBestScores(Map<String, int> scores) async {
+    _snapshot = _snapshot.copyWith(testQuickTestBestScores: scores);
+  }
+
+  @override
+  Future<void> saveTestKnownStructureIds(Set<String> ids) async {
+    _snapshot = _snapshot.copyWith(testKnownStructureIds: ids);
   }
 
   @override

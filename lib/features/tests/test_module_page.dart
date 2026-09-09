@@ -60,10 +60,18 @@ class _TestModulePageState extends ConsumerState<TestModulePage> {
   void _answerQuick(String answer) {
     if (_selected != null) return;
     final correct = answer == _quickWords[_quickIndex].meaningTr;
+    final nextCorrect = _quickCorrect + (correct ? 1 : 0);
     setState(() {
       _selected = answer;
-      if (correct) _quickCorrect++;
+      _quickCorrect = nextCorrect;
     });
+    if (_quickIndex == _quickWords.length - 1) {
+      ref.read(localProgressProvider.notifier).recordTestQuickTestResult(
+            moduleNo: widget.moduleNo,
+            correct: nextCorrect,
+            total: _quickWords.length,
+          );
+    }
   }
 
   void _nextQuick() {
@@ -81,7 +89,7 @@ class _TestModulePageState extends ConsumerState<TestModulePage> {
       builder: (context) => AlertDialog(
         title: Text('Modül ${module.moduleNo} ilerlemesi sıfırlansın mı?'),
         content: const Text(
-          'Bu modülün bilinen kartları ve eşleştirme tamamlanması silinir. '
+          'Bu modülün bilinen kartları, eşleştirme ve hızlı test sonuçları silinir. '
           'Favoriler ve diğer modüller korunur.',
         ),
         actions: <Widget>[
@@ -128,10 +136,12 @@ class _TestModulePageState extends ConsumerState<TestModulePage> {
             ref.invalidate(testModuleDetailProvider(widget.moduleNo)),
       ),
       data: (module) {
+        final progress = ref.watch(localProgressProvider);
+        final quickBest =
+            progress.testQuickTestBestScores[module.moduleNo.toString()];
         return PageFrame(
           title: 'Modül ${module.moduleNo}',
-          subtitle:
-              '${module.words.length} kelime · Test Bank kaynağı',
+          subtitle: '${module.words.length} kelime · Test Bank kaynağı',
           actions: <Widget>[
             OutlinedButton.icon(
               onPressed: () => context.go('/tests'),
@@ -163,7 +173,9 @@ class _TestModulePageState extends ConsumerState<TestModulePage> {
                   OutlinedButton.icon(
                     onPressed: () => _startQuick(module.words),
                     icon: const Icon(Icons.bolt_rounded),
-                    label: const Text('Hızlı Test'),
+                    label: Text(quickBest == null
+                        ? 'Hızlı Test'
+                        : 'Hızlı Test · En iyi %$quickBest'),
                   ),
                 ]),
                 if (_quickStarted) ...<Widget>[
@@ -186,8 +198,8 @@ class _TestModulePageState extends ConsumerState<TestModulePage> {
                         style: Theme.of(context).textTheme.titleLarge),
                   ),
                   OutlinedButton.icon(
-                    onPressed: () => setState(() =>
-                        _showTranslations = !_showTranslations),
+                    onPressed: () =>
+                        setState(() => _showTranslations = !_showTranslations),
                     icon: Icon(
                       _showTranslations
                           ? Icons.visibility_off_outlined
@@ -230,24 +242,25 @@ class _TestModulePageState extends ConsumerState<TestModulePage> {
   }
 }
 
-class _TestWordCard extends StatefulWidget {
+class _TestWordCard extends ConsumerStatefulWidget {
   const _TestWordCard({required this.word, required this.showTranslations});
   final TestBankWord word;
   final bool showTranslations;
 
   @override
-  State<_TestWordCard> createState() => _TestWordCardState();
+  ConsumerState<_TestWordCard> createState() => _TestWordCardState();
 }
 
-class _TestWordCardState extends State<_TestWordCard> {
+class _TestWordCardState extends ConsumerState<_TestWordCard> {
   bool _hovering = false;
   bool _expanded = false;
 
   @override
   Widget build(BuildContext context) {
     final word = widget.word;
-    final detailsVisible =
-        widget.showTranslations || _hovering || _expanded;
+    final detailsVisible = widget.showTranslations || _hovering || _expanded;
+    final favorite =
+        ref.watch(localProgressProvider).testFavoriteWordIds.contains(word.id);
     return MouseRegion(
       onEnter: (_) {
         if (!widget.showTranslations) setState(() => _hovering = true);
@@ -270,6 +283,15 @@ class _TestWordCardState extends State<_TestWordCard> {
                           .textTheme
                           .titleMedium
                           ?.copyWith(fontWeight: FontWeight.w700)),
+                ),
+                IconButton(
+                  tooltip: favorite ? 'Favoriden çıkar' : 'Favoriye ekle',
+                  onPressed: () => ref
+                      .read(localProgressProvider.notifier)
+                      .toggleTestFavoriteWord(word.id),
+                  icon: Icon(favorite
+                      ? Icons.favorite_rounded
+                      : Icons.favorite_border_rounded),
                 ),
                 if (!widget.showTranslations)
                   Icon(_expanded
@@ -432,6 +454,11 @@ class _TestFlashcardsPageState extends ConsumerState<TestFlashcardsPage> {
         }
         final safeIndex = _index.clamp(0, words.length - 1).toInt();
         final word = words[safeIndex];
+        final progress = ref.watch(localProgressProvider);
+        final knownCount = words
+            .where((item) => progress.testFlashcardKnownIds.contains(item.id))
+            .length;
+        final favorite = progress.testFavoriteWordIds.contains(word.id);
         return Focus(
           autofocus: true,
           onKeyEvent: (_, event) {
@@ -453,7 +480,7 @@ class _TestFlashcardsPageState extends ConsumerState<TestFlashcardsPage> {
           child: PageFrame(
             title: 'Modül ${module.moduleNo} · Flash Kart',
             subtitle:
-                '${safeIndex + 1} / ${words.length} · Space: çevir · ← tekrar · → bildim',
+                '$knownCount / ${words.length} bilindi · ${safeIndex + 1}. kart',
             actions: <Widget>[
               OutlinedButton.icon(
                   onPressed: () =>
@@ -493,6 +520,17 @@ class _TestFlashcardsPageState extends ConsumerState<TestFlashcardsPage> {
                                       .playDictionaryEntry(
                                           entryId: word.id,
                                           text: word.headword),
+                                ),
+                                IconButton(
+                                  tooltip: favorite
+                                      ? 'Favoriden çıkar'
+                                      : 'Favoriye ekle',
+                                  onPressed: () => ref
+                                      .read(localProgressProvider.notifier)
+                                      .toggleTestFavoriteWord(word.id),
+                                  icon: Icon(favorite
+                                      ? Icons.favorite_rounded
+                                      : Icons.favorite_border_rounded),
                                 ),
                               ]),
                               const SizedBox(height: 14),
@@ -730,17 +768,19 @@ class _TestMatchingPageState extends ConsumerState<TestMatchingPage> {
   }
 
   Widget _complete(BuildContext context, TestModuleDetail module, int rounds) {
+    final total = _correct + _wrong;
+    final rate = total == 0 ? 0 : (_correct * 100 / total).round();
     if (_completionSavedFor != module.moduleNo) {
       _completionSavedFor = module.moduleNo;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
-        ref
-            .read(localProgressProvider.notifier)
-            .markTestMatchingCompleted(module.moduleNo);
+        ref.read(localProgressProvider.notifier).recordTestMatchingResult(
+              moduleNo: module.moduleNo,
+              correct: _correct,
+              total: total,
+            );
       });
     }
-    final total = _correct + _wrong;
-    final rate = total == 0 ? 0 : (_correct * 100 / total).round();
     return PageFrame(
       title: 'Eşleştirme tamamlandı',
       subtitle: '${module.moduleNo}. modül · $rounds tur',
