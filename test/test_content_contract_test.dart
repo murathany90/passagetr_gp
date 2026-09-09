@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:passagetr_gp/core/app_theme.dart';
 import 'package:passagetr_gp/core/content_providers.dart';
 import 'package:passagetr_gp/core/local_progress.dart';
+import 'package:passagetr_gp/features/tests/test_module_page.dart';
 import 'package:passagetr_gp/features/tests/tests_page.dart';
 import 'package:passagetr_gp/models/test_models.dart';
 import 'package:passagetr_gp/repositories/local_progress_repository.dart';
@@ -130,6 +131,7 @@ void main() {
         testLastModuleNo: 1,
         testFlashcardKnownIds: <String>{'module-1-word', 'module-2-word'},
         completedTestMatchingModuleIds: <String>{'1', '2'},
+        manuallyCompletedTestModuleIds: <String>{'1', '2'},
         testMatchingBestScores: <String, int>{'1': 80, '2': 60},
         testQuickTestBestScores: <String, int>{'1': 70, '2': 90},
         testKnownStructureIds: <String>{'structure-keep'},
@@ -166,6 +168,7 @@ void main() {
         <String>{'test-module-001-word-01'});
     expect(controller.state.testFlashcardKnownIds, <String>{'module-2-word'});
     expect(controller.state.completedTestMatchingModuleIds, <String>{'2'});
+    expect(controller.state.manuallyCompletedTestModuleIds, <String>{'2'});
     expect(controller.state.testMatchingBestScores, <String, int>{'2': 60});
     expect(controller.state.testQuickTestBestScores, <String, int>{'2': 90});
     expect(controller.state.testKnownStructureIds, <String>{'structure-keep'});
@@ -220,9 +223,18 @@ void main() {
       'test-module-001-word-02',
     });
     expect(controller.state.completedTestMatchingModuleIds, <String>{'1'});
-    expect(controller.state.testMatchingBestScores, <String, int>{'1': 100});
-    expect(controller.state.testQuickTestBestScores, <String, int>{'1': 100});
+    expect(controller.state.manuallyCompletedTestModuleIds, <String>{'1'});
+    expect(controller.state.testMatchingBestScores, <String, int>{'1': 80});
+    expect(controller.state.testQuickTestBestScores, <String, int>{'1': 60});
     expect(controller.state.testKnownStructureIds, <String>{'structure-001'});
+
+    controller.completeTestModuleProgress(
+      moduleNo: 2,
+      wordIds: const <String>['test-module-002-word-01'],
+    );
+    expect(controller.state.manuallyCompletedTestModuleIds, <String>{'1', '2'});
+    expect(controller.state.testMatchingBestScores, <String, int>{'1': 80});
+    expect(controller.state.testQuickTestBestScores, <String, int>{'1': 60});
   });
 
   testWidgets('Testler main page is compact at 360, 390 and 430 px',
@@ -247,6 +259,31 @@ void main() {
       expect(find.text('Testler'), findsOneWidget);
       expect(find.text('1–10'), findsOneWidget);
       expect(find.text('101–110'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    }
+  });
+
+  testWidgets('Test module controls stay balanced at 360, 390 and 430 px',
+      (tester) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    for (final width in <double>[360, 390, 430]) {
+      await tester.binding.setSurfaceSize(Size(width, 844));
+      await tester.pumpWidget(ProviderScope(
+        overrides: <Override>[
+          staticTestRepositoryProvider
+              .overrideWithValue(_TestFixtureRepository()),
+          localProgressRepositoryProvider.overrideWithValue(_MemoryProgress()),
+        ],
+        child: MaterialApp(
+          theme: AppTheme.light(),
+          home: const Scaffold(body: TestModulePage(moduleNo: 1)),
+        ),
+      ));
+      await tester.pump();
+      await tester.pump();
+      expect(find.text('Modül 1'), findsOneWidget);
+      expect(find.text('Tamamla'), findsOneWidget);
+      expect(find.text('Eşleştir'), findsOneWidget);
       expect(tester.takeException(), isNull);
     }
   });
@@ -321,6 +358,11 @@ class _MemoryProgress extends LocalProgressRepository {
   }
 
   @override
+  Future<void> saveManuallyCompletedTestModuleIds(Set<String> ids) async {
+    _snapshot = _snapshot.copyWith(manuallyCompletedTestModuleIds: ids);
+  }
+
+  @override
   Future<void> saveTestFavoriteWordIds(Set<String> ids) async {
     _snapshot = _snapshot.copyWith(testFavoriteWordIds: ids);
   }
@@ -381,6 +423,28 @@ class _TestFixtureRepository extends StaticTestRepository {
           moduleNo: index + 1,
           wordCount: 20,
           file: 'modules/module_${(index + 1).toString().padLeft(3, '0')}.json',
+        ),
+      );
+
+  @override
+  Future<TestModuleDetail> loadModule(int moduleNo) async => TestModuleDetail(
+        moduleNo: moduleNo,
+        words: List<TestBankWord>.generate(
+          4,
+          (index) => TestBankWord(
+            id: 'test-module-${moduleNo.toString().padLeft(3, '0')}-word-$index',
+            order: index + 1,
+            headword: index == 0 ? 'currently' : 'word-$index',
+            meaningTr: index == 0 ? 'mevcut durumda, şu an' : 'anlam $index',
+            pos: index.isEven ? 'adv' : 'n',
+            exampleEn: index == 0
+                ? 'The talented youngster is currently learning to play the keyboard instruments.'
+                : 'A concise example sentence for word $index.',
+            exampleTr: index == 0
+                ? 'Yetenekli genç şu anda klavyeli çalgıları çalmayı öğreniyor.'
+                : 'Kelime $index için kısa örnek çeviri.',
+            synonymsRaw: index == 0 ? 'at present, now' : null,
+          ),
         ),
       );
 }

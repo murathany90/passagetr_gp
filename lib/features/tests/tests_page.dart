@@ -111,12 +111,15 @@ class _TestsPageState extends ConsumerState<TestsPage> {
               completedModules: completedModules,
               knownCards: progress.testFlashcardKnownIds.length,
               completedMatching: progress.completedTestMatchingModuleIds.length,
-              completedQuickTests: progress.testQuickTestBestScores.length,
+              completedQuickTests: <String>{
+                ...progress.testQuickTestBestScores.keys,
+                ...progress.manuallyCompletedTestModuleIds,
+              }.length,
               completedExams: completedExams,
               testFavorites: progress.testFavoriteWordIds.length,
               knownStructures: progress.testKnownStructureIds.length,
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 12),
             LayoutBuilder(builder: (context, constraints) {
               final columns = constraints.maxWidth >= 1040
                   ? 3
@@ -158,28 +161,41 @@ class _TestsPageState extends ConsumerState<TestsPage> {
                 ),
               ]);
             }),
-            const SizedBox(height: 18),
+            const SizedBox(height: 16),
             Text('Modüller', style: Theme.of(context).textTheme.titleLarge),
-            const SizedBox(height: 8),
-            Wrap(spacing: 8, runSpacing: 8, children: <Widget>[
-              for (final filter in _ModuleFilter.values)
-                ChoiceChip(
-                  label: Text(filter.label),
-                  selected: _filter == filter,
-                  onSelected: (_) => setState(() {
-                    _filter = filter;
-                    _page = 0;
-                  }),
-                ),
-            ]),
-            const SizedBox(height: 8),
-            _Pagination(
-              currentPage: page,
-              totalPages: totalPages,
-              totalItems: filteredModules.length,
-              onChanged: (next) => setState(() => _page = next),
+            const SizedBox(height: 6),
+            SurfaceCard(
+              padding: const EdgeInsets.all(10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Wrap(spacing: 6, runSpacing: 6, children: <Widget>[
+                    for (final filter in _ModuleFilter.values)
+                      ChoiceChip(
+                        label: Text(filter.label),
+                        selected: _filter == filter,
+                        visualDensity: VisualDensity.compact,
+                        onSelected: (_) => setState(() {
+                          _filter = filter;
+                          _page = 0;
+                        }),
+                      ),
+                  ]),
+                  const SizedBox(height: 6),
+                  Divider(
+                      height: 1,
+                      color: AppThemeTokens.of(context).surfaceBorder),
+                  const SizedBox(height: 6),
+                  _Pagination(
+                    currentPage: page,
+                    totalPages: totalPages,
+                    totalItems: filteredModules.length,
+                    onChanged: (next) => setState(() => _page = next),
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
             LayoutBuilder(builder: (context, constraints) {
               final columns = constraints.maxWidth >= 760 ? 2 : 1;
               final width = columns == 2
@@ -205,6 +221,9 @@ class _TestsPageState extends ConsumerState<TestsPage> {
                                 module.moduleNo.toString()],
                             quickBest: progress.testQuickTestBestScores[
                                 module.moduleNo.toString()],
+                            manuallyCompleted: progress
+                                .manuallyCompletedTestModuleIds
+                                .contains(module.moduleNo.toString()),
                           ),
                         ))
                     .toList(growable: false),
@@ -244,7 +263,7 @@ class _SummaryCard extends StatelessWidget {
       ('Hızlı test', '$completedQuickTests / ${counts.modules}'),
     ];
     return SurfaceCard(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(14),
       child: LayoutBuilder(builder: (context, constraints) {
         final width = constraints.maxWidth >= 760
             ? (constraints.maxWidth - 36) / 4
@@ -262,7 +281,7 @@ class _SummaryCard extends StatelessWidget {
                       ))
                   .toList(growable: false),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
             Divider(color: AppThemeTokens.of(context).surfaceBorder),
             const SizedBox(height: 8),
             Wrap(
@@ -343,30 +362,27 @@ class _FeatureCard extends StatelessWidget {
     final tokens = AppThemeTokens.of(context);
     return SurfaceCard(
       onTap: onTap,
-      padding: const EdgeInsets.all(16),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(minHeight: 56),
-        child: Row(children: <Widget>[
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: tokens.accentSoft,
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Icon(icon, color: tokens.accent),
+      padding: const EdgeInsets.all(14),
+      child: Row(children: <Widget>[
+        Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: tokens.accentSoft,
+            borderRadius: BorderRadius.circular(14),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-              child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                Text(title, style: Theme.of(context).textTheme.titleMedium),
-                const SizedBox(height: 3),
-                Text(description, style: Theme.of(context).textTheme.bodySmall),
-              ])),
-          const Icon(Icons.chevron_right_rounded),
-        ]),
-      ),
+          child: Icon(icon, color: tokens.accent),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+            child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+              Text(title, style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height: 3),
+              Text(description, style: Theme.of(context).textTheme.bodySmall),
+            ])),
+        const Icon(Icons.chevron_right_rounded),
+      ]),
     );
   }
 }
@@ -379,6 +395,7 @@ class _ModuleCard extends StatelessWidget {
     required this.matchingDone,
     required this.matchingBest,
     required this.quickBest,
+    required this.manuallyCompleted,
   });
   final TestModuleSummary module;
   final _ModuleState state;
@@ -386,62 +403,65 @@ class _ModuleCard extends StatelessWidget {
   final bool matchingDone;
   final int? matchingBest;
   final int? quickBest;
+  final bool manuallyCompleted;
 
   @override
   Widget build(BuildContext context) {
     final completedItems = known.clamp(0, module.wordCount).toInt() +
-        (matchingDone ? 1 : 0) +
-        (quickBest == null ? 0 : 1);
+        ((matchingDone || manuallyCompleted) ? 1 : 0) +
+        ((quickBest != null || manuallyCompleted) ? 1 : 0);
     final totalItems = module.wordCount + 2;
     return SurfaceCard(
       onTap: () => context.go('/tests/module/${module.moduleNo}'),
-      padding: const EdgeInsets.all(16),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(minHeight: 184),
-        child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Row(children: <Widget>[
-                Text('Modül ${module.moduleNo}',
-                    style: Theme.of(context).textTheme.titleMedium),
-                const Spacer(),
-                _StatusPill(state: state),
-              ]),
-              const SizedBox(height: 6),
-              Text('${module.wordCount} kelime',
-                  style: Theme.of(context).textTheme.bodyMedium),
-              const SizedBox(height: 8),
-              LinearProgressIndicator(value: completedItems / totalItems),
-              const SizedBox(height: 7),
+      padding: const EdgeInsets.all(14),
+      child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Row(children: <Widget>[
+              Text('Modül ${module.moduleNo}',
+                  style: Theme.of(context).textTheme.titleMedium),
+              const Spacer(),
+              _StatusPill(state: state),
+            ]),
+            const SizedBox(height: 6),
+            Text('${module.wordCount} kelime',
+                style: Theme.of(context).textTheme.bodyMedium),
+            const SizedBox(height: 8),
+            LinearProgressIndicator(value: completedItems / totalItems),
+            const SizedBox(height: 7),
+            Text(
+              '$completedItems / $totalItems adım · $known / ${module.wordCount} kart bilindi',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            if (matchingBest != null || quickBest != null) ...<Widget>[
+              const SizedBox(height: 5),
               Text(
-                '$completedItems / $totalItems adım · $known / ${module.wordCount} kart bilindi',
+                [
+                  if (matchingBest != null) 'Eşleştirme: %$matchingBest',
+                  if (quickBest != null) 'Hızlı test: %$quickBest',
+                ].join(' · '),
                 style: Theme.of(context).textTheme.bodySmall,
               ),
-              if (matchingBest != null || quickBest != null) ...<Widget>[
-                const SizedBox(height: 5),
-                Text(
-                  [
-                    if (matchingBest != null) 'Eşleştirme: %$matchingBest',
-                    if (quickBest != null) 'Hızlı test: %$quickBest',
-                  ].join(' · '),
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-              ],
-              const SizedBox(height: 12),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: FilledButton.tonal(
-                  onPressed: () =>
-                      context.go('/tests/module/${module.moduleNo}'),
-                  child: Text(switch (state) {
-                    _ModuleState.notStarted => 'Başla',
-                    _ModuleState.active => 'Devam et',
-                    _ModuleState.completed => 'Tekrar et',
-                  }),
-                ),
+            ],
+            if (manuallyCompleted &&
+                (matchingBest == null || quickBest == null)) ...<Widget>[
+              const SizedBox(height: 5),
+              Text('Manuel olarak tamamlandı',
+                  style: Theme.of(context).textTheme.bodySmall),
+            ],
+            const SizedBox(height: 10),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: FilledButton.tonal(
+                onPressed: () => context.go('/tests/module/${module.moduleNo}'),
+                child: Text(switch (state) {
+                  _ModuleState.notStarted => 'Başla',
+                  _ModuleState.active => 'Devam et',
+                  _ModuleState.completed => 'Tekrar et',
+                }),
               ),
-            ]),
-      ),
+            ),
+          ]),
     );
   }
 }
@@ -468,7 +488,9 @@ _ModuleState _moduleState(
       .contains(module.moduleNo.toString());
   final quick =
       progress.testQuickTestBestScores.containsKey(module.moduleNo.toString());
-  if (known >= module.wordCount && matching && quick) {
+  final manuallyCompleted = progress.manuallyCompletedTestModuleIds
+      .contains(module.moduleNo.toString());
+  if (manuallyCompleted || (known >= module.wordCount && matching && quick)) {
     return _ModuleState.completed;
   }
   if (known > 0 ||

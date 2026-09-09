@@ -31,9 +31,12 @@ class _TestModulePageState extends ConsumerState<TestModulePage> {
   @override
   void initState() {
     super.initState();
-    ref
-        .read(localProgressProvider.notifier)
-        .setTestLastModuleNo(widget.moduleNo);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref
+          .read(localProgressProvider.notifier)
+          .setTestLastModuleNo(widget.moduleNo);
+    });
   }
 
   void _startQuick(List<TestBankWord> words) {
@@ -169,52 +172,31 @@ class _TestModulePageState extends ConsumerState<TestModulePage> {
         final progress = ref.watch(localProgressProvider);
         final quickBest =
             progress.testQuickTestBestScores[module.moduleNo.toString()];
+        final manuallyCompleted = progress.manuallyCompletedTestModuleIds
+            .contains(module.moduleNo.toString());
         return PageFrame(
           title: 'Modül ${module.moduleNo}',
           subtitle: '${module.words.length} kelime · Test Bank kaynağı',
-          actions: <Widget>[
-            OutlinedButton.icon(
-              onPressed: () => context.go('/tests'),
-              icon: const Icon(Icons.arrow_back_rounded),
-              label: const Text('Testlere dön'),
-            ),
-            OutlinedButton.icon(
-              onPressed: () => _confirmReset(module),
-              icon: const Icon(Icons.restart_alt_rounded),
-              label: const Text('İlerlemeyi sıfırla'),
-            ),
-            FilledButton.icon(
-              onPressed: () => _confirmComplete(module),
-              icon: const Icon(Icons.check_circle_outline_rounded),
-              label: const Text('Modülü tamamla'),
-            ),
-          ],
           child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                Wrap(spacing: 8, runSpacing: 8, children: <Widget>[
-                  FilledButton.icon(
-                    onPressed: () => context
-                        .go('/tests/module/${module.moduleNo}/flashcards'),
-                    icon: const Icon(Icons.style_rounded),
-                    label: const Text('Flash Kart'),
-                  ),
-                  OutlinedButton.icon(
-                    onPressed: () =>
-                        context.go('/tests/module/${module.moduleNo}/matching'),
-                    icon: const Icon(Icons.compare_arrows_rounded),
-                    label: const Text('Eşleştirme'),
-                  ),
-                  OutlinedButton.icon(
-                    onPressed: () => _startQuick(module.words),
-                    icon: const Icon(Icons.bolt_rounded),
-                    label: Text(quickBest == null
-                        ? 'Hızlı Test'
-                        : 'Hızlı Test · En iyi %$quickBest'),
-                  ),
-                ]),
+                _TestModuleToolbar(
+                  onBack: () => context.go('/tests'),
+                  onReset: () => _confirmReset(module),
+                  onComplete: () => _confirmComplete(module),
+                ),
+                const SizedBox(height: 10),
+                _TestModuleModeActions(
+                  onFlashcards: () =>
+                      context.go('/tests/module/${module.moduleNo}/flashcards'),
+                  onMatching: () =>
+                      context.go('/tests/module/${module.moduleNo}/matching'),
+                  onQuickTest: () => _startQuick(module.words),
+                  quickBest: quickBest,
+                  manuallyCompleted: manuallyCompleted,
+                ),
                 if (_quickStarted) ...<Widget>[
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 14),
                   _QuickTest(
                     words: _quickWords,
                     index: _quickIndex,
@@ -226,7 +208,7 @@ class _TestModulePageState extends ConsumerState<TestModulePage> {
                     onRestart: () => _startQuick(module.words),
                   ),
                 ],
-                const SizedBox(height: 22),
+                const SizedBox(height: 18),
                 Row(children: <Widget>[
                   Expanded(
                     child: Text('Kelimeler',
@@ -251,26 +233,10 @@ class _TestModulePageState extends ConsumerState<TestModulePage> {
                   const SurfaceCard(
                       child: Text('Bu modülde gösterilecek kelime yok.'))
                 else
-                  LayoutBuilder(builder: (context, constraints) {
-                    final twoColumns = constraints.maxWidth >= 720;
-                    final width = twoColumns
-                        ? (constraints.maxWidth - 12) / 2
-                        : constraints.maxWidth;
-                    return Wrap(
-                      spacing: 12,
-                      runSpacing: 12,
-                      children: module.words
-                          .map((word) => SizedBox(
-                                width: width,
-                                child: _TestWordCard(
-                                  word: word,
-                                  showTranslations: _showTranslations,
-                                  minHeight: twoColumns ? 238 : 0,
-                                ),
-                              ))
-                          .toList(growable: false),
-                    );
-                  }),
+                  _TestWordGrid(
+                    words: module.words,
+                    showTranslations: _showTranslations,
+                  ),
               ]),
         );
       },
@@ -278,15 +244,238 @@ class _TestModulePageState extends ConsumerState<TestModulePage> {
   }
 }
 
+class _TestModuleToolbar extends StatelessWidget {
+  const _TestModuleToolbar({
+    required this.onBack,
+    required this.onReset,
+    required this.onComplete,
+  });
+  final VoidCallback onBack;
+  final VoidCallback onReset;
+  final VoidCallback onComplete;
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+        builder: (context, constraints) {
+          final compact = constraints.maxWidth < 560;
+          if (!compact) {
+            return Wrap(spacing: 8, runSpacing: 8, children: <Widget>[
+              OutlinedButton.icon(
+                onPressed: onBack,
+                icon: const Icon(Icons.arrow_back_rounded, size: 18),
+                label: const Text('Testlere dön'),
+              ),
+              OutlinedButton.icon(
+                onPressed: onReset,
+                icon: const Icon(Icons.restart_alt_rounded, size: 18),
+                label: const Text('İlerlemeyi sıfırla'),
+              ),
+              FilledButton.icon(
+                onPressed: onComplete,
+                icon: const Icon(Icons.check_circle_outline_rounded, size: 18),
+                label: const Text('Modülü tamamla'),
+              ),
+            ]);
+          }
+          return Row(children: <Widget>[
+            Expanded(
+              child: _ToolbarButton(
+                label: 'Dön',
+                icon: Icons.arrow_back_rounded,
+                onPressed: onBack,
+              ),
+            ),
+            const SizedBox(width: 6),
+            Expanded(
+              child: _ToolbarButton(
+                label: 'Sıfırla',
+                icon: Icons.restart_alt_rounded,
+                onPressed: onReset,
+              ),
+            ),
+            const SizedBox(width: 6),
+            Expanded(
+              child: _ToolbarButton(
+                label: 'Tamamla',
+                icon: Icons.check_circle_outline_rounded,
+                onPressed: onComplete,
+                filled: true,
+              ),
+            ),
+          ]);
+        },
+      );
+}
+
+class _TestModuleModeActions extends StatelessWidget {
+  const _TestModuleModeActions({
+    required this.onFlashcards,
+    required this.onMatching,
+    required this.onQuickTest,
+    required this.quickBest,
+    required this.manuallyCompleted,
+  });
+  final VoidCallback onFlashcards;
+  final VoidCallback onMatching;
+  final VoidCallback onQuickTest;
+  final int? quickBest;
+  final bool manuallyCompleted;
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+        builder: (context, constraints) {
+          final compact = constraints.maxWidth < 560;
+          if (!compact) {
+            return Wrap(spacing: 8, runSpacing: 8, children: <Widget>[
+              FilledButton.icon(
+                onPressed: onFlashcards,
+                icon: const Icon(Icons.style_rounded, size: 18),
+                label: const Text('Flash Kart'),
+              ),
+              OutlinedButton.icon(
+                onPressed: onMatching,
+                icon: const Icon(Icons.compare_arrows_rounded, size: 18),
+                label: const Text('Eşleştirme'),
+              ),
+              OutlinedButton.icon(
+                onPressed: onQuickTest,
+                icon: const Icon(Icons.bolt_rounded, size: 18),
+                label: Text(quickBest != null
+                    ? 'Hızlı Test · En iyi %$quickBest'
+                    : manuallyCompleted
+                        ? 'Hızlı Test · Tamamlandı'
+                        : 'Hızlı Test'),
+              ),
+            ]);
+          }
+          return Row(children: <Widget>[
+            Expanded(
+              child: _ToolbarButton(
+                label: 'Flash',
+                icon: Icons.style_rounded,
+                onPressed: onFlashcards,
+                filled: true,
+              ),
+            ),
+            const SizedBox(width: 6),
+            Expanded(
+              child: _ToolbarButton(
+                label: 'Eşleştir',
+                icon: Icons.compare_arrows_rounded,
+                onPressed: onMatching,
+              ),
+            ),
+            const SizedBox(width: 6),
+            Expanded(
+              child: _ToolbarButton(
+                label: 'Hızlı',
+                icon: Icons.bolt_rounded,
+                onPressed: onQuickTest,
+              ),
+            ),
+          ]);
+        },
+      );
+}
+
+class _ToolbarButton extends StatelessWidget {
+  const _ToolbarButton({
+    required this.label,
+    required this.icon,
+    required this.onPressed,
+    this.filled = false,
+  });
+  final String label;
+  final IconData icon;
+  final VoidCallback onPressed;
+  final bool filled;
+
+  @override
+  Widget build(BuildContext context) {
+    final child =
+        Row(mainAxisAlignment: MainAxisAlignment.center, children: <Widget>[
+      Icon(icon, size: 17),
+      const SizedBox(width: 4),
+      Flexible(
+        child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
+      ),
+    ]);
+    final style = ButtonStyle(
+      padding: const WidgetStatePropertyAll(
+        EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+      ),
+      minimumSize: const WidgetStatePropertyAll(Size.fromHeight(40)),
+      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      visualDensity: VisualDensity.compact,
+    );
+    return filled
+        ? FilledButton(onPressed: onPressed, style: style, child: child)
+        : OutlinedButton(onPressed: onPressed, style: style, child: child);
+  }
+}
+
+class _TestWordGrid extends StatelessWidget {
+  const _TestWordGrid({required this.words, required this.showTranslations});
+  final List<TestBankWord> words;
+  final bool showTranslations;
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+        builder: (context, constraints) {
+          if (constraints.maxWidth < 720) {
+            return Column(
+              children: <Widget>[
+                for (var index = 0; index < words.length; index++) ...<Widget>[
+                  _TestWordCard(
+                    word: words[index],
+                    showTranslations: showTranslations,
+                  ),
+                  if (index < words.length - 1) const SizedBox(height: 10),
+                ],
+              ],
+            );
+          }
+          return Column(
+            children: <Widget>[
+              for (var start = 0; start < words.length; start += 2) ...<Widget>[
+                IntrinsicHeight(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: <Widget>[
+                      Expanded(
+                        child: _TestWordCard(
+                          word: words[start],
+                          showTranslations: showTranslations,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      if (start + 1 < words.length)
+                        Expanded(
+                          child: _TestWordCard(
+                            word: words[start + 1],
+                            showTranslations: showTranslations,
+                          ),
+                        )
+                      else
+                        const Spacer(),
+                    ],
+                  ),
+                ),
+                if (start + 2 < words.length) const SizedBox(height: 12),
+              ],
+            ],
+          );
+        },
+      );
+}
+
 class _TestWordCard extends ConsumerStatefulWidget {
   const _TestWordCard({
     required this.word,
     required this.showTranslations,
-    required this.minHeight,
   });
   final TestBankWord word;
   final bool showTranslations;
-  final double minHeight;
 
   @override
   ConsumerState<_TestWordCard> createState() => _TestWordCardState();
@@ -299,6 +488,7 @@ class _TestWordCardState extends ConsumerState<_TestWordCard> {
   @override
   Widget build(BuildContext context) {
     final word = widget.word;
+    final tokens = AppThemeTokens.of(context);
     final detailsVisible = widget.showTranslations || _hovering || _expanded;
     final favorite =
         ref.watch(localProgressProvider).testFavoriteWordIds.contains(word.id);
@@ -313,67 +503,99 @@ class _TestWordCardState extends ConsumerState<_TestWordCard> {
         onTap: widget.showTranslations
             ? null
             : () => setState(() => _expanded = !_expanded),
-        padding: const EdgeInsets.all(16),
-        child: ConstrainedBox(
-          constraints: BoxConstraints(minHeight: widget.minHeight),
-          child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Row(children: <Widget>[
-                  Expanded(
-                    child: Text(word.headword,
-                        style: Theme.of(context)
-                            .textTheme
-                            .titleMedium
-                            ?.copyWith(fontWeight: FontWeight.w700)),
-                  ),
-                  IconButton(
-                    tooltip: favorite ? 'Favoriden çıkar' : 'Favoriye ekle',
-                    onPressed: () => ref
-                        .read(localProgressProvider.notifier)
-                        .toggleTestFavoriteWord(word.id),
-                    icon: Icon(favorite
-                        ? Icons.favorite_rounded
-                        : Icons.favorite_border_rounded),
-                  ),
-                  if (!widget.showTranslations)
-                    Icon(_expanded
-                        ? Icons.expand_less_rounded
-                        : Icons.expand_more_rounded),
-                ]),
-                if (word.pos.isNotEmpty) ...<Widget>[
-                  const SizedBox(height: 3),
-                  Text(word.pos, style: Theme.of(context).textTheme.bodySmall)
-                ],
-                if (detailsVisible) ...<Widget>[
-                  const SizedBox(height: 8),
-                  Text(word.meaningTr,
-                      style: Theme.of(context).textTheme.bodyLarge),
-                  if (word.exampleEn.isNotEmpty) ...<Widget>[
-                    const SizedBox(height: 10),
-                    Text(word.exampleEn,
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodyMedium
-                            ?.copyWith(fontWeight: FontWeight.w600)),
-                  ],
-                  if (word.exampleTr.isNotEmpty) ...<Widget>[
-                    const SizedBox(height: 3),
-                    Text(word.exampleTr,
-                        style: Theme.of(context).textTheme.bodySmall),
-                  ],
-                  if (word.synonymsRaw != null) ...<Widget>[
-                    const SizedBox(height: 8),
-                    Text('İlişkili: ${word.synonymsRaw}',
-                        style: Theme.of(context).textTheme.bodySmall),
-                  ],
-                ] else ...<Widget>[
-                  const SizedBox(height: 8),
-                  Text('Ayrıntı için karta dokunun',
-                      style: Theme.of(context).textTheme.bodySmall),
-                ],
+        padding: const EdgeInsets.all(14),
+        child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Row(children: <Widget>[
+                Expanded(
+                  child: Text(word.headword,
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleMedium
+                          ?.copyWith(fontWeight: FontWeight.w800)),
+                ),
+                IconButton(
+                  tooltip: favorite ? 'Favoriden çıkar' : 'Favoriye ekle',
+                  visualDensity: VisualDensity.compact,
+                  onPressed: () => ref
+                      .read(localProgressProvider.notifier)
+                      .toggleTestFavoriteWord(word.id),
+                  icon: Icon(favorite
+                      ? Icons.favorite_rounded
+                      : Icons.favorite_border_rounded),
+                ),
+                if (!widget.showTranslations)
+                  Icon(_expanded
+                      ? Icons.expand_less_rounded
+                      : Icons.expand_more_rounded),
               ]),
-        ),
+              if (word.pos.isNotEmpty) ...<Widget>[
+                const SizedBox(height: 2),
+                Text(word.pos,
+                    style: Theme.of(context)
+                        .textTheme
+                        .labelSmall
+                        ?.copyWith(color: tokens.secondaryText)),
+              ],
+              if (detailsVisible) ...<Widget>[
+                const SizedBox(height: 8),
+                Text(word.meaningTr,
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleSmall
+                        ?.copyWith(fontWeight: FontWeight.w700)),
+                if (word.exampleEn.isNotEmpty ||
+                    word.exampleTr.isNotEmpty) ...<Widget>[
+                  const SizedBox(height: 10),
+                  Container(
+                    width: double.infinity,
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: tokens.surfaceMuted,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        if (word.exampleEn.isNotEmpty)
+                          Text(word.exampleEn,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodyMedium
+                                  ?.copyWith(fontWeight: FontWeight.w600)),
+                        if (word.exampleEn.isNotEmpty &&
+                            word.exampleTr.isNotEmpty)
+                          const SizedBox(height: 4),
+                        if (word.exampleTr.isNotEmpty)
+                          Text(word.exampleTr,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodySmall
+                                  ?.copyWith(color: tokens.secondaryText)),
+                      ],
+                    ),
+                  ),
+                ],
+                if (word.synonymsRaw != null &&
+                    word.synonymsRaw!.isNotEmpty) ...<Widget>[
+                  const SizedBox(height: 8),
+                  Text('İlişkili · ${word.synonymsRaw}',
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodySmall
+                          ?.copyWith(color: tokens.secondaryText)),
+                ],
+              ] else ...<Widget>[
+                const SizedBox(height: 7),
+                Text('Ayrıntı için karta dokunun',
+                    style: Theme.of(context)
+                        .textTheme
+                        .bodySmall
+                        ?.copyWith(color: tokens.secondaryText)),
+              ],
+            ]),
       ),
     );
   }

@@ -91,6 +91,10 @@ class LocalProgressController extends StateNotifier<LocalProgressSnapshot> {
       await _repository
           .saveTestMatchingBestScores(merged.testMatchingBestScores);
     }
+    if (_dirtyKeys.contains('testManualModules')) {
+      await _repository.saveManuallyCompletedTestModuleIds(
+          merged.manuallyCompletedTestModuleIds);
+    }
     if (_dirtyKeys.contains('testQuickTests')) {
       await _repository
           .saveTestQuickTestBestScores(merged.testQuickTestBestScores);
@@ -214,6 +218,13 @@ class LocalProgressController extends StateNotifier<LocalProgressSnapshot> {
                   ...current.completedTestMatchingModuleIds
                 }
               : restored.completedTestMatchingModuleIds,
+          manuallyCompletedTestModuleIds:
+              _dirtyKeys.contains('testManualModules')
+                  ? <String>{
+                      ...restored.manuallyCompletedTestModuleIds,
+                      ...current.manuallyCompletedTestModuleIds,
+                    }
+                  : restored.manuallyCompletedTestModuleIds,
           testMatchingBestScores: _dirtyKeys.contains('testMatching')
               ? <String, int>{
                   ...restored.testMatchingBestScores,
@@ -596,28 +607,27 @@ class LocalProgressController extends StateNotifier<LocalProgressSnapshot> {
   }) {
     _markDirty('testFlashcards');
     _markDirty('testMatching');
-    _markDirty('testQuickTests');
+    _markDirty('testManualModules');
     _markDirty('testLastModule');
     final known = Set<String>.of(state.testFlashcardKnownIds)..addAll(wordIds);
     final matching = Set<String>.of(state.completedTestMatchingModuleIds)
       ..add(moduleNo.toString());
-    final matchingScores = Map<String, int>.of(state.testMatchingBestScores)
-      ..[moduleNo.toString()] = 100;
-    final quickScores = Map<String, int>.of(state.testQuickTestBestScores)
-      ..[moduleNo.toString()] = 100;
+    final manuallyCompleted =
+        Set<String>.of(state.manuallyCompletedTestModuleIds)
+          ..add(moduleNo.toString());
     state = state.copyWith(
       isLoaded: true,
       testLastModuleNo: moduleNo,
       testFlashcardKnownIds: Set<String>.unmodifiable(known),
       completedTestMatchingModuleIds: Set<String>.unmodifiable(matching),
-      testMatchingBestScores: Map<String, int>.unmodifiable(matchingScores),
-      testQuickTestBestScores: Map<String, int>.unmodifiable(quickScores),
+      manuallyCompletedTestModuleIds:
+          Set<String>.unmodifiable(manuallyCompleted),
     );
     _save(() => _repository.saveTestLastModuleNo(moduleNo));
     _save(() => _repository.saveTestFlashcardKnownIds(known));
     _save(() => _repository.saveCompletedTestMatchingModuleIds(matching));
-    _save(() => _repository.saveTestMatchingBestScores(matchingScores));
-    _save(() => _repository.saveTestQuickTestBestScores(quickScores));
+    _save(() =>
+        _repository.saveManuallyCompletedTestModuleIds(manuallyCompleted));
   }
 
   void markTestStructureKnown(String structureId) {
@@ -639,6 +649,7 @@ class LocalProgressController extends StateNotifier<LocalProgressSnapshot> {
     _markDirty('testFlashcards');
     _markDirty('testMatching');
     _markDirty('testQuickTests');
+    _markDirty('testManualModules');
     final known = Set<String>.of(state.testFlashcardKnownIds)
       ..removeAll(wordIds);
     final matching = Set<String>.of(state.completedTestMatchingModuleIds)
@@ -647,6 +658,9 @@ class LocalProgressController extends StateNotifier<LocalProgressSnapshot> {
       ..remove(moduleNo.toString());
     final quickScores = Map<String, int>.of(state.testQuickTestBestScores)
       ..remove(moduleNo.toString());
+    final manuallyCompleted =
+        Set<String>.of(state.manuallyCompletedTestModuleIds)
+          ..remove(moduleNo.toString());
     final isCurrentModule = state.testLastModuleNo == moduleNo;
     if (isCurrentModule) {
       _markDirty('testLastModule');
@@ -657,12 +671,16 @@ class LocalProgressController extends StateNotifier<LocalProgressSnapshot> {
       completedTestMatchingModuleIds: Set<String>.unmodifiable(matching),
       testMatchingBestScores: Map<String, int>.unmodifiable(matchingScores),
       testQuickTestBestScores: Map<String, int>.unmodifiable(quickScores),
+      manuallyCompletedTestModuleIds:
+          Set<String>.unmodifiable(manuallyCompleted),
       clearTestLastModuleNo: isCurrentModule,
     );
     _save(() => _repository.saveTestFlashcardKnownIds(known));
     _save(() => _repository.saveCompletedTestMatchingModuleIds(matching));
     _save(() => _repository.saveTestMatchingBestScores(matchingScores));
     _save(() => _repository.saveTestQuickTestBestScores(quickScores));
+    _save(() =>
+        _repository.saveManuallyCompletedTestModuleIds(manuallyCompleted));
     if (isCurrentModule) {
       _save(() => _repository.saveTestLastModuleNo(null));
     }

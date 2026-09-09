@@ -24,6 +24,7 @@ class LocalProgressSnapshot {
     this.testFavoriteWordIds = const <String>{},
     this.testFlashcardKnownIds = const <String>{},
     this.completedTestMatchingModuleIds = const <String>{},
+    this.manuallyCompletedTestModuleIds = const <String>{},
     this.testMatchingBestScores = const <String, int>{},
     this.testQuickTestBestScores = const <String, int>{},
     this.testKnownStructureIds = const <String>{},
@@ -57,6 +58,7 @@ class LocalProgressSnapshot {
   final Set<String> testFavoriteWordIds;
   final Set<String> testFlashcardKnownIds;
   final Set<String> completedTestMatchingModuleIds;
+  final Set<String> manuallyCompletedTestModuleIds;
   final Map<String, int> testMatchingBestScores;
   final Map<String, int> testQuickTestBestScores;
   final Set<String> testKnownStructureIds;
@@ -96,6 +98,7 @@ class LocalProgressSnapshot {
     Set<String>? testFavoriteWordIds,
     Set<String>? testFlashcardKnownIds,
     Set<String>? completedTestMatchingModuleIds,
+    Set<String>? manuallyCompletedTestModuleIds,
     Map<String, int>? testMatchingBestScores,
     Map<String, int>? testQuickTestBestScores,
     Set<String>? testKnownStructureIds,
@@ -145,6 +148,8 @@ class LocalProgressSnapshot {
             testFlashcardKnownIds ?? this.testFlashcardKnownIds,
         completedTestMatchingModuleIds: completedTestMatchingModuleIds ??
             this.completedTestMatchingModuleIds,
+        manuallyCompletedTestModuleIds: manuallyCompletedTestModuleIds ??
+            this.manuallyCompletedTestModuleIds,
         testMatchingBestScores:
             testMatchingBestScores ?? this.testMatchingBestScores,
         testQuickTestBestScores:
@@ -191,6 +196,8 @@ class LocalProgressRepository {
   static const _testFlashcardKnownKey = 'passagetr.testFlashcardKnownIds.v1';
   static const _completedTestMatchingKey =
       'passagetr.completedTestMatchingModuleIds.v1';
+  static const _manuallyCompletedTestModulesKey =
+      'passagetr.manuallyCompletedTestModuleIds.v1';
   static const _testMatchingBestScoresKey =
       'passagetr.testMatchingBestScores.v1';
   static const _testQuickTestBestScoresKey =
@@ -237,6 +244,8 @@ class LocalProgressRepository {
       testFlashcardKnownIds: _readSet(preferences, _testFlashcardKnownKey),
       completedTestMatchingModuleIds:
           _readSet(preferences, _completedTestMatchingKey),
+      manuallyCompletedTestModuleIds:
+          _readSet(preferences, _manuallyCompletedTestModulesKey),
       testMatchingBestScores:
           _readIntMap(preferences, _testMatchingBestScoresKey),
       testQuickTestBestScores:
@@ -330,6 +339,9 @@ class LocalProgressRepository {
 
   Future<void> saveCompletedTestMatchingModuleIds(Set<String> ids) =>
       _saveSet(_completedTestMatchingKey, ids);
+
+  Future<void> saveManuallyCompletedTestModuleIds(Set<String> ids) =>
+      _saveSet(_manuallyCompletedTestModulesKey, ids);
 
   Future<void> saveTestMatchingBestScores(Map<String, int> scores) =>
       _saveIntMap(_testMatchingBestScoresKey, scores);
