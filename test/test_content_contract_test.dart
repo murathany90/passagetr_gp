@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:passagetr_gp/core/app_theme.dart';
 import 'package:passagetr_gp/core/content_providers.dart';
 import 'package:passagetr_gp/core/local_progress.dart';
+import 'package:passagetr_gp/features/tests/test_exams_page.dart';
 import 'package:passagetr_gp/features/tests/test_module_page.dart';
 import 'package:passagetr_gp/features/tests/tests_page.dart';
 import 'package:passagetr_gp/models/test_models.dart';
@@ -38,26 +39,29 @@ void main() {
     final contract = await repository.loadQuestionContentContract();
 
     expect(manifest.canonicalSource,
-        'canonical/passagetr_test_bank_CANONICAL_v3.xlsx');
+        'canonical/tests/passagetr_test_bank_CANONICAL_v4.xlsx');
     expect(manifest.counts.modules, 150);
     expect(manifest.counts.wordRows, 3000);
     expect(manifest.counts.uniqueHeadwords, 3000);
     expect(manifest.counts.structures, 480);
-    expect(manifest.counts.exams, 9);
-    expect(manifest.counts.questions, 450);
-    expect(manifest.counts.options, 2250);
+    expect(manifest.counts.exams, 20);
+    expect(manifest.counts.questions, 1000);
+    expect(manifest.counts.options, 5000);
+    expect(manifest.counts.questionTrCovered, 1000);
+    expect(manifest.counts.questionTrMissing, 0);
     expect(manifest.counts.optionTrMissing, 64);
     expect(modules, hasLength(150));
     expect(first.words, hasLength(20));
     expect(last.words, hasLength(20));
     expect(structures.structures, hasLength(480));
-    expect(exams, hasLength(9));
+    expect(exams, hasLength(20));
     expect(exam.questions, hasLength(50));
-    expect(contract.fingerprints, hasLength(450));
+    expect(contract.fingerprints, hasLength(1000));
     expect(
       exam.questions.every(
         (question) =>
             question.question.isNotEmpty &&
+            question.questionTr.isNotEmpty &&
             question.options.length == 5 &&
             question.options.any(
               (option) => option.textEn == question.correctAnswer,
@@ -149,6 +153,8 @@ void main() {
         },
         testExamLastQuestionIndexes: <String, int>{'1': 5, '2': 3},
         testExamBestScores: <String, int>{'1': 80, '2': 60},
+        testExamLastScores: <String, int>{'1': 80, '2': 60},
+        testExamElapsedSeconds: <String, int>{'1': 91, '2': 48},
       ),
     ));
     addTearDown(controller.dispose);
@@ -176,7 +182,20 @@ void main() {
     expect(
         controller.state.testQuestionAnswers.keys, <String>['test-02-q-001']);
     expect(controller.state.testExamLastQuestionIndexes, <String, int>{'2': 3});
-    expect(controller.state.testExamBestScores, <String, int>{'2': 60});
+    expect(
+        controller.state.testExamBestScores, <String, int>{'1': 80, '2': 60});
+    expect(controller.state.testExamLastScores, <String, int>{'2': 60});
+    expect(controller.state.testExamElapsedSeconds, <String, int>{'2': 48});
+
+    controller.recordTestExamResult(
+      testNo: 2,
+      correct: 2,
+      total: 5,
+      elapsedSeconds: 75,
+    );
+    expect(controller.state.testExamLastScores['2'], 40);
+    expect(controller.state.testExamBestScores['2'], 60);
+    expect(controller.state.testExamElapsedSeconds['2'], 75);
   });
 
   test('Test favourites and activity records never mutate Words favourites',
@@ -287,6 +306,34 @@ void main() {
       expect(tester.takeException(), isNull);
     }
   });
+
+  testWidgets('Original test reveals its Turkish question only after an answer',
+      (tester) async {
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    for (final width in <double>[360, 390, 430]) {
+      await tester.binding.setSurfaceSize(Size(width, 844));
+      await tester.pumpWidget(ProviderScope(
+        overrides: <Override>[
+          staticTestRepositoryProvider
+              .overrideWithValue(_ExamFixtureRepository()),
+          testQuestionCompatibilityProvider.overrideWith((ref) async {}),
+          localProgressRepositoryProvider.overrideWithValue(_MemoryProgress()),
+        ],
+        child: MaterialApp(
+          theme: AppTheme.light(),
+          home: const Scaffold(body: TestExamPage(testNo: 1)),
+        ),
+      ));
+      await tester.pump();
+      await tester.pump();
+      expect(find.text('Türkçe soru'), findsNothing);
+      await tester.tap(find.text('A. correct answer'));
+      await tester.pump();
+      expect(find.text('Türkçe soru'), findsOneWidget);
+      expect(find.text('Türkçe soru çevirisi.'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    }
+  });
 }
 
 class _FileAssetBundle extends CachingAssetBundle {
@@ -391,12 +438,23 @@ class _MemoryProgress extends LocalProgressRepository {
   Future<void> saveTestExamBestScores(Map<String, int> scores) async {
     _snapshot = _snapshot.copyWith(testExamBestScores: scores);
   }
+
+  @override
+  Future<void> saveTestExamLastScores(Map<String, int> scores) async {
+    _snapshot = _snapshot.copyWith(testExamLastScores: scores);
+  }
+
+  @override
+  Future<void> saveTestExamElapsedSeconds(Map<String, int> seconds) async {
+    _snapshot = _snapshot.copyWith(testExamElapsedSeconds: seconds);
+  }
 }
 
 class _TestFixtureRepository extends StaticTestRepository {
   @override
   Future<TestBankManifest> loadManifest() async => TestBankManifest(
-        canonicalSource: 'canonical/passagetr_test_bank_CANONICAL_v3.xlsx',
+        canonicalSource:
+            'canonical/tests/passagetr_test_bank_CANONICAL_v4.xlsx',
         sourceHash: 'fixture',
         counts: const TestBankCounts(
           modules: 150,
@@ -404,10 +462,12 @@ class _TestFixtureRepository extends StaticTestRepository {
           uniqueHeadwords: 3000,
           structures: 480,
           structureCategories: 5,
-          exams: 9,
-          questions: 450,
-          options: 2250,
-          optionTrCovered: 2186,
+          exams: 20,
+          questions: 1000,
+          options: 5000,
+          questionTrCovered: 1000,
+          questionTrMissing: 0,
+          optionTrCovered: 4936,
           optionTrMissing: 64,
         ),
         modules: await loadModules(),
@@ -446,5 +506,37 @@ class _TestFixtureRepository extends StaticTestRepository {
             synonymsRaw: index == 0 ? 'at present, now' : null,
           ),
         ),
+      );
+}
+
+class _ExamFixtureRepository extends _TestFixtureRepository {
+  @override
+  Future<TestExam> loadExam(int testNo) async => TestExam(
+        testNo: testNo,
+        questions: <TestExamQuestion>[
+          TestExamQuestion(
+            id: 'test-01-q-001',
+            number: 1,
+            question: 'Choose the correct answer.',
+            questionTr: 'Türkçe soru çevirisi.',
+            options: const <TestExamOption>[
+              TestExamOption(
+                key: 'A',
+                textEn: 'correct answer',
+                textTr: 'doğru cevap',
+              ),
+              TestExamOption(
+                key: 'B',
+                textEn: 'wrong answer',
+                textTr: 'yanlış cevap',
+              ),
+              TestExamOption(key: 'C', textEn: 'choice c', textTr: 'seçenek c'),
+              TestExamOption(key: 'D', textEn: 'choice d', textTr: 'seçenek d'),
+              TestExamOption(key: 'E', textEn: 'choice e', textTr: 'seçenek e'),
+            ],
+            correctAnswer: 'correct answer',
+            fingerprint: 'fixture-question-one',
+          ),
+        ],
       );
 }

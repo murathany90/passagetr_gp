@@ -29,7 +29,7 @@ READINGS_WORKBOOK = (
 LEGACY_MAP_SOURCE = SOURCE / builder.READINGS_LEGACY_MAP_RELATIVE_PATH
 DICTIONARY_SOURCE = SOURCE / 'canonical' / 'dictionary' / 'dictionary_tr_en.xlsx'
 STUDY_SOURCE = SOURCE / 'canonical' / 'study' / 'PASSAGETR_YDS_Study_Canonical_v2_Module_01-30.xlsx'
-TEST_BANK_SOURCE = SOURCE / 'canonical' / 'passagetr_test_bank_CANONICAL_v3.xlsx'
+TEST_BANK_SOURCE = SOURCE / 'canonical' / 'tests' / 'passagetr_test_bank_CANONICAL_v4.xlsx'
 
 EXPECTED_WORDS = 9000
 EXPECTED_READINGS = 800

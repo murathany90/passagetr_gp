@@ -100,6 +100,14 @@ class _TestsPageState extends ConsumerState<TestsPage> {
         .where((exam) =>
             _answeredExamQuestions(progress, exam.testNo) >= exam.questionCount)
         .length;
+    final bestExamScore = progress.testExamBestScores.values.fold<int>(
+      0,
+      (best, score) => score > best ? score : best,
+    );
+    final totalExamSeconds = progress.testExamElapsedSeconds.values.fold<int>(
+      0,
+      (total, seconds) => total + seconds,
+    );
     return PageFrame(
       title: 'Testler',
       subtitle: 'Test Bank içeriğiyle modül, yapı ve özgün test çalışması.',
@@ -145,7 +153,7 @@ class _TestsPageState extends ConsumerState<TestsPage> {
                     icon: Icons.quiz_outlined,
                     title: 'Özgün Testler',
                     description:
-                        '$completedExams / ${bank.counts.exams} tamamlandı · ${bank.counts.questions} soru',
+                        '$completedExams / ${bank.counts.exams} tamamlandı · En iyi %$bestExamScore · ${_formatExamDuration(totalExamSeconds)}',
                     onTap: () => context.go('/tests/exams'),
                   ),
                 ),
@@ -550,6 +558,15 @@ int _answeredExamQuestions(LocalProgressSnapshot progress, int testNo) {
   return progress.testQuestionAnswers.keys
       .where((questionId) => questionId.startsWith(prefix))
       .length;
+}
+
+String _formatExamDuration(int seconds) {
+  final duration = Duration(seconds: seconds < 0 ? 0 : seconds);
+  final minutes = duration.inMinutes.remainder(60).toString().padLeft(2, '0');
+  final secs = duration.inSeconds.remainder(60).toString().padLeft(2, '0');
+  return duration.inHours == 0
+      ? '$minutes:$secs'
+      : '${duration.inHours}:$minutes:$secs';
 }
 
 class _Pagination extends StatelessWidget {

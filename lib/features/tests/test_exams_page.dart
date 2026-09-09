@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -84,7 +86,12 @@ class TestExamsPage extends ConsumerWidget {
                                     answered: _answeredExamQuestions(
                                         progress, exam.testNo),
                                     best: progress.testExamBestScores[
-                                        exam.testNo.toString()]),
+                                        exam.testNo.toString()],
+                                    last: progress.testExamLastScores[
+                                        exam.testNo.toString()],
+                                    elapsedSeconds:
+                                        progress.testExamElapsedSeconds[
+                                            exam.testNo.toString()]),
                               ))
                           .toList(growable: false));
                 }),
@@ -100,10 +107,14 @@ class _ExamCard extends StatelessWidget {
     required this.exam,
     required this.answered,
     required this.best,
+    required this.last,
+    required this.elapsedSeconds,
   });
   final TestExamSummary exam;
   final int answered;
   final int? best;
+  final int? last;
+  final int? elapsedSeconds;
 
   @override
   Widget build(BuildContext context) {
@@ -126,10 +137,19 @@ class _ExamCard extends StatelessWidget {
             const SizedBox(height: 6),
             Text('$answered / ${exam.questionCount} cevaplandı',
                 style: Theme.of(context).textTheme.bodySmall),
-            if (best != null) ...<Widget>[
+            if (last != null ||
+                best != null ||
+                elapsedSeconds != null) ...<Widget>[
               const SizedBox(height: 6),
-              Text('En iyi sonuç: %$best',
-                  style: Theme.of(context).textTheme.bodySmall)
+              Text(
+                <String>[
+                  if (last != null) 'Son: %$last',
+                  if (best != null) 'En iyi: %$best',
+                  if (elapsedSeconds != null)
+                    'Süre: ${formatTestExamDuration(elapsedSeconds!)}',
+                ].join(' · '),
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
             ],
             const SizedBox(height: 12),
             if (!complete)
@@ -170,6 +190,60 @@ class TestExamPage extends ConsumerStatefulWidget {
 class _TestExamPageState extends ConsumerState<TestExamPage> {
   int? _index;
   bool _restartStarted = false;
+  Timer? _timer;
+  int _elapsedSeconds = 0;
+  bool _clockRestored = false;
+  late final LocalProgressController _progressController;
+
+  @override
+  void initState() {
+    super.initState();
+    _progressController = ref.read(localProgressProvider.notifier);
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    if (_clockRestored && _progressController.mounted) {
+      _progressController.setTestExamElapsedSeconds(
+        testNo: widget.testNo,
+        seconds: _elapsedSeconds,
+      );
+    }
+    super.dispose();
+  }
+
+  void _syncClock({required int storedSeconds, required bool complete}) {
+    if (!_clockRestored) {
+      _clockRestored = true;
+      if (_elapsedSeconds != storedSeconds) {
+        setState(() => _elapsedSeconds = storedSeconds);
+      }
+    }
+    if (complete) {
+      _timer?.cancel();
+      _timer = null;
+      return;
+    }
+    if (_timer != null) return;
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted) return;
+      setState(() => _elapsedSeconds++);
+      if (_elapsedSeconds % 10 == 0) {
+        ref.read(localProgressProvider.notifier).setTestExamElapsedSeconds(
+              testNo: widget.testNo,
+              seconds: _elapsedSeconds,
+            );
+      }
+    });
+  }
+
+  void _persistClock() {
+    ref.read(localProgressProvider.notifier).setTestExamElapsedSeconds(
+          testNo: widget.testNo,
+          seconds: _elapsedSeconds,
+        );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -222,6 +296,15 @@ class _TestExamPageState extends ConsumerState<TestExamPage> {
             .where((item) => progress.testQuestionCorrectness[item.id] == true)
             .length;
         final complete = answered == data.questions.length;
+        final storedSeconds =
+            progress.testExamElapsedSeconds[widget.testNo.toString()] ?? 0;
+        if (!_clockRestored || (complete && _timer != null)) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              _syncClock(storedSeconds: storedSeconds, complete: complete);
+            }
+          });
+        }
         if (_index == null && index != restored) {
           WidgetsBinding.instance
               .addPostFrameCallback((_) => setState(() => _index = index));
@@ -245,12 +328,54 @@ class _TestExamPageState extends ConsumerState<TestExamPage> {
           child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                LinearProgressIndicator(
-                    value: answered / data.questions.length),
-                const SizedBox(height: 6),
-                Text('$answered / ${data.questions.length} cevaplandı',
-                    style: Theme.of(context).textTheme.bodySmall),
-                const SizedBox(height: 16),
+                SurfaceCard(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Wrap(
+                        spacing: 12,
+                        runSpacing: 4,
+                        children: <Widget>[
+                          Text('Soru ${index + 1} / ${data.questions.length}',
+                              style: Theme.of(context).textTheme.labelLarge),
+                          Text(
+                              'Cevaplanan $answered / ${data.questions.length}',
+                              style: Theme.of(context).textTheme.bodySmall),
+                          Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: <Widget>[
+                                const Icon(Icons.timer_outlined, size: 16),
+                                const SizedBox(width: 4),
+                                Text(formatTestExamDuration(_elapsedSeconds),
+                                    style:
+                                        Theme.of(context).textTheme.bodySmall),
+                              ]),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      LinearProgressIndicator(
+                          value: answered / data.questions.length),
+                    ],
+                  ),
+                ),
+                if (complete) ...<Widget>[
+                  const SizedBox(height: 12),
+                  _ExamResultSummary(
+                    correct: correctCount,
+                    total: data.questions.length,
+                    elapsedSeconds: _elapsedSeconds,
+                    onWrongAnswers: correctCount == data.questions.length
+                        ? null
+                        : () => context.go('/tests/wrong'),
+                    onRestart: () => _restart(data),
+                    onBack: () => context.go('/tests/exams'),
+                  ),
+                ],
+                const SizedBox(height: 12),
                 SurfaceCard(
                     child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -260,6 +385,15 @@ class _TestExamPageState extends ConsumerState<TestExamPage> {
                               .textTheme
                               .titleLarge
                               ?.copyWith(fontWeight: FontWeight.w700)),
+                      if (answer != null &&
+                          question.questionTr.isNotEmpty) ...<Widget>[
+                        const SizedBox(height: 8),
+                        Text('Türkçe soru',
+                            style: Theme.of(context).textTheme.labelMedium),
+                        const SizedBox(height: 3),
+                        Text(question.questionTr,
+                            style: Theme.of(context).textTheme.bodyMedium),
+                      ],
                       const SizedBox(height: 16),
                       for (final option in question.options) ...<Widget>[
                         _ExamOption(
@@ -326,12 +460,17 @@ class _TestExamPageState extends ConsumerState<TestExamPage> {
       ref.read(localProgressProvider).testQuestionCorrectness,
     )..[question.id] = isCorrect;
     if (exam.questions.every(correctness.containsKey)) {
-      controller.setTestExamBestScore(
+      _timer?.cancel();
+      _timer = null;
+      controller.recordTestExamResult(
         testNo: widget.testNo,
         correct:
             exam.questions.where((item) => correctness[item.id] == true).length,
         total: exam.questions.length,
+        elapsedSeconds: _elapsedSeconds,
       );
+    } else {
+      _persistClock();
     }
   }
 
@@ -362,16 +501,100 @@ class _TestExamPageState extends ConsumerState<TestExamPage> {
   }
 
   void _restart(TestExam exam) {
+    _timer?.cancel();
+    _timer = null;
+    _elapsedSeconds = 0;
+    _clockRestored = false;
     _resetProgress(exam);
     if (!mounted) return;
     context.go('/tests/exam/${exam.testNo}');
   }
 
   void _resetProgress(TestExam exam) {
+    _timer?.cancel();
+    _timer = null;
+    _elapsedSeconds = 0;
+    _clockRestored = false;
     ref.read(localProgressProvider.notifier).resetTestExamProgress(
           testNo: exam.testNo,
           questionIds: exam.questions.map((question) => question.id),
         );
+  }
+}
+
+String formatTestExamDuration(int seconds) {
+  final duration = Duration(seconds: seconds < 0 ? 0 : seconds);
+  final hours = duration.inHours;
+  final minutes = duration.inMinutes.remainder(60).toString().padLeft(2, '0');
+  final secs = duration.inSeconds.remainder(60).toString().padLeft(2, '0');
+  return hours == 0 ? '$minutes:$secs' : '$hours:$minutes:$secs';
+}
+
+class _ExamResultSummary extends StatelessWidget {
+  const _ExamResultSummary({
+    required this.correct,
+    required this.total,
+    required this.elapsedSeconds,
+    required this.onWrongAnswers,
+    required this.onRestart,
+    required this.onBack,
+  });
+
+  final int correct;
+  final int total;
+  final int elapsedSeconds;
+  final VoidCallback? onWrongAnswers;
+  final VoidCallback onRestart;
+  final VoidCallback onBack;
+
+  @override
+  Widget build(BuildContext context) {
+    final wrong = total - correct;
+    final score = total == 0 ? 0 : ((correct / total) * 100).round();
+    return SurfaceCard(
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text('Test sonucu', style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 12,
+            runSpacing: 4,
+            children: <Widget>[
+              Text('Doğru: $correct / $total'),
+              Text('Yanlış: $wrong'),
+              const Text('Boş: 0'),
+              Text('Başarı: %$score'),
+              Text('Puan: $score / 100'),
+              Text('Süre: ${formatTestExamDuration(elapsedSeconds)}'),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: <Widget>[
+              if (onWrongAnswers != null)
+                OutlinedButton.icon(
+                  onPressed: onWrongAnswers,
+                  icon: const Icon(Icons.replay_rounded),
+                  label: const Text('Yanlışları incele'),
+                ),
+              FilledButton.tonalIcon(
+                onPressed: onRestart,
+                icon: const Icon(Icons.restart_alt_rounded),
+                label: const Text('Testi tekrar çöz'),
+              ),
+              TextButton(
+                onPressed: onBack,
+                child: const Text('Testler’e dön'),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -570,6 +793,11 @@ class _WrongQuestion extends ConsumerWidget {
         children: <Widget>[
           Text('${question.id} · ${question.question}',
               style: Theme.of(context).textTheme.titleMedium),
+          if (question.questionTr.isNotEmpty) ...<Widget>[
+            const SizedBox(height: 6),
+            Text(question.questionTr,
+                style: Theme.of(context).textTheme.bodyMedium),
+          ],
           const SizedBox(height: 10),
           for (final option in question.options) ...<Widget>[
             Builder(builder: (context) {

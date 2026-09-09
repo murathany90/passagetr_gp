@@ -34,6 +34,8 @@ class LocalProgressSnapshot {
     this.testQuestionFingerprints = const <String, String>{},
     this.testExamLastQuestionIndexes = const <String, int>{},
     this.testExamBestScores = const <String, int>{},
+    this.testExamLastScores = const <String, int>{},
+    this.testExamElapsedSeconds = const <String, int>{},
   });
 
   const LocalProgressSnapshot.empty() : this(isLoaded: false);
@@ -68,6 +70,8 @@ class LocalProgressSnapshot {
   final Map<String, String> testQuestionFingerprints;
   final Map<String, int> testExamLastQuestionIndexes;
   final Map<String, int> testExamBestScores;
+  final Map<String, int> testExamLastScores;
+  final Map<String, int> testExamElapsedSeconds;
 
   LocalProgressSnapshot copyWith({
     bool? isLoaded,
@@ -109,6 +113,8 @@ class LocalProgressSnapshot {
     Map<String, String>? testQuestionFingerprints,
     Map<String, int>? testExamLastQuestionIndexes,
     Map<String, int>? testExamBestScores,
+    Map<String, int>? testExamLastScores,
+    Map<String, int>? testExamElapsedSeconds,
   }) =>
       LocalProgressSnapshot(
         isLoaded: isLoaded ?? this.isLoaded,
@@ -167,6 +173,9 @@ class LocalProgressSnapshot {
         testExamLastQuestionIndexes:
             testExamLastQuestionIndexes ?? this.testExamLastQuestionIndexes,
         testExamBestScores: testExamBestScores ?? this.testExamBestScores,
+        testExamLastScores: testExamLastScores ?? this.testExamLastScores,
+        testExamElapsedSeconds:
+            testExamElapsedSeconds ?? this.testExamElapsedSeconds,
       );
 }
 
@@ -213,6 +222,9 @@ class LocalProgressRepository {
   static const _testExamLastQuestionIndexesKey =
       'passagetr.testExamLastQuestionIndexes.v1';
   static const _testExamBestScoresKey = 'passagetr.testExamBestScores.v1';
+  static const _testExamLastScoresKey = 'passagetr.testExamLastScores.v1';
+  static const _testExamElapsedSecondsKey =
+      'passagetr.testExamElapsedSeconds.v1';
 
   Future<SharedPreferences>? _preferencesFuture;
 
@@ -261,6 +273,9 @@ class LocalProgressRepository {
       testExamLastQuestionIndexes:
           _readIntMap(preferences, _testExamLastQuestionIndexesKey),
       testExamBestScores: _readIntMap(preferences, _testExamBestScoresKey),
+      testExamLastScores: _readIntMap(preferences, _testExamLastScoresKey),
+      testExamElapsedSeconds:
+          _readIntMap(preferences, _testExamElapsedSecondsKey),
     );
   }
 
@@ -383,6 +398,12 @@ class LocalProgressRepository {
 
   Future<void> saveTestExamBestScores(Map<String, int> scores) =>
       _saveIntMap(_testExamBestScoresKey, scores);
+
+  Future<void> saveTestExamLastScores(Map<String, int> scores) =>
+      _saveIntMap(_testExamLastScoresKey, scores);
+
+  Future<void> saveTestExamElapsedSeconds(Map<String, int> seconds) =>
+      _saveIntMap(_testExamElapsedSecondsKey, seconds);
 
   Future<SharedPreferences> _preferences() =>
       _preferencesFuture ??= SharedPreferences.getInstance();

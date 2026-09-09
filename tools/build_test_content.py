@@ -29,7 +29,7 @@ import build_static_content as static  # noqa: E402
 
 
 SOURCE = ROOT / 'source_data'
-TEST_CANONICAL_RELATIVE_PATH = 'canonical/passagetr_test_bank_CANONICAL_v3.xlsx'
+TEST_CANONICAL_RELATIVE_PATH = 'canonical/tests/passagetr_test_bank_CANONICAL_v4.xlsx'
 TEST_SOURCE = SOURCE / TEST_CANONICAL_RELATIVE_PATH
 WORDS_SOURCE = SOURCE / 'canonical' / 'words' / static.WORDS_CANONICAL_FILENAME
 DICTIONARY_SOURCE = SOURCE / 'canonical' / 'dictionary' / 'dictionary_tr_en.xlsx'
@@ -42,12 +42,16 @@ WORD_FIELDS = (
 REQUIRED_WORD_FIELDS = tuple(field for field in WORD_FIELDS if field != 'synonyms_raw')
 STRUCTURE_FIELDS = ('category', 'structure', 'tr_meaning', 'example_en', 'example_tr')
 EXAM_FIELDS = (
-    'test_no', 'question_no', 'question_sentence', 'option_a', 'option_b',
-    'option_c', 'option_d', 'option_e', 'correct_answer',
+    'test_no', 'question_no', 'question_sentence', 'question_sentence_tr',
+    'option_a', 'option_b', 'option_c', 'option_d', 'option_e',
+    'correct_answer',
 )
 EXPECTED_MODULES = 150
 WORDS_PER_MODULE = 20
 EXPECTED_WORD_ROWS = EXPECTED_MODULES * WORDS_PER_MODULE
+EXPECTED_EXAMS = 20
+QUESTIONS_PER_EXAM = 50
+EXPECTED_EXAM_QUESTIONS = EXPECTED_EXAMS * QUESTIONS_PER_EXAM
 
 
 def _tag_name(element: ET.Element) -> str:
@@ -247,6 +251,9 @@ def _option_translation(
 
 
 def _question_fingerprint(question: dict[str, Any]) -> str:
+    # The Turkish question translation is display-only.  Keeping the
+    # fingerprint tied to scored EN content preserves valid answers when a
+    # future canonical revision improves only a translation.
     canonical = {
         'id': question['id'],
         'number': question['number'],
@@ -387,6 +394,7 @@ def build(
             'id': f'test-{test_no:02d}-q-{question_no:03d}',
             'number': question_no,
             'question': row['question_sentence'],
+            'questionTr': row['question_sentence_tr'],
             'options': options,
             'correctAnswer': correct,
         }
@@ -394,11 +402,15 @@ def build(
         fingerprints[question['id']] = question['fingerprint']
         exams[test_no].append(question)
     test_numbers = sorted(exams)
-    if test_numbers != list(range(1, 10)) or any(
-        [item['number'] for item in exams[number]] != list(range(1, 51))
+    if test_numbers != list(range(1, EXPECTED_EXAMS + 1)) or any(
+        [item['number'] for item in exams[number]]
+        != list(range(1, QUESTIONS_PER_EXAM + 1))
         for number in test_numbers
     ):
-        raise ValueError('Test Bank must contain Test 1–9 with questions 1–50.')
+        raise ValueError(
+            f'Test Bank must contain Test 1–{EXPECTED_EXAMS} with '
+            f'questions 1–{QUESTIONS_PER_EXAM}.'
+        )
     exam_summaries: list[dict[str, Any]] = []
     for number in test_numbers:
         file_name = f'exams/test_{number:02d}.json'
@@ -429,6 +441,14 @@ def build(
             'exams': len(exam_summaries),
             'questions': len(exam_rows),
             'options': len(exam_rows) * 5,
+            'questionTrCovered': sum(
+                bool(static.clean(row['question_sentence_tr']))
+                for row in exam_rows
+            ),
+            'questionTrMissing': sum(
+                not static.clean(row['question_sentence_tr'])
+                for row in exam_rows
+            ),
             'optionTrCovered': len(exam_rows) * 5 - len(missing_options),
             'optionTrMissing': len(missing_options),
         },
@@ -459,6 +479,8 @@ def main() -> int:
         'structures': manifest['counts']['structures'],
         'exams': manifest['counts']['exams'],
         'questions': manifest['counts']['questions'],
+        'questionTrCovered': manifest['counts']['questionTrCovered'],
+        'questionTrMissing': manifest['counts']['questionTrMissing'],
         'options': manifest['counts']['options'],
         'optionTrMissing': manifest['counts']['optionTrMissing'],
         'source': manifest['canonicalSource'],

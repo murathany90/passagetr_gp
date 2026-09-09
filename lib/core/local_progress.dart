@@ -115,6 +115,9 @@ class LocalProgressController extends StateNotifier<LocalProgressSnapshot> {
       await _repository
           .saveTestExamLastQuestionIndexes(merged.testExamLastQuestionIndexes);
       await _repository.saveTestExamBestScores(merged.testExamBestScores);
+      await _repository.saveTestExamLastScores(merged.testExamLastScores);
+      await _repository
+          .saveTestExamElapsedSeconds(merged.testExamElapsedSeconds);
     }
   }
 
@@ -276,6 +279,18 @@ class LocalProgressController extends StateNotifier<LocalProgressSnapshot> {
                   ...current.testExamBestScores
                 }
               : restored.testExamBestScores,
+          testExamLastScores: _dirtyKeys.contains('examProgress')
+              ? <String, int>{
+                  ...restored.testExamLastScores,
+                  ...current.testExamLastScores
+                }
+              : restored.testExamLastScores,
+          testExamElapsedSeconds: _dirtyKeys.contains('examProgress')
+              ? <String, int>{
+                  ...restored.testExamElapsedSeconds,
+                  ...current.testExamElapsedSeconds
+                }
+              : restored.testExamElapsedSeconds,
         );
         await _persistMerged(state);
       }
@@ -808,8 +823,52 @@ class LocalProgressController extends StateNotifier<LocalProgressSnapshot> {
     _save(() => _repository.saveTestExamBestScores(scores));
   }
 
-  /// Removes answers, score and resume position for one original Test Bank
-  /// exam. Other exams, module progress and favourites are not affected.
+  /// Persists the current attempt clock without changing its score.
+  void setTestExamElapsedSeconds({
+    required int testNo,
+    required int seconds,
+  }) {
+    _markDirty('examProgress');
+    final values = Map<String, int>.of(state.testExamElapsedSeconds)
+      ..[testNo.toString()] = seconds < 0 ? 0 : seconds;
+    state = state.copyWith(
+      isLoaded: true,
+      testExamElapsedSeconds: Map<String, int>.unmodifiable(values),
+    );
+    _save(() => _repository.saveTestExamElapsedSeconds(values));
+  }
+
+  /// Records a completed attempt. The latest score and duration describe the
+  /// active result; the best score remains the learner's highest real score.
+  void recordTestExamResult({
+    required int testNo,
+    required int correct,
+    required int total,
+    required int elapsedSeconds,
+  }) {
+    if (total <= 0) return;
+    _markDirty('examProgress');
+    final key = testNo.toString();
+    final score = ((correct / total) * 100).round();
+    final best = Map<String, int>.of(state.testExamBestScores);
+    if ((best[key] ?? 0) < score) best[key] = score;
+    final last = Map<String, int>.of(state.testExamLastScores)..[key] = score;
+    final seconds = Map<String, int>.of(state.testExamElapsedSeconds)
+      ..[key] = elapsedSeconds < 0 ? 0 : elapsedSeconds;
+    state = state.copyWith(
+      isLoaded: true,
+      testExamBestScores: Map<String, int>.unmodifiable(best),
+      testExamLastScores: Map<String, int>.unmodifiable(last),
+      testExamElapsedSeconds: Map<String, int>.unmodifiable(seconds),
+    );
+    _save(() => _repository.saveTestExamBestScores(best));
+    _save(() => _repository.saveTestExamLastScores(last));
+    _save(() => _repository.saveTestExamElapsedSeconds(seconds));
+  }
+
+  /// Removes the active attempt and resume position for one original Test
+  /// Bank exam. Its historical best score, other exams, module progress and
+  /// favourites are not affected.
   void resetTestExamProgress({
     required int testNo,
     required Iterable<String> questionIds,
@@ -826,14 +885,20 @@ class LocalProgressController extends StateNotifier<LocalProgressSnapshot> {
     final key = testNo.toString();
     final indexes = Map<String, int>.of(state.testExamLastQuestionIndexes)
       ..remove(key);
-    final scores = Map<String, int>.of(state.testExamBestScores)..remove(key);
+    // Best score is a historical real result and stays available after a
+    // retry. Only the active attempt's answers, latest score and clock reset.
+    final lastScores = Map<String, int>.of(state.testExamLastScores)
+      ..remove(key);
+    final elapsedSeconds = Map<String, int>.of(state.testExamElapsedSeconds)
+      ..remove(key);
     state = state.copyWith(
       isLoaded: true,
       testQuestionAnswers: Map<String, String>.unmodifiable(answers),
       testQuestionCorrectness: Map<String, bool>.unmodifiable(correctness),
       testQuestionFingerprints: Map<String, String>.unmodifiable(fingerprints),
       testExamLastQuestionIndexes: Map<String, int>.unmodifiable(indexes),
-      testExamBestScores: Map<String, int>.unmodifiable(scores),
+      testExamLastScores: Map<String, int>.unmodifiable(lastScores),
+      testExamElapsedSeconds: Map<String, int>.unmodifiable(elapsedSeconds),
     );
     _save(() => _repository.saveTestQuestionAnswers(answers));
     _save(() => _repository.saveTestQuestionCorrectness(correctness));
@@ -842,6 +907,7 @@ class LocalProgressController extends StateNotifier<LocalProgressSnapshot> {
           fingerprints: fingerprints,
         ));
     _save(() => _repository.saveTestExamLastQuestionIndexes(indexes));
-    _save(() => _repository.saveTestExamBestScores(scores));
+    _save(() => _repository.saveTestExamLastScores(lastScores));
+    _save(() => _repository.saveTestExamElapsedSeconds(elapsedSeconds));
   }
 }

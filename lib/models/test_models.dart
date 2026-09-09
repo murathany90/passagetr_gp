@@ -40,6 +40,8 @@ class TestBankCounts {
     required this.exams,
     required this.questions,
     required this.options,
+    required this.questionTrCovered,
+    required this.questionTrMissing,
     required this.optionTrCovered,
     required this.optionTrMissing,
   });
@@ -52,6 +54,8 @@ class TestBankCounts {
   final int exams;
   final int questions;
   final int options;
+  final int questionTrCovered;
+  final int questionTrMissing;
   final int optionTrCovered;
   final int optionTrMissing;
 
@@ -64,6 +68,8 @@ class TestBankCounts {
         exams: _int(json['exams']),
         questions: _int(json['questions']),
         options: _int(json['options']),
+        questionTrCovered: _int(json['questionTrCovered']),
+        questionTrMissing: _int(json['questionTrMissing']),
         optionTrCovered: _int(json['optionTrCovered']),
         optionTrMissing: _int(json['optionTrMissing']),
       );
@@ -219,6 +225,7 @@ class TestExamQuestion {
     required this.id,
     required this.number,
     required this.question,
+    required this.questionTr,
     required this.options,
     required this.correctAnswer,
     required this.fingerprint,
@@ -227,6 +234,7 @@ class TestExamQuestion {
   final String id;
   final int number;
   final String question;
+  final String questionTr;
   final List<TestExamOption> options;
   final String correctAnswer;
   final String fingerprint;
@@ -236,6 +244,7 @@ class TestExamQuestion {
         id: _text(json['id']),
         number: _int(json['number']),
         question: _text(json['question']),
+        questionTr: _text(json['questionTr']),
         options: _list(json['options'])
             .map(TestExamOption.fromJson)
             .toList(growable: false),

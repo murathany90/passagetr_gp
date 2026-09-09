@@ -22,6 +22,9 @@ OUTPUT = ROOT / 'assets' / 'content' / 'tests'
 EXPECTED_MODULES = builder.EXPECTED_MODULES
 WORDS_PER_MODULE = builder.WORDS_PER_MODULE
 EXPECTED_WORD_ROWS = builder.EXPECTED_WORD_ROWS
+EXPECTED_EXAMS = builder.EXPECTED_EXAMS
+QUESTIONS_PER_EXAM = builder.QUESTIONS_PER_EXAM
+EXPECTED_EXAM_QUESTIONS = builder.EXPECTED_EXAM_QUESTIONS
 
 
 def fail(message: str) -> None:
@@ -58,9 +61,11 @@ def main() -> int:
         'uniqueHeadwords': EXPECTED_WORD_ROWS,
         'structures': len(structures),
         'structureCategories': len({row['category'] for row in structures}),
-        'exams': 9,
-        'questions': len(exam_rows),
+        'exams': EXPECTED_EXAMS,
+        'questions': EXPECTED_EXAM_QUESTIONS,
         'options': len(exam_rows) * 5,
+        'questionTrCovered': EXPECTED_EXAM_QUESTIONS,
+        'questionTrMissing': 0,
     }
     counts = manifest.get('counts')
     if not isinstance(counts, dict) or any(counts.get(key) != value for key, value in expected_counts.items()):
@@ -117,7 +122,7 @@ def main() -> int:
         }.items()):
             fail('Generated structure content drifted from the Test Bank.')
     exams = manifest.get('exams')
-    if not isinstance(exams, list) or len(exams) != 9:
+    if not isinstance(exams, list) or len(exams) != EXPECTED_EXAMS:
         fail('Generated Testler exam index is invalid.')
     source_questions = {(int(row['test_no']), int(row['question_no'])): row for row in exam_rows}
     generated_questions = 0
@@ -126,12 +131,21 @@ def main() -> int:
         test_no = int(summary.get('testNo', 0))
         payload = load_json(OUTPUT / str(summary.get('file', '')))
         questions = payload.get('questions')
-        if test_no not in range(1, 10) or not isinstance(questions, list) or len(questions) != 50:
+        if (
+            test_no not in range(1, EXPECTED_EXAMS + 1)
+            or not isinstance(questions, list)
+            or len(questions) != QUESTIONS_PER_EXAM
+        ):
             fail('Generated Testler exam payload is invalid.')
         for question in questions:
             source_row = source_questions.get((test_no, int(question.get('number', 0))))
             if source_row is None or question.get('question') != source_row['question_sentence']:
                 fail('Generated question text drifted from the Test Bank.')
+            if (
+                question.get('questionTr') != source_row['question_sentence_tr']
+                or not static.clean(str(question.get('questionTr') or ''))
+            ):
+                fail('Generated question Turkish translation drifted from the Test Bank.')
             options = question.get('options')
             if not isinstance(options, list) or len(options) != 5:
                 fail('Generated question lacks A–E options.')
@@ -169,6 +183,8 @@ def main() -> int:
         'structures': counts['structures'],
         'exams': counts['exams'],
         'questions': counts['questions'],
+        'questionTrCovered': counts['questionTrCovered'],
+        'questionTrMissing': counts['questionTrMissing'],
         'options': counts['options'],
         'optionTrCovered': counts['optionTrCovered'],
         'optionTrMissing': counts['optionTrMissing'],
