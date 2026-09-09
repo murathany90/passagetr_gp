@@ -148,8 +148,8 @@ final _routerProvider = Provider<GoRouter>((ref) => GoRouter(
     ));
 
 /// Geçersiz sayısal route parametreleri crash yerine "Sayfa bulunamadı"
-/// durumuna düşer. Modüller 1–110, özgün testler 1–9 aralığındadır.
-int? _parseModuleNo(String? raw) => _parseBounded(raw, min: 1, max: 110);
+/// durumuna düşer. Modüller 1–150, özgün testler 1–9 aralığındadır.
+int? _parseModuleNo(String? raw) => _parseBounded(raw, min: 1, max: 150);
 
 int? _parseTestNo(String? raw) => _parseBounded(raw, min: 1, max: 9);
 

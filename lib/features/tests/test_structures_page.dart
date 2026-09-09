@@ -207,6 +207,9 @@ class _StructureCard extends StatelessWidget {
                   style: Theme.of(context).textTheme.bodyMedium),
               if (item.exampleEn != null) ...<Widget>[
                 const SizedBox(height: 10),
+                Text('İngilizce örnek',
+                    style: Theme.of(context).textTheme.labelMedium),
+                const SizedBox(height: 3),
                 Text(item.exampleEn!,
                     style: Theme.of(context)
                         .textTheme
@@ -214,6 +217,9 @@ class _StructureCard extends StatelessWidget {
                         ?.copyWith(fontWeight: FontWeight.w600))
               ],
               if (item.exampleTr != null) ...<Widget>[
+                const SizedBox(height: 6),
+                Text('Türkçe çeviri',
+                    style: Theme.of(context).textTheme.labelMedium),
                 const SizedBox(height: 3),
                 Text(item.exampleTr!,
                     style: Theme.of(context).textTheme.bodySmall)

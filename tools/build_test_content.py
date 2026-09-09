@@ -29,7 +29,8 @@ import build_static_content as static  # noqa: E402
 
 
 SOURCE = ROOT / 'source_data'
-TEST_SOURCE = SOURCE / 'canonical' / 'tests' / 'passagetr_test_bank.xlsx'
+TEST_CANONICAL_RELATIVE_PATH = 'canonical/passagetr_test_bank_CANONICAL_v3.xlsx'
+TEST_SOURCE = SOURCE / TEST_CANONICAL_RELATIVE_PATH
 WORDS_SOURCE = SOURCE / 'canonical' / 'words' / static.WORDS_CANONICAL_FILENAME
 DICTIONARY_SOURCE = SOURCE / 'canonical' / 'dictionary' / 'dictionary_tr_en.xlsx'
 OUTPUT = ROOT / 'assets' / 'content' / 'tests'
@@ -38,11 +39,15 @@ WORD_FIELDS = (
     'day', 'en_word', 'tr_meaning', 'pos', 'example_en', 'example_tr',
     'synonyms_raw',
 )
+REQUIRED_WORD_FIELDS = tuple(field for field in WORD_FIELDS if field != 'synonyms_raw')
 STRUCTURE_FIELDS = ('category', 'structure', 'tr_meaning', 'example_en', 'example_tr')
 EXAM_FIELDS = (
     'test_no', 'question_no', 'question_sentence', 'option_a', 'option_b',
     'option_c', 'option_d', 'option_e', 'correct_answer',
 )
+EXPECTED_MODULES = 150
+WORDS_PER_MODULE = 20
+EXPECTED_WORD_ROWS = EXPECTED_MODULES * WORDS_PER_MODULE
 
 
 def _tag_name(element: ET.Element) -> str:
@@ -265,7 +270,7 @@ def build(
     structures = sheets['phrasal_prepositions']
     exam_rows = sheets['vocabulary_tests']
     for row_number, row in enumerate(words, start=2):
-        if any(not static.clean(row[field]) for field in WORD_FIELDS):
+        if any(not static.clean(row[field]) for field in REQUIRED_WORD_FIELDS):
             raise ValueError(f'Blank Test Bank word field at row {row_number}.')
     for row_number, row in enumerate(structures, start=2):
         if any(not static.clean(row[field]) for field in ('category', 'structure', 'tr_meaning')):
@@ -292,10 +297,20 @@ def build(
             'synonymsRaw': row['synonyms_raw'] or None,
         })
     module_numbers = sorted(module_words)
-    if module_numbers != list(range(1, 111)) or any(
-        len(module_words[number]) != 20 for number in module_numbers
+    if module_numbers != list(range(1, EXPECTED_MODULES + 1)) or any(
+        len(module_words[number]) != WORDS_PER_MODULE for number in module_numbers
     ):
-        raise ValueError('Test Bank modules must be 001–110 with 20 word rows each.')
+        raise ValueError(
+            f'Test Bank modules must be 001–{EXPECTED_MODULES:03d} '
+            f'with {WORDS_PER_MODULE} word rows each.'
+        )
+    unique_headwords = {
+        static.normalize_dictionary_key(row['en_word']) for row in words
+    }
+    if len(words) != EXPECTED_WORD_ROWS or len(unique_headwords) != EXPECTED_WORD_ROWS:
+        raise ValueError(
+            f'Test Bank must contain {EXPECTED_WORD_ROWS} unique word rows.'
+        )
 
     generated_files: list[str] = []
     if output.exists():
@@ -398,17 +413,17 @@ def build(
     source_hash = _source_hash(source)
     manifest = {
         'schemaVersion': 1,
-        'canonicalSource': 'canonical/tests/passagetr_test_bank.xlsx',
+        'canonicalSource': TEST_CANONICAL_RELATIVE_PATH,
         'sourceHash': source_hash,
         'lookupSources': {
-            'testBankWords': 'canonical/tests/passagetr_test_bank.xlsx#words',
+            'testBankWords': f'{TEST_CANONICAL_RELATIVE_PATH}#words',
             'canonicalWords': f'canonical/words/{static.WORDS_CANONICAL_FILENAME}',
             'canonicalDictionary': 'canonical/dictionary/dictionary_tr_en.xlsx',
         },
         'counts': {
             'modules': len(modules),
             'wordRows': len(words),
-            'uniqueHeadwords': len({static.normalize_dictionary_key(row['en_word']) for row in words}),
+            'uniqueHeadwords': len(unique_headwords),
             'structures': len(structures),
             'structureCategories': len(structures_payload['categories']),
             'exams': len(exam_summaries),

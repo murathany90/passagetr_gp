@@ -31,23 +31,23 @@ void main() {
     final manifest = await repository.loadManifest();
     final modules = await repository.loadModules();
     final first = await repository.loadModule(1);
-    final last = await repository.loadModule(110);
+    final last = await repository.loadModule(150);
     final structures = await repository.loadStructures();
     final exams = await repository.loadExams();
     final exam = await repository.loadExam(1);
     final contract = await repository.loadQuestionContentContract();
 
-    expect(
-        manifest.canonicalSource, 'canonical/tests/passagetr_test_bank.xlsx');
-    expect(manifest.counts.modules, 110);
-    expect(manifest.counts.wordRows, 2200);
-    expect(manifest.counts.uniqueHeadwords, 2165);
+    expect(manifest.canonicalSource,
+        'canonical/passagetr_test_bank_CANONICAL_v3.xlsx');
+    expect(manifest.counts.modules, 150);
+    expect(manifest.counts.wordRows, 3000);
+    expect(manifest.counts.uniqueHeadwords, 3000);
     expect(manifest.counts.structures, 480);
     expect(manifest.counts.exams, 9);
     expect(manifest.counts.questions, 450);
     expect(manifest.counts.options, 2250);
     expect(manifest.counts.optionTrMissing, 64);
-    expect(modules, hasLength(110));
+    expect(modules, hasLength(150));
     expect(first.words, hasLength(20));
     expect(last.words, hasLength(20));
     expect(structures.structures, hasLength(480));
@@ -75,7 +75,7 @@ void main() {
       appBuildSha: 'test-deploy-sha',
       versionAssetLoads: true,
     );
-    await versioned.loadModule(110);
+    await versioned.loadModule(150);
     expect(
       bundle.loadedKeys,
       contains(
@@ -84,7 +84,7 @@ void main() {
     expect(
       bundle.loadedKeys,
       contains(
-          'assets/content/tests/modules/module_110.json?v=test-deploy-sha'),
+          'assets/content/tests/modules/module_150.json?v=test-deploy-sha'),
     );
   });
 
@@ -258,7 +258,7 @@ void main() {
       await tester.pump();
       expect(find.text('Testler'), findsOneWidget);
       expect(find.text('1–10'), findsOneWidget);
-      expect(find.text('101–110'), findsOneWidget);
+      expect(find.text('141–150'), findsOneWidget);
       expect(tester.takeException(), isNull);
     }
   });
@@ -396,12 +396,12 @@ class _MemoryProgress extends LocalProgressRepository {
 class _TestFixtureRepository extends StaticTestRepository {
   @override
   Future<TestBankManifest> loadManifest() async => TestBankManifest(
-        canonicalSource: 'canonical/tests/passagetr_test_bank.xlsx',
+        canonicalSource: 'canonical/passagetr_test_bank_CANONICAL_v3.xlsx',
         sourceHash: 'fixture',
         counts: const TestBankCounts(
-          modules: 110,
-          wordRows: 2200,
-          uniqueHeadwords: 2165,
+          modules: 150,
+          wordRows: 3000,
+          uniqueHeadwords: 3000,
           structures: 480,
           structureCategories: 5,
           exams: 9,
@@ -417,7 +417,7 @@ class _TestFixtureRepository extends StaticTestRepository {
 
   @override
   Future<List<TestModuleSummary>> loadModules() async => List.generate(
-        110,
+        150,
         (index) => TestModuleSummary(
           id: 'module-${(index + 1).toString().padLeft(3, '0')}',
           moduleNo: index + 1,

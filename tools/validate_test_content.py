@@ -17,8 +17,11 @@ import build_test_content as builder  # noqa: E402
 import build_static_content as static  # noqa: E402
 
 
-SOURCE = ROOT / 'source_data' / 'canonical' / 'tests' / 'passagetr_test_bank.xlsx'
+SOURCE = ROOT / 'source_data' / builder.TEST_CANONICAL_RELATIVE_PATH
 OUTPUT = ROOT / 'assets' / 'content' / 'tests'
+EXPECTED_MODULES = builder.EXPECTED_MODULES
+WORDS_PER_MODULE = builder.WORDS_PER_MODULE
+EXPECTED_WORD_ROWS = builder.EXPECTED_WORD_ROWS
 
 
 def fail(message: str) -> None:
@@ -39,12 +42,10 @@ def source_hash(path: Path) -> str:
 def main() -> int:
     if not SOURCE.is_file():
         fail('Canonical Test Bank workbook is missing.')
-    if list(SOURCE.parent.glob('*.xlsx')) != [SOURCE]:
-        fail('Tests canonical directory must contain only passagetr_test_bank.xlsx.')
     sheets = builder.read_workbook(SOURCE)
     builder._require_schema(sheets)
     manifest = load_json(OUTPUT / 'test_bank_manifest.json')
-    if manifest.get('canonicalSource') != 'canonical/tests/passagetr_test_bank.xlsx':
+    if manifest.get('canonicalSource') != builder.TEST_CANONICAL_RELATIVE_PATH:
         fail('Manifest canonical Test Bank source is invalid.')
     if manifest.get('sourceHash') != source_hash(SOURCE):
         fail('Manifest Test Bank checksum is invalid.')
@@ -52,9 +53,9 @@ def main() -> int:
     structures = sheets['phrasal_prepositions']
     exam_rows = sheets['vocabulary_tests']
     expected_counts = {
-        'modules': 110,
-        'wordRows': len(words),
-        'uniqueHeadwords': len({static.normalize_dictionary_key(row['en_word']) for row in words}),
+        'modules': EXPECTED_MODULES,
+        'wordRows': EXPECTED_WORD_ROWS,
+        'uniqueHeadwords': EXPECTED_WORD_ROWS,
         'structures': len(structures),
         'structureCategories': len({row['category'] for row in structures}),
         'exams': 9,
@@ -64,10 +65,16 @@ def main() -> int:
     counts = manifest.get('counts')
     if not isinstance(counts, dict) or any(counts.get(key) != value for key, value in expected_counts.items()):
         fail(f'Manifest Testler counts are invalid: {counts!r}')
+    if len(words) != EXPECTED_WORD_ROWS or len({
+        static.normalize_dictionary_key(row['en_word']) for row in words
+    }) != EXPECTED_WORD_ROWS:
+        fail(f'Canonical Test Bank must contain {EXPECTED_WORD_ROWS} unique word rows.')
     modules = manifest.get('modules')
-    if not isinstance(modules, list) or len(modules) != 110:
+    if not isinstance(modules, list) or len(modules) != EXPECTED_MODULES:
         fail('Generated Testler module index is invalid.')
-    canonical_modules: dict[int, list[dict[str, str]]] = {number: [] for number in range(1, 111)}
+    canonical_modules: dict[int, list[dict[str, str]]] = {
+        number: [] for number in range(1, EXPECTED_MODULES + 1)
+    }
     for row in words:
         canonical_modules[int(row['day'])].append(row)
     generated_word_rows = 0
@@ -80,6 +87,8 @@ def main() -> int:
         expected = canonical_modules[number]
         if not isinstance(generated, list) or len(generated) != len(expected):
             fail(f'Module {number:03d} lost or added a canonical word row.')
+        if len(generated) != WORDS_PER_MODULE:
+            fail(f'Module {number:03d} does not contain {WORDS_PER_MODULE} words.')
         for generated_row, canonical_row in zip(generated, expected):
             expected_fields = {
                 'headword': canonical_row['en_word'],

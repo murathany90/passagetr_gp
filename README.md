@@ -44,8 +44,8 @@ değeriyle oluşturulur.
 | Sözlük kaydı | **121.772** |
 | Benzersiz sözlük headword | **121.501** |
 | Study modülü | **30** |
-| Test modülü | **110** |
-| Test bankası kelime satırı | **2.200** |
+| Test modülü | **150** |
+| Test bankası kelime satırı | **3.000** |
 | Phrasal / preposition yapı | **480** |
 | Özgün test | **9** |
 | Özgün test sorusu | **450** |
@@ -279,14 +279,14 @@ kontrol edilir.
 Testler modülünün tek canonical kaynağı:
 
 ```text
-source_data/canonical/tests/passagetr_test_bank.xlsx
+source_data/canonical/passagetr_test_bank_CANONICAL_v3.xlsx
 ```
 
 Canonical kapsam:
 
 ```text
-110 modül
-2.200 kelime satırı
+150 modül
+3.000 kelime satırı
 480 phrasal/preposition yapı
 9 özgün test
 450 özgün test sorusu
@@ -381,7 +381,7 @@ Sözlük doğrudan tek büyük runtime dosyası olarak kullanılmak yerine lazy 
 | `source_data/mappings/reading_legacy_ids_001_678.json` | JSON | Legacy ID migration | 678 mapping | Eski reading progress migration |
 | `source_data/canonical/dictionary/dictionary_tr_en.xlsx` | XLSX | EN→TR sözlük | 121.783 kaynak satırı | Dictionary shard üretimi |
 | `source_data/canonical/study/PASSAGETR_YDS_Study_Canonical_v2_Module_01-30.xlsx` | XLSX | Study canonical | 30 modül | Study manifest/module JSON |
-| `source_data/canonical/tests/passagetr_test_bank.xlsx` | XLSX | Test canonical | 110 modül / 9 test | Test runtime JSON |
+| `source_data/canonical/passagetr_test_bank_CANONICAL_v3.xlsx` | XLSX | Test canonical V3 | 150 modül / 9 test | Test runtime JSON |
 
 ---
 
@@ -559,7 +559,7 @@ Uygulama hash-routing kullanır.
 #/tests/wrong
 ```
 
-Sayısal test module route'ları `1–110`, özgün exam route'ları `1–9` aralığıyla sınırlandırılır. Geçersiz route parametreleri uygulama crash'i yerine kontrollü hata sayfasına yönlendirilir.
+Sayısal test module route'ları `1–150`, özgün exam route'ları `1–9` aralığıyla sınırlandırılır. Geçersiz route parametreleri uygulama crash'i yerine kontrollü hata sayfasına yönlendirilir.
 
 Hash routing kullanılması GitHub Pages tarafında ek server rewrite kuralı gerektirmez.
 
@@ -602,7 +602,7 @@ source_data/
     readings/
     dictionary/
     study/
-    tests/
+    passagetr_test_bank_CANONICAL_v3.xlsx
   mappings/
 
 tools/
@@ -830,8 +830,8 @@ modül hedef kelime / sentence / reading / translation / test / review sözleşm
 ## Tests
 
 ```text
-110 module
-2.200 word row
+150 module
+3.000 word row
 480 structure
 9 original test
 450 question

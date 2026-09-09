@@ -64,7 +64,7 @@ allowed = {
     Path('source_data/mappings/reading_legacy_ids_001_678.json').resolve(),
     Path('source_data/canonical/dictionary/dictionary_tr_en.xlsx').resolve(),
     Path('source_data/canonical/study/PASSAGETR_YDS_Study_Canonical_v2_Module_01-30.xlsx').resolve(),
-    Path('source_data/canonical/tests/passagetr_test_bank.xlsx').resolve(),
+    Path('source_data/canonical/passagetr_test_bank_CANONICAL_v3.xlsx').resolve(),
 }
 assert {path.resolve() for path in Path('source_data').rglob('*') if path.is_file()} == allowed
 manifest = json.load(open('assets/content/v1/manifest.json', encoding='utf-8'))
