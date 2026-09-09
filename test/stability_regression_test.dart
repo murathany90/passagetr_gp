@@ -17,7 +17,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 void main() {
   test('restore öncesi favori kaybı olmaz: kayıtlar birleştirilir', () async {
     SharedPreferences.setMockInitialValues(
-      <String, Object>{'passagetr.favoriteWordIds.v1': <String>['a']},
+      <String, Object>{
+        'passagetr.favoriteWordIds.v1': <String>['a']
+      },
     );
     final controller = LocalProgressController(LocalProgressRepository());
     // Restore henüz bitmeden yapılan değişiklik korunmalı.
@@ -39,8 +41,19 @@ void main() {
     expect(packs, isEmpty);
   });
 
+  test('word bootstrap keeps the readings index lazy', () async {
+    final bundle = _WordBootstrapBundle();
+    final repository = StaticContentRepository(bundle: bundle);
+
+    final words = await repository.loadWords();
+
+    expect(words, hasLength(9000));
+    expect(bundle.calls, isNot(contains(endsWith('readings.json'))));
+  });
+
   test('eski TTS session statei değiştirmez ve stop gerçekten durdurur',
-      () async {    final engine = _BlockingTtsEngine();
+      () async {
+    final engine = _BlockingTtsEngine();
     final controller = StudentTtsController(engine: engine);
     final first = controller.playSentence(
       readingId: 'reading-1',
@@ -168,6 +181,60 @@ class _CountingTtsEngine implements StudentTtsEngine {
   Future<void> stop() async {
     stopCount += 1;
   }
+}
+
+class _WordBootstrapBundle extends AssetBundle {
+  final Set<String> calls = <String>{};
+
+  @override
+  Future<String> loadString(String key, {bool cache = true}) async {
+    calls.add(key);
+    if (key.endsWith('manifest.json')) {
+      return jsonEncode(<String, Object?>{
+        'counts': <String, Object?>{
+          'words': 9000,
+          'readings': 800,
+          'sentences': 7500,
+        },
+        'packs': <Object?>[
+          <String, Object?>{
+            'id': 'pack-1',
+            'name': 'Words',
+            'wordCount': 9000,
+          },
+        ],
+        'readingsIndex': 'readings.json',
+        'wordsIndex': 'words.json',
+      });
+    }
+    if (key.endsWith('words.json')) {
+      return jsonEncode(<String, Object?>{
+        'packs': <Object?>[
+          <String, Object?>{'file': 'words/pack-1.json'},
+        ],
+      });
+    }
+    if (key.endsWith('words/pack-1.json')) {
+      return jsonEncode(<String, Object?>{
+        'words': List<Object?>.generate(
+          9000,
+          (index) => <String, Object?>{
+            'id': 'word-$index',
+            'packId': 'pack-1',
+            'enWord': 'word-$index',
+            'trMeaning': 'meaning-$index',
+            'pos': 'noun',
+            'exampleEn': 'Example $index.',
+          },
+        ),
+      });
+    }
+    throw StateError('Unexpected asset: $key');
+  }
+
+  @override
+  Future<ByteData> load(String key) =>
+      throw UnimplementedError('Only loadString is supported.');
 }
 
 class _FlakyBundle extends AssetBundle {

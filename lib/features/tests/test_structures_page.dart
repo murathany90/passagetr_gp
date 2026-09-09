@@ -17,9 +17,11 @@ class TestStructuresPage extends ConsumerStatefulWidget {
 }
 
 class _TestStructuresPageState extends ConsumerState<TestStructuresPage> {
+  static const _listPageSize = 20;
   String? _category;
   _StructureMode _mode = _StructureMode.list;
   int _index = 0;
+  int _listPage = 0;
   bool _showMeaning = false;
   List<TestStructure> _deck = const <TestStructure>[];
   String? _deckScope;
@@ -87,6 +89,7 @@ class _TestStructuresPageState extends ConsumerState<TestStructuresPage> {
                                 onChanged: (value) => setState(() {
                                   _category = value;
                                   _index = 0;
+                                  _listPage = 0;
                                   _showMeaning = false;
                                   _deck = const [];
                                 }),
@@ -112,6 +115,7 @@ class _TestStructuresPageState extends ConsumerState<TestStructuresPage> {
                               onSelectionChanged: (value) => setState(() {
                                 _mode = value.first;
                                 _index = 0;
+                                _listPage = 0;
                                 _showMeaning = false;
                               }),
                             ),
@@ -123,7 +127,12 @@ class _TestStructuresPageState extends ConsumerState<TestStructuresPage> {
                       child: Text('Bu kategoride yapı bulunmuyor.'))
                 else
                   switch (_mode) {
-                    _StructureMode.list => _StructureList(items: items),
+                    _StructureMode.list => _StructureList(
+                        items: items,
+                        page: _listPage,
+                        pageSize: _listPageSize,
+                        onPageChanged: (page) =>
+                            setState(() => _listPage = page)),
                     _StructureMode.flashcards => _StructureFlashcard(
                         items: _deck,
                         index: _index,
@@ -165,23 +174,61 @@ class _TestStructuresPageState extends ConsumerState<TestStructuresPage> {
 enum _StructureMode { list, flashcards, matching }
 
 class _StructureList extends StatelessWidget {
-  const _StructureList({required this.items});
+  const _StructureList({
+    required this.items,
+    required this.page,
+    required this.pageSize,
+    required this.onPageChanged,
+  });
+
   final List<TestStructure> items;
+  final int page;
+  final int pageSize;
+  final ValueChanged<int> onPageChanged;
 
   @override
-  Widget build(BuildContext context) =>
-      LayoutBuilder(builder: (context, constraints) {
-        final twoColumns = constraints.maxWidth >= 720;
-        final width =
-            twoColumns ? (constraints.maxWidth - 12) / 2 : constraints.maxWidth;
-        return Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            children: items
-                .map((item) =>
-                    SizedBox(width: width, child: _StructureCard(item: item)))
-                .toList(growable: false));
-      });
+  Widget build(BuildContext context) {
+    final lastPage = (items.length - 1) ~/ pageSize;
+    final safePage = page.clamp(0, lastPage).toInt();
+    final visible =
+        items.skip(safePage * pageSize).take(pageSize).toList(growable: false);
+    return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          if (lastPage > 0) ...<Widget>[
+            Row(children: <Widget>[
+              Expanded(
+                  child: Text('Sayfa ${safePage + 1}/${lastPage + 1}',
+                      style: Theme.of(context).textTheme.bodyMedium)),
+              IconButton(
+                  tooltip: 'Önceki sayfa',
+                  onPressed:
+                      safePage == 0 ? null : () => onPageChanged(safePage - 1),
+                  icon: const Icon(Icons.chevron_left_rounded)),
+              IconButton(
+                  tooltip: 'Sonraki sayfa',
+                  onPressed: safePage == lastPage
+                      ? null
+                      : () => onPageChanged(safePage + 1),
+                  icon: const Icon(Icons.chevron_right_rounded)),
+            ]),
+            const SizedBox(height: 10),
+          ],
+          LayoutBuilder(builder: (context, constraints) {
+            final twoColumns = constraints.maxWidth >= 720;
+            final width = twoColumns
+                ? (constraints.maxWidth - 12) / 2
+                : constraints.maxWidth;
+            return Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: visible
+                    .map((item) => SizedBox(
+                        width: width, child: _StructureCard(item: item)))
+                    .toList(growable: false));
+          }),
+        ]);
+  }
 }
 
 class _StructureCard extends StatelessWidget {
@@ -191,6 +238,7 @@ class _StructureCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) => SurfaceCard(
         padding: const EdgeInsets.all(16),
+        elevated: false,
         child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[

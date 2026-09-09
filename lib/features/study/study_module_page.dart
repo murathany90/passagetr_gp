@@ -1344,56 +1344,91 @@ class _StudyTranslationsState extends State<_StudyTranslations> {
   }
 }
 
-class _StudyStructures extends StatelessWidget {
+class _StudyStructures extends StatefulWidget {
   const _StudyStructures({required this.structures});
   final List<StudyStructure> structures;
 
   @override
+  State<_StudyStructures> createState() => _StudyStructuresState();
+}
+
+class _StudyStructuresState extends State<_StudyStructures> {
+  static const _pageSize = 20;
+  int _page = 0;
+
+  @override
   Widget build(BuildContext context) {
+    final lastPage = widget.structures.isEmpty
+        ? 0
+        : (widget.structures.length - 1) ~/ _pageSize;
+    final page = _page.clamp(0, lastPage).toInt();
+    final visible = widget.structures
+        .skip(page * _pageSize)
+        .take(_pageSize)
+        .toList(growable: false);
     final groups = <String, List<StudyStructure>>{};
-    for (final structure in structures) {
+    for (final structure in visible) {
       groups
           .putIfAbsent(structure.category, () => <StudyStructure>[])
           .add(structure);
     }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: groups.entries
-          .map(
-            (entry) => Padding(
-              padding: const EdgeInsets.only(bottom: 14),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Text(
-                    _structureLabel(entry.key),
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  const SizedBox(height: 8),
-                  LayoutBuilder(
-                    builder: (context, constraints) {
-                      final width = constraints.maxWidth >= 720
-                          ? (constraints.maxWidth - 10) / 2
-                          : constraints.maxWidth;
-                      return Wrap(
-                        spacing: 10,
-                        runSpacing: 10,
-                        children: entry.value
-                            .map(
-                              (item) => SizedBox(
-                                width: width,
-                                child: _StudyStructureCard(item: item),
-                              ),
-                            )
-                            .toList(growable: false),
-                      );
-                    },
-                  ),
-                ],
-              ),
+      children: <Widget>[
+        if (lastPage > 0) ...<Widget>[
+          Row(children: <Widget>[
+            Expanded(
+                child: Text('Sayfa ${page + 1}/${lastPage + 1}',
+                    style: Theme.of(context).textTheme.bodyMedium)),
+            IconButton(
+                tooltip: 'Önceki sayfa',
+                onPressed:
+                    page == 0 ? null : () => setState(() => _page = page - 1),
+                icon: const Icon(Icons.chevron_left_rounded)),
+            IconButton(
+                tooltip: 'Sonraki sayfa',
+                onPressed: page == lastPage
+                    ? null
+                    : () => setState(() => _page = page + 1),
+                icon: const Icon(Icons.chevron_right_rounded)),
+          ]),
+          const SizedBox(height: 10),
+        ],
+        ...groups.entries.map(
+          (entry) => Padding(
+            padding: const EdgeInsets.only(bottom: 14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  _structureLabel(entry.key),
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const SizedBox(height: 8),
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final width = constraints.maxWidth >= 720
+                        ? (constraints.maxWidth - 10) / 2
+                        : constraints.maxWidth;
+                    return Wrap(
+                      spacing: 10,
+                      runSpacing: 10,
+                      children: entry.value
+                          .map(
+                            (item) => SizedBox(
+                              width: width,
+                              child: _StudyStructureCard(item: item),
+                            ),
+                          )
+                          .toList(growable: false),
+                    );
+                  },
+                ),
+              ],
             ),
-          )
-          .toList(growable: false),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -1419,6 +1454,7 @@ class _StudyStructureCardState extends State<_StudyStructureCard> {
     ].any((value) => value.isNotEmpty);
     return SurfaceCard(
       padding: const EdgeInsets.all(16),
+      elevated: false,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
@@ -1655,54 +1691,88 @@ class _QuestionCard extends ConsumerWidget {
   }
 }
 
-class _StudyReview extends StatelessWidget {
+class _StudyReview extends StatefulWidget {
   const _StudyReview({required this.items});
   final List<StudyReviewItem> items;
 
   @override
+  State<_StudyReview> createState() => _StudyReviewState();
+}
+
+class _StudyReviewState extends State<_StudyReview> {
+  static const _pageSize = 20;
+  int _page = 0;
+
+  @override
   Widget build(BuildContext context) {
+    final lastPage =
+        widget.items.isEmpty ? 0 : (widget.items.length - 1) ~/ _pageSize;
+    final page = _page.clamp(0, lastPage).toInt();
+    final visible = widget.items
+        .skip(page * _pageSize)
+        .take(_pageSize)
+        .toList(growable: false);
     final grouped = <String, List<StudyReviewItem>>{};
-    for (final item in items) {
+    for (final item in visible) {
       grouped.putIfAbsent(item.type, () => <StudyReviewItem>[]).add(item);
     }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: grouped.entries
-          .map(
-            (entry) => Padding(
-              padding: const EdgeInsets.only(bottom: 14),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Text(
-                    _reviewLabel(entry.key),
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  const SizedBox(height: 8),
-                  LayoutBuilder(
-                    builder: (context, constraints) {
-                      final width = constraints.maxWidth >= 720
-                          ? (constraints.maxWidth - 10) / 2
-                          : constraints.maxWidth;
-                      return Wrap(
-                        spacing: 10,
-                        runSpacing: 10,
-                        children: entry.value
-                            .map(
-                              (item) => SizedBox(
-                                width: width,
-                                child: _StudyReviewCard(item: item),
-                              ),
-                            )
-                            .toList(growable: false),
-                      );
-                    },
-                  ),
-                ],
-              ),
+      children: <Widget>[
+        if (lastPage > 0) ...<Widget>[
+          Row(children: <Widget>[
+            Expanded(
+                child: Text('Sayfa ${page + 1}/${lastPage + 1}',
+                    style: Theme.of(context).textTheme.bodyMedium)),
+            IconButton(
+                tooltip: 'Önceki sayfa',
+                onPressed:
+                    page == 0 ? null : () => setState(() => _page = page - 1),
+                icon: const Icon(Icons.chevron_left_rounded)),
+            IconButton(
+                tooltip: 'Sonraki sayfa',
+                onPressed: page == lastPage
+                    ? null
+                    : () => setState(() => _page = page + 1),
+                icon: const Icon(Icons.chevron_right_rounded)),
+          ]),
+          const SizedBox(height: 10),
+        ],
+        ...grouped.entries.map(
+          (entry) => Padding(
+            padding: const EdgeInsets.only(bottom: 14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  _reviewLabel(entry.key),
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const SizedBox(height: 8),
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final width = constraints.maxWidth >= 720
+                        ? (constraints.maxWidth - 10) / 2
+                        : constraints.maxWidth;
+                    return Wrap(
+                      spacing: 10,
+                      runSpacing: 10,
+                      children: entry.value
+                          .map(
+                            (item) => SizedBox(
+                              width: width,
+                              child: _StudyReviewCard(item: item),
+                            ),
+                          )
+                          .toList(growable: false),
+                    );
+                  },
+                ),
+              ],
             ),
-          )
-          .toList(growable: false),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -1726,6 +1796,7 @@ class _StudyReviewCardState extends State<_StudyReviewCard> {
     final usefulNote = isRecall ? '' : item.note;
     return SurfaceCard(
       padding: const EdgeInsets.all(16),
+      elevated: false,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[

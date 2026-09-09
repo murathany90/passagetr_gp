@@ -19,8 +19,10 @@ class TestFavoritesPage extends ConsumerStatefulWidget {
 }
 
 class _TestFavoritesPageState extends ConsumerState<TestFavoritesPage> {
+  static const _listPageSize = 20;
   List<TestBankWord> _deck = const <TestBankWord>[];
   int _index = 0;
+  int _listPage = 0;
   bool _showMeaning = false;
   bool _flashMode = false;
 
@@ -83,12 +85,15 @@ class _TestFavoritesPageState extends ConsumerState<TestFavoritesPage> {
                 )
               : _FavoriteList(
                   items: _deck,
+                  page: _listPage,
+                  pageSize: _listPageSize,
                   onStart: () => setState(() {
                     _flashMode = true;
                     _showMeaning = false;
                     _index = 0;
                   }),
                   onShuffle: _shuffle,
+                  onPageChanged: (page) => setState(() => _listPage = page),
                   onRemove: (word) => ref
                       .read(localProgressProvider.notifier)
                       .toggleTestFavoriteWord(word.id),
@@ -112,12 +117,14 @@ class _TestFavoritesPageState extends ConsumerState<TestFavoritesPage> {
     }
     _deck = List<TestBankWord>.of(items)..shuffle(math.Random());
     _index = 0;
+    _listPage = 0;
     _showMeaning = false;
   }
 
   void _shuffle() => setState(() {
         _deck.shuffle(math.Random());
         _index = 0;
+        _listPage = 0;
         _showMeaning = false;
       });
 
@@ -130,54 +137,85 @@ class _TestFavoritesPageState extends ConsumerState<TestFavoritesPage> {
 class _FavoriteList extends StatelessWidget {
   const _FavoriteList({
     required this.items,
+    required this.page,
+    required this.pageSize,
     required this.onStart,
     required this.onShuffle,
+    required this.onPageChanged,
     required this.onRemove,
   });
 
   final List<TestBankWord> items;
+  final int page;
+  final int pageSize;
   final VoidCallback onStart;
   final VoidCallback onShuffle;
+  final ValueChanged<int> onPageChanged;
   final ValueChanged<TestBankWord> onRemove;
 
   @override
-  Widget build(BuildContext context) => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Wrap(spacing: 8, runSpacing: 8, children: <Widget>[
-            FilledButton.icon(
-              onPressed: onStart,
-              icon: const Icon(Icons.style_rounded),
-              label: const Text('Flash kart ile çalış'),
-            ),
-            OutlinedButton.icon(
-              onPressed: onShuffle,
-              icon: const Icon(Icons.shuffle_rounded),
-              label: const Text('Karıştır'),
-            ),
+  Widget build(BuildContext context) {
+    final lastPage = (items.length - 1) ~/ pageSize;
+    final safePage = page.clamp(0, lastPage).toInt();
+    final visible =
+        items.skip(safePage * pageSize).take(pageSize).toList(growable: false);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Wrap(spacing: 8, runSpacing: 8, children: <Widget>[
+          FilledButton.icon(
+            onPressed: onStart,
+            icon: const Icon(Icons.style_rounded),
+            label: const Text('Flash kart ile çalış'),
+          ),
+          OutlinedButton.icon(
+            onPressed: onShuffle,
+            icon: const Icon(Icons.shuffle_rounded),
+            label: const Text('Karıştır'),
+          ),
+        ]),
+        const SizedBox(height: 14),
+        if (lastPage > 0) ...<Widget>[
+          Row(children: <Widget>[
+            Expanded(
+                child: Text('Sayfa ${safePage + 1}/${lastPage + 1}',
+                    style: Theme.of(context).textTheme.bodyMedium)),
+            IconButton(
+                tooltip: 'Önceki sayfa',
+                onPressed:
+                    safePage == 0 ? null : () => onPageChanged(safePage - 1),
+                icon: const Icon(Icons.chevron_left_rounded)),
+            IconButton(
+                tooltip: 'Sonraki sayfa',
+                onPressed: safePage == lastPage
+                    ? null
+                    : () => onPageChanged(safePage + 1),
+                icon: const Icon(Icons.chevron_right_rounded)),
           ]),
-          const SizedBox(height: 14),
-          LayoutBuilder(builder: (context, constraints) {
-            final columns = constraints.maxWidth >= 720 ? 2 : 1;
-            final width = columns == 2
-                ? (constraints.maxWidth - 12) / 2
-                : constraints.maxWidth;
-            return Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              children: items
-                  .map((word) => SizedBox(
-                        width: width,
-                        child: _FavoriteWordCard(
-                          word: word,
-                          onRemove: () => onRemove(word),
-                        ),
-                      ))
-                  .toList(growable: false),
-            );
-          }),
+          const SizedBox(height: 10),
         ],
-      );
+        LayoutBuilder(builder: (context, constraints) {
+          final columns = constraints.maxWidth >= 720 ? 2 : 1;
+          final width = columns == 2
+              ? (constraints.maxWidth - 12) / 2
+              : constraints.maxWidth;
+          return Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: visible
+                .map((word) => SizedBox(
+                      width: width,
+                      child: _FavoriteWordCard(
+                        word: word,
+                        onRemove: () => onRemove(word),
+                      ),
+                    ))
+                .toList(growable: false),
+          );
+        }),
+      ],
+    );
+  }
 }
 
 class _FavoriteWordCard extends StatelessWidget {
@@ -188,6 +226,7 @@ class _FavoriteWordCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => SurfaceCard(
+        elevated: false,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[

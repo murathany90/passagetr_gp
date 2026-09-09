@@ -24,8 +24,8 @@ void main() {
     );
 
     expect(first, repeat);
-    expect(_allPages(first, 72).toSet(), words.toSet());
-    expect(_allPages(first, 72), hasLength(words.length));
+    expect(_allPages(first, 20).toSet(), words.toSet());
+    expect(_allPages(first, 20), hasLength(words.length));
 
     final searched = orderForPresentation<String>(
       words.reversed,
@@ -60,8 +60,8 @@ void main() {
     );
 
     expect(first, repeat);
-    expect(_allPages(first, 48).toSet(), readings.toSet());
-    expect(_allPages(first, 48), hasLength(readings.length));
+    expect(_allPages(first, 20).toSet(), readings.toSet());
+    expect(_allPages(first, 20), hasLength(readings.length));
 
     final alphabetical = orderForPresentation<String>(
       readings.reversed,

@@ -490,8 +490,8 @@ class _TestWordCardState extends ConsumerState<_TestWordCard> {
     final word = widget.word;
     final tokens = AppThemeTokens.of(context);
     final detailsVisible = widget.showTranslations || _hovering || _expanded;
-    final favorite =
-        ref.watch(localProgressProvider).testFavoriteWordIds.contains(word.id);
+    final favorite = ref.watch(localProgressProvider
+        .select((state) => state.testFavoriteWordIds.contains(word.id)));
     return MouseRegion(
       onEnter: (_) {
         if (!widget.showTranslations) setState(() => _hovering = true);
@@ -500,6 +500,7 @@ class _TestWordCardState extends ConsumerState<_TestWordCard> {
         if (_hovering) setState(() => _hovering = false);
       },
       child: SurfaceCard(
+        elevated: false,
         onTap: widget.showTranslations
             ? null
             : () => setState(() => _expanded = !_expanded),

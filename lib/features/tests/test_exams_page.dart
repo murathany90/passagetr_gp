@@ -703,18 +703,16 @@ class _WrongListBody extends ConsumerStatefulWidget {
 
 class _WrongListBodyState extends ConsumerState<_WrongListBody> {
   Future<List<TestExam>>? _future;
-
-  @override
-  void initState() {
-    super.initState();
-    _future = _loadAll();
-  }
+  String? _loadedScope;
+  int _page = 0;
 
   @override
   void didUpdateWidget(covariant _WrongListBody oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (!_sameSummaries(oldWidget.summaries, widget.summaries)) {
-      _future = _loadAll();
+      _future = null;
+      _loadedScope = null;
+      _page = 0;
     }
   }
 
@@ -726,15 +724,47 @@ class _WrongListBodyState extends ConsumerState<_WrongListBody> {
     return true;
   }
 
-  Future<List<TestExam>> _loadAll() {
+  Future<List<TestExam>> _loadSelected(List<int> testNumbers) {
     final repository = ref.read(staticTestRepositoryProvider);
-    return Future.wait(widget.summaries
-        .map((item) => repository.loadExam(item.testNo))
-        .toList(growable: false));
+    return Future.wait(
+        testNumbers.map(repository.loadExam).toList(growable: false));
+  }
+
+  void _ensureLoaded(List<int> testNumbers) {
+    final scope = testNumbers.join(',');
+    if (_future != null && _loadedScope == scope) return;
+    _loadedScope = scope;
+    _future = _loadSelected(testNumbers);
+    _page = 0;
   }
 
   @override
   Widget build(BuildContext context) {
+    final correctness = ref.watch(localProgressProvider
+        .select((progress) => progress.testQuestionCorrectness));
+    final testNumbers = widget.summaries
+        .where((summary) {
+          final prefix = 'test-${summary.testNo.toString().padLeft(2, '0')}-q-';
+          return correctness.entries.any(
+              (entry) => entry.key.startsWith(prefix) && entry.value == false);
+        })
+        .map((summary) => summary.testNo)
+        .toList(growable: false);
+    if (testNumbers.isEmpty) {
+      return PageFrame(
+        title: 'Yanlışlarım',
+        subtitle: 'Tekrar çözülecek yanlış cevap yok.',
+        actions: <Widget>[
+          OutlinedButton.icon(
+              onPressed: () => context.go('/tests/exams'),
+              icon: const Icon(Icons.arrow_back_rounded),
+              label: const Text('Testlere dön'))
+        ],
+        child: const SurfaceCard(
+            child: Text('Tekrar çözülecek yanlış cevap yok.')),
+      );
+    }
+    _ensureLoaded(testNumbers);
     return FutureBuilder<List<TestExam>>(
       future: _future,
       builder: (context, snapshot) {
@@ -744,12 +774,13 @@ class _WrongListBodyState extends ConsumerState<_WrongListBody> {
               subtitle: 'Sorular hazırlanıyor.',
               child: Center(child: CircularProgressIndicator()));
         }
-        final progress = ref.watch(localProgressProvider);
         final wrong = snapshot.data!
             .expand((exam) => exam.questions)
-            .where((question) =>
-                progress.testQuestionCorrectness[question.id] == false)
+            .where((question) => correctness[question.id] == false)
             .toList(growable: false);
+        final lastPage = (wrong.length - 1) ~/ 20;
+        final page = _page.clamp(0, lastPage).toInt();
+        final visible = wrong.skip(page * 20).take(20).toList(growable: false);
         return PageFrame(
           title: 'Yanlışlarım',
           subtitle: '${wrong.length} yanlış cevap · Soru sırası korunur.',
@@ -764,12 +795,33 @@ class _WrongListBodyState extends ConsumerState<_WrongListBody> {
                   child: Text('Tekrar çözülecek yanlış cevap yok.'))
               : Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: wrong
-                      .map((question) => Padding(
+                  children: <Widget>[
+                      if (lastPage > 0) ...<Widget>[
+                        Row(children: <Widget>[
+                          Expanded(
+                              child: Text('Sayfa ${page + 1}/${lastPage + 1}',
+                                  style:
+                                      Theme.of(context).textTheme.bodyMedium)),
+                          IconButton(
+                              tooltip: 'Önceki sayfa',
+                              onPressed: page == 0
+                                  ? null
+                                  : () => setState(() => _page = page - 1),
+                              icon: const Icon(Icons.chevron_left_rounded)),
+                          IconButton(
+                              tooltip: 'Sonraki sayfa',
+                              onPressed: page == lastPage
+                                  ? null
+                                  : () => setState(() => _page = page + 1),
+                              icon: const Icon(Icons.chevron_right_rounded)),
+                        ]),
+                        const SizedBox(height: 10),
+                      ],
+                      ...visible.map((question) => Padding(
                             padding: const EdgeInsets.only(bottom: 12),
                             child: _WrongQuestion(question: question),
-                          ))
-                      .toList(growable: false)),
+                          )),
+                    ]),
         );
       },
     );
@@ -782,12 +834,15 @@ class _WrongQuestion extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final answer =
-        ref.watch(localProgressProvider).testQuestionAnswers[question.id];
-    final correctness =
-        ref.watch(localProgressProvider).testQuestionCorrectness[question.id];
+    final response = ref.watch(localProgressProvider.select((progress) => (
+          answer: progress.testQuestionAnswers[question.id],
+          correctness: progress.testQuestionCorrectness[question.id],
+        )));
+    final answer = response.answer;
+    final correctness = response.correctness;
     final answered = answer != null;
     return SurfaceCard(
+      elevated: false,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[

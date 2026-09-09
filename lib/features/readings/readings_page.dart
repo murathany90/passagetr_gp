@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -20,13 +22,14 @@ class ReadingsPage extends ConsumerStatefulWidget {
 }
 
 class _ReadingsPageState extends ConsumerState<ReadingsPage> {
-  static const _pageSize = 48;
+  static const _pageSize = 20;
   String _query = '';
   String? _level;
   String? _category;
   int _page = 0;
   bool _filtersRestored = false;
   late final TextEditingController _searchController;
+  Timer? _searchDebounce;
   late int _shuffleSeed;
   var _order = PresentationOrder.alphabetical;
 
@@ -39,15 +42,30 @@ class _ReadingsPageState extends ConsumerState<ReadingsPage> {
 
   @override
   void dispose() {
+    _searchDebounce?.cancel();
     _searchController.dispose();
     super.dispose();
   }
 
   void _clearSearch() {
+    _searchDebounce?.cancel();
     _searchController.clear();
     setState(() {
       _query = '';
       _page = 0;
+    });
+  }
+
+  void _onSearchChanged(String value) {
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(const Duration(milliseconds: 220), () {
+      if (!mounted) return;
+      final nextQuery = value.trim();
+      if (nextQuery == _query) return;
+      setState(() {
+        _query = nextQuery;
+        _page = 0;
+      });
     });
   }
 
@@ -62,7 +80,12 @@ class _ReadingsPageState extends ConsumerState<ReadingsPage> {
   @override
   Widget build(BuildContext context) {
     final readings = ref.watch(readingsProvider);
-    final progress = ref.watch(localProgressProvider);
+    final progress = ref.watch(localProgressProvider.select((state) => (
+          isLoaded: state.isLoaded,
+          level: state.readingLevel,
+          category: state.readingCategory,
+          completedReadingIds: state.completedReadingIds,
+        )));
     // Legacy (001–678) progress migration runs once in the background.
     ref.watch(readingProgressMigrationProvider);
     if (!_filtersRestored && progress.isLoaded) {
@@ -70,8 +93,8 @@ class _ReadingsPageState extends ConsumerState<ReadingsPage> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
           setState(() {
-            _level = progress.readingLevel;
-            _category = progress.readingCategory;
+            _level = progress.level;
+            _category = progress.category;
           });
         }
       });
@@ -131,13 +154,14 @@ class _ReadingsPageState extends ConsumerState<ReadingsPage> {
                 .setReadingFilters(level: validLevel, category: validCategory);
           });
         }
+        final queryLower = _query.toLowerCase();
         final filtered = items.where((item) {
           final text =
               '${item.sourceNumber ?? ''} ${item.title} ${item.displayTitle ?? ''} ${item.turkishTitle ?? ''} ${item.level ?? ''} ${item.category ?? ''} ${item.tags.join(' ')}'
                   .toLowerCase();
           return (validLevel == null || item.level == validLevel) &&
               (validCategory == null || item.category == validCategory) &&
-              text.contains(_query.toLowerCase());
+              text.contains(queryLower);
         }).toList(growable: false);
         final ordered = orderForPresentation<ReadingPassage>(
           filtered,
@@ -180,10 +204,7 @@ class _ReadingsPageState extends ConsumerState<ReadingsPage> {
                                 onPressed: _clearSearch,
                                 icon: const Icon(Icons.clear_rounded),
                               )),
-                    onChanged: (value) => setState(() {
-                          _query = value.trim();
-                          _page = 0;
-                        })),
+                    onChanged: _onSearchChanged),
                 const SizedBox(height: 14),
                 DropdownButtonFormField<String?>(
                   key: ValueKey<String?>('level-$validLevel'),
@@ -441,6 +462,7 @@ class _ReadingCard extends StatelessWidget {
     final tokens = AppThemeTokens.of(context);
     return SurfaceCard(
       padding: EdgeInsets.zero,
+      elevated: false,
       onTap: () => context.go('/readings/${passage.id}'),
       child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

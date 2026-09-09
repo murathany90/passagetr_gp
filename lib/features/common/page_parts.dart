@@ -99,8 +99,8 @@ class PassagetrShell extends ConsumerWidget {
               ? Row(children: <Widget>[
                   _DesktopRail(destination: destination),
                   Expanded(
-                      child: TtsRouteAutoStop(
-                          location: location, child: child)),
+                      child:
+                          TtsRouteAutoStop(location: location, child: child)),
                 ])
               : TtsRouteAutoStop(location: location, child: child),
         ),
@@ -227,12 +227,17 @@ class SurfaceCard extends StatelessWidget {
       required this.child,
       this.padding = const EdgeInsets.all(20),
       this.onTap,
-      this.highlighted = false});
+      this.highlighted = false,
+      this.elevated = true});
 
   final Widget child;
   final EdgeInsetsGeometry padding;
   final VoidCallback? onTap;
   final bool highlighted;
+
+  /// Repeated list cards can opt out of the blurred shadow to reduce web
+  /// compositing work while retaining the shared border and surface styling.
+  final bool elevated;
 
   @override
   Widget build(BuildContext context) {
@@ -246,13 +251,15 @@ class SurfaceCard extends StatelessWidget {
                 ? Theme.of(context).colorScheme.primary
                 : tokens.surfaceBorder,
             width: highlighted ? 1.5 : 1),
-        boxShadow: <BoxShadow>[
-          BoxShadow(
-              color: tokens.surfaceShadow,
-              blurRadius: 16,
-              offset: const Offset(0, 8),
-              spreadRadius: -4)
-        ],
+        boxShadow: elevated
+            ? <BoxShadow>[
+                BoxShadow(
+                    color: tokens.surfaceShadow,
+                    blurRadius: 16,
+                    offset: const Offset(0, 8),
+                    spreadRadius: -4)
+              ]
+            : const <BoxShadow>[],
       ),
       padding: padding,
       child: child,

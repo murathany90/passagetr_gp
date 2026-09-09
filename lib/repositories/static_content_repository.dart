@@ -21,13 +21,14 @@ class StaticContentRepository {
 
   final AssetBundle _bundle;
   final String root;
-  Future<_Catalog>? _catalogFuture;
+  Future<_ContentManifest>? _manifestFuture;
   Future<Map<String, String>>? _legacyMapFuture;
   Future<List<WordEntry>>? _wordsFuture;
+  Future<List<ReadingPassage>>? _readingsFuture;
   final Map<String, Future<ReadingDetail>> _readingCache =
       <String, Future<ReadingDetail>>{};
 
-  Future<List<ContentPack>> loadPacks() async => (await _catalog()).packs;
+  Future<List<ContentPack>> loadPacks() async => (await _manifest()).packs;
 
   Future<List<WordEntry>> loadWords() {
     final pending = _wordsFuture;
@@ -41,8 +42,19 @@ class StaticContentRepository {
     return future;
   }
 
-  Future<List<ReadingPassage>> loadReadings() async =>
-      (await _catalog()).readings;
+  /// The reading index is intentionally separate from the word bootstrap
+  /// path. Opening Kelimeler now loads only the manifest and word packs;
+  /// the 800-item reading index is fetched when Okuma is actually visited.
+  Future<List<ReadingPassage>> loadReadings() {
+    final pending = _readingsFuture;
+    if (pending != null) return pending;
+    final future = _loadReadings();
+    _readingsFuture = future;
+    future.then((_) {}, onError: (_) {
+      _readingsFuture = null;
+    });
+    return future;
+  }
 
   Future<ReadingDetail> loadReading(String id) {
     final pending = _readingCache[id];
@@ -69,18 +81,18 @@ class StaticContentRepository {
     return detail;
   }
 
-  Future<_Catalog> _catalog() {
-    final pending = _catalogFuture;
+  Future<_ContentManifest> _manifest() {
+    final pending = _manifestFuture;
     if (pending != null) return pending;
-    final future = _loadCatalog();
-    _catalogFuture = future;
+    final future = _loadManifest();
+    _manifestFuture = future;
     future.then((_) {}, onError: (_) {
-      _catalogFuture = null;
+      _manifestFuture = null;
     });
     return future;
   }
 
-  Future<_Catalog> _loadCatalog() async {
+  Future<_ContentManifest> _loadManifest() async {
     final manifest = await _loadJson('manifest.json');
     final counts = _jsonMap(manifest['counts']);
     if (counts['words'] != 9000 ||
@@ -93,19 +105,26 @@ class StaticContentRepository {
     final packs = ((manifest['packs'] as List<Object?>?) ?? const <Object?>[])
         .map((item) => ContentPack.fromJson(_jsonMap(item)))
         .toList(growable: false);
-    final readingIndex = await _loadJson(manifest['readingsIndex']! as String);
+    return _ContentManifest(
+      packs: List<ContentPack>.unmodifiable(packs),
+      readingCount: counts['readings']! as int,
+      readingsIndex: manifest['readingsIndex']! as String,
+      wordsIndex: manifest['wordsIndex']! as String,
+      legacyReadingIdMap: manifest['legacyReadingIdMap'] as String?,
+    );
+  }
+
+  Future<List<ReadingPassage>> _loadReadings() async {
+    final content = await _manifest();
+    final readingIndex = await _loadJson(content.readingsIndex);
     final readings =
         ((readingIndex['readings'] as List<Object?>?) ?? const <Object?>[])
             .map((item) => ReadingPassage.fromJson(_jsonMap(item)))
             .toList(growable: false);
-    if (readings.length != counts['readings']) {
+    if (readings.length != content.readingCount) {
       throw StaticContentException('Okuma indeksi eksik veya bozuk.');
     }
-    return _Catalog(
-      packs: packs,
-      readings: List<ReadingPassage>.unmodifiable(readings),
-      wordsIndex: manifest['wordsIndex']! as String,
-    );
+    return List<ReadingPassage>.unmodifiable(readings);
   }
 
   /// Best-effort legacy (001–678) passage-ID migration map; missing file
@@ -123,8 +142,7 @@ class StaticContentRepository {
 
   Future<Map<String, String>> _loadLegacyReadingIdMap() async {
     try {
-      final manifest = await _loadJson('manifest.json');
-      final file = manifest['legacyReadingIdMap'] as String?;
+      final file = (await _manifest()).legacyReadingIdMap;
       if (file == null || file.isEmpty) return const <String, String>{};
       final payload = await _loadJson(file);
       final mapping = (payload['mapping'] as Map?) ?? const <String, String>{};
@@ -137,8 +155,8 @@ class StaticContentRepository {
   }
 
   Future<List<WordEntry>> _loadWords() async {
-    final catalog = await _catalog();
-    final index = await _loadJson(catalog.wordsIndex);
+    final manifest = await _manifest();
+    final index = await _loadJson(manifest.wordsIndex);
     final packFiles = ((index['packs'] as List<Object?>?) ?? const <Object?>[])
         .map(_jsonMap)
         .toList(growable: false);
@@ -172,13 +190,20 @@ class StaticContentRepository {
   }
 }
 
-class _Catalog {
-  const _Catalog(
-      {required this.packs, required this.readings, required this.wordsIndex});
+class _ContentManifest {
+  const _ContentManifest({
+    required this.packs,
+    required this.readingCount,
+    required this.readingsIndex,
+    required this.wordsIndex,
+    required this.legacyReadingIdMap,
+  });
 
   final List<ContentPack> packs;
-  final List<ReadingPassage> readings;
+  final int readingCount;
+  final String readingsIndex;
   final String wordsIndex;
+  final String? legacyReadingIdMap;
 }
 
 extension _FirstOrNull<T> on Iterable<T> {

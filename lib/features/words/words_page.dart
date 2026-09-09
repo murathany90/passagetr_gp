@@ -23,7 +23,7 @@ class WordsPage extends ConsumerStatefulWidget {
 }
 
 class _WordsPageState extends ConsumerState<WordsPage> {
-  static const _pageSize = 72;
+  static const _pageSize = 20;
   String _query = '';
   String? _tag;
   String? _level;
@@ -84,20 +84,25 @@ class _WordsPageState extends ConsumerState<WordsPage> {
   @override
   Widget build(BuildContext context) {
     final words = ref.watch(wordsProvider);
-    final progress = ref.watch(localProgressProvider);
+    final progress = ref.watch(localProgressProvider.select((state) => (
+          isLoaded: state.isLoaded,
+          tag: state.wordTag,
+          level: state.wordLevel,
+          favoriteWordIds: state.favoriteWordIds,
+        )));
     if (!_filtersRestored && progress.isLoaded) {
       _filtersRestored = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
-          final restoredTag = migrateLegacyWordTag(progress.wordTag);
+          final restoredTag = migrateLegacyWordTag(progress.tag);
           setState(() {
             _tag = restoredTag;
-            _level = progress.wordLevel;
+            _level = progress.level;
           });
-          if (restoredTag != progress.wordTag) {
+          if (restoredTag != progress.tag) {
             ref.read(localProgressProvider.notifier).setWordFilters(
                   tag: restoredTag,
-                  level: progress.wordLevel,
+                  level: progress.level,
                 );
           }
         }
@@ -149,11 +154,12 @@ class _WordsPageState extends ConsumerState<WordsPage> {
                 .setWordFilters(tag: validTag, level: validLevel);
           });
         }
+        final queryLower = _query.toLowerCase();
         final filtered = filterBase.where((word) {
           final text =
               '${word.enWord} ${word.trMeaning} ${word.pos}'.toLowerCase();
           return matchesWordFilters(word, level: validLevel, tag: validTag) &&
-              text.contains(_query.toLowerCase());
+              text.contains(queryLower);
         }).toList(growable: false);
         final ordered = orderForPresentation<WordEntry>(
           filtered,
@@ -537,11 +543,14 @@ class _WordCardState extends ConsumerState<_WordCard> {
   Widget build(BuildContext context) {
     final word = widget.word;
     final tokens = AppThemeTokens.of(context);
-    final tts = ref.watch(studentTtsControllerProvider);
-    final speaking = tts.isSpeaking && tts.activeWordId == word.id;
+    final tts = ref.watch(studentTtsControllerProvider.select((state) => (
+          speaking: state.isSpeaking && state.activeWordId == word.id,
+          initializing: state.isInitializing && state.activeWordId == word.id,
+          unavailable: state.isUnavailable,
+        )));
     final translationVisible = widget.showTranslations || _hovering;
-    final completed =
-        ref.watch(localProgressProvider).knownWordIds.contains(word.id);
+    final completed = ref.watch(localProgressProvider
+        .select((state) => state.knownWordIds.contains(word.id)));
     return MouseRegion(
       onEnter: (_) {
         if (!widget.showTranslations) setState(() => _hovering = true);
@@ -550,6 +559,7 @@ class _WordCardState extends ConsumerState<_WordCard> {
         if (_hovering) setState(() => _hovering = false);
       },
       child: SurfaceCard(
+        elevated: false,
         onTap: () {
           ref.read(localProgressProvider.notifier).markWordKnown(word.id);
           showModalBottomSheet<void>(
@@ -606,10 +616,9 @@ class _WordCardState extends ConsumerState<_WordCard> {
                   tooltip: 'Kelimeyi dinle',
                   iconSize: 18,
                   visualDensity: VisualDensity.compact,
-                  isSpeaking: speaking,
-                  isInitializing:
-                      tts.isInitializing && tts.activeWordId == word.id,
-                  isUnavailable: tts.isUnavailable,
+                  isSpeaking: tts.speaking,
+                  isInitializing: tts.initializing,
+                  isUnavailable: tts.unavailable,
                   onPlay: () => ref
                       .read(studentTtsControllerProvider.notifier)
                       .playWord(word: word),
