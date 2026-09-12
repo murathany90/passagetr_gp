@@ -7,16 +7,22 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#0F172A">
   <meta name="description" content="PASSAGETR — public kelime ve okuma çalışması.">
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/passagetr-icon-192.png">
+  <link rel="apple-touch-icon" sizes="192x192" href="icons/passagetr-icon-192.png">
   <link rel="manifest" href="manifest.json">
   <title>PASSAGETR</title>
   <style>
     body { margin: 0; background: #0F172A; }
-    #loading { position: fixed; inset: 0; display: grid; place-items: center; background: #0F172A; color: white; font: 800 26px system-ui, sans-serif; letter-spacing: 3px; }
+    #loading { position: fixed; inset: 0; display: grid; place-items: center; align-content: center; gap: 16px; background: #0F172A; color: white; font: 800 26px system-ui, sans-serif; letter-spacing: 3px; }
+    #loading img { width: 96px; height: 96px; border-radius: 24px; box-shadow: 0 12px 30px rgba(0, 0, 0, .28); }
     #loading span { color: #FF8B3D; }
   </style>
 </head>
 <body>
-  <div id="loading">PASSAGE<span>TR</span></div>
+  <div id="loading" aria-label="PASSAGETR loading">
+    <img src="icons/passagetr-icon-192.png" alt="">
+    <div>PASSAGE<span>TR</span></div>
+  </div>
   <script src="flutter_bootstrap.js" async></script>
   <script>
     window.addEventListener('flutter-first-frame', function () {
